@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuroroute — Tracking</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shared.css">
+<script src="shared.js"></script>
+</head>
+<body class="lang-en">
+
+<nav>
+  <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
+  <ul class="nav-links">
+    <li><a href="index.html"><span data-lang="en">Home</span><span data-lang="de">Start</span></a></li>
+    <li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li>
+    <li><a href="solutions.html"><span data-lang="en">Solutions</span><span data-lang="de">Lösungen</span></a></li>
+    <li><a href="network.html"><span data-lang="en">Network</span><span data-lang="de">Netzwerk</span></a></li>
+    <li><a href="tracking.html" class="active"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li>
+    <li><a href="login.html" style="color:var(--green);"><span data-lang="en">Login</span><span data-lang="de">Login</span></a></li>
+    <li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="lang-switch"><button class="lang-btn active" data-set="en">EN</button><button class="lang-btn" data-set="de">DE</button></div>
+    <a href="contact.html" class="nav-cta"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a>
+    <button class="nav-burger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<header class="page-header">
+  <div class="page-header-orb"></div>
+  <p class="section-tag"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></p>
+  <h1><span data-lang="en">Always know where<br>your freight is.</span><span data-lang="de">Immer wissen, wo<br>Ihre Fracht ist.</span></h1>
+  <p><span data-lang="en">Status-based tracking from day one — evolving into full real-time visibility.</span><span data-lang="de">Statusbasiertes Tracking ab Tag eins — wachsend zu voller Echtzeit-Transparenz.</span></p>
+</header>
+
+<!-- V1 TIMELINE -->
+<section>
+  <div class="section-inner">
+    <p class="section-tag reveal"><span data-lang="en">V1 Tracking · Available Now</span><span data-lang="de">V1 Tracking · Jetzt verfügbar</span></p>
+    <h2 class="reveal"><span data-lang="en">Status-based.<br>No GPS required.</span><span data-lang="de">Statusbasiert.<br>Kein GPS nötig.</span></h2>
+    <p class="body-large reveal"><span data-lang="en">Every transport moves through clear status stages — with timestamps and full history. Companies always see the current status, when it changed, and the complete journey so far.</span><span data-lang="de">Jeder Transport durchläuft klare Status-Stufen — mit Zeitstempeln und voller Historie. Unternehmen sehen jederzeit den aktuellen Status, wann er sich geändert hat, und die komplette bisherige Reise.</span></p>
+
+    <div class="reveal" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:40px;max-width:560px;">
+      <div style="font-family:var(--display);font-size:1rem;color:var(--cyan);letter-spacing:0.05em;margin-bottom:8px;"><span data-lang="en">SHIPMENT #NR-4271 · HAMBURG → MILAN</span><span data-lang="de">SENDUNG #NR-4271 · HAMBURG → MAILAND</span></div>
+      <div style="font-size:0.8rem;color:var(--muted);margin-bottom:28px;">24t · Multimodal</div>
+
+      <div style="display:flex;flex-direction:column;">
+        <!-- done stages -->
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:14px;height:14px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);"></div><div style="width:2px;flex:1;min-height:34px;background:var(--green);"></div></div>
+          <div style="padding-bottom:18px;"><strong style="color:#fff;font-size:0.9rem;">Created</strong><div style="font-size:0.75rem;color:var(--muted);">12 Mar · 08:14</div></div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:14px;height:14px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);"></div><div style="width:2px;flex:1;min-height:34px;background:var(--green);"></div></div>
+          <div style="padding-bottom:18px;"><strong style="color:#fff;font-size:0.9rem;">Confirmed</strong><div style="font-size:0.75rem;color:var(--muted);">12 Mar · 09:40</div></div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:14px;height:14px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);"></div><div style="width:2px;flex:1;min-height:34px;background:var(--green);"></div></div>
+          <div style="padding-bottom:18px;"><strong style="color:#fff;font-size:0.9rem;">Pickup Scheduled</strong><div style="font-size:0.75rem;color:var(--muted);">12 Mar · 11:00</div></div>
+        </div>
+        <!-- current -->
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:18px;height:18px;border-radius:50%;background:var(--cyan);box-shadow:0 0 14px var(--cyan);animation:breathe 1.5s infinite;margin-top:-2px;"></div><div style="width:2px;flex:1;min-height:34px;background:linear-gradient(var(--cyan),var(--border));"></div></div>
+          <div style="padding-bottom:18px;"><strong style="color:var(--cyan);font-size:0.95rem;"><span data-lang="en">In Transit</span><span data-lang="de">Unterwegs</span></strong><div style="font-size:0.75rem;color:var(--muted);">13 Mar · 06:22 · <span data-lang="en">now</span><span data-lang="de">jetzt</span></div></div>
+        </div>
+        <!-- upcoming -->
+        <div style="display:flex;gap:16px;align-items:flex-start;opacity:0.45;">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:14px;height:14px;border-radius:50%;background:var(--bg);border:2px solid var(--muted);"></div><div style="width:2px;flex:1;min-height:30px;background:var(--border);"></div></div>
+          <div style="padding-bottom:16px;"><strong style="color:var(--muted2);font-size:0.9rem;">Terminal Arrival</strong></div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;opacity:0.45;">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:14px;height:14px;border-radius:50%;background:var(--bg);border:2px solid var(--muted);"></div><div style="width:2px;flex:1;min-height:30px;background:var(--border);"></div></div>
+          <div style="padding-bottom:16px;"><strong style="color:var(--muted2);font-size:0.9rem;">Rail Loaded → In Transit → Arrival</strong></div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:flex-start;opacity:0.45;">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="width:14px;height:14px;border-radius:50%;background:var(--bg);border:2px solid var(--muted);"></div></div>
+          <div><strong style="color:var(--muted2);font-size:0.9rem;">Delivered</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VERSIONS -->
+<section style="background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="section-inner">
+    <p class="section-tag reveal"><span data-lang="en">The Tracking Roadmap</span><span data-lang="de">Die Tracking-Roadmap</span></p>
+    <h2 class="reveal"><span data-lang="en">From status<br>to real-time.</span><span data-lang="de">Vom Status<br>zur Echtzeit.</span></h2>
+    <div class="grid-3 reveal">
+      <div class="card">
+        <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);background:rgba(0,255,157,0.1);border:1px solid rgba(0,255,157,0.2);padding:3px 10px;border-radius:100px;">V1 · <span data-lang="en">Now</span><span data-lang="de">Jetzt</span></span>
+        <h3 style="margin-top:16px;"><span data-lang="en">Status Tracking</span><span data-lang="de">Status-Tracking</span></h3>
+        <p style="margin-top:8px;"><span data-lang="en">Status-based stages with timestamps and history. No GPS or hardware needed — works from day one.</span><span data-lang="de">Statusbasierte Stufen mit Zeitstempeln und Historie. Kein GPS oder Hardware nötig — funktioniert ab Tag eins.</span></p>
+      </div>
+      <div class="card">
+        <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan);background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);padding:3px 10px;border-radius:100px;">V2</span>
+        <h3 style="margin-top:16px;"><span data-lang="en">Connected Data</span><span data-lang="de">Vernetzte Daten</span></h3>
+        <p style="margin-top:8px;"><span data-lang="en">API integrations, telematics systems and partner data feeds bring live updates into the platform.</span><span data-lang="de">API-Integrationen, Telematiksysteme und Partnerdaten bringen Live-Updates in die Plattform.</span></p>
+      </div>
+      <div class="card">
+        <span style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--purple);background:rgba(124,92,252,0.1);border:1px solid rgba(124,92,252,0.2);padding:3px 10px;border-radius:100px;">V3</span>
+        <h3 style="margin-top:16px;"><span data-lang="en">Real-Time & Predictive</span><span data-lang="de">Echtzeit & Predictive</span></h3>
+        <p style="margin-top:8px;"><span data-lang="en">Live GPS tracking, predictive ETA and automatic status updates across the whole journey.</span><span data-lang="de">Live-GPS-Tracking, Predictive ETA und automatische Statusupdates über die gesamte Reise.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSPARENCY -->
+<section>
+  <div class="section-inner">
+    <div class="reveal" style="display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;" class="track-split">
+      <div>
+        <p class="section-tag"><span data-lang="en">Transparency</span><span data-lang="de">Transparenz</span></p>
+        <h2><span data-lang="en">Everyone sees<br>the same truth.</span><span data-lang="de">Alle sehen<br>dieselbe Wahrheit.</span></h2>
+        <p class="body-large"><span data-lang="en">Shippers, carriers and drivers all work from one shared status. No more chasing updates by phone — the platform is the single source of truth.</span><span data-lang="de">Verlader, Anbieter und Fahrer arbeiten alle mit einem gemeinsamen Status. Kein Hinterhertelefonieren mehr — die Plattform ist die einzige Wahrheitsquelle.</span></p>
+      </div>
+      <div class="grid-2" style="gap:14px;">
+        <div class="card" style="padding:24px;"><div class="card-icon" style="font-size:1.4rem;">🔄</div><h3 style="font-size:1.1rem;"><span data-lang="en">Live Status</span><span data-lang="de">Live-Status</span></h3></div>
+        <div class="card" style="padding:24px;"><div class="card-icon" style="font-size:1.4rem;">🕐</div><h3 style="font-size:1.1rem;"><span data-lang="en">Timestamps</span><span data-lang="de">Zeitstempel</span></h3></div>
+        <div class="card" style="padding:24px;"><div class="card-icon" style="font-size:1.4rem;">📜</div><h3 style="font-size:1.1rem;"><span data-lang="en">Full History</span><span data-lang="de">Volle Historie</span></h3></div>
+        <div class="card" style="padding:24px;"><div class="card-icon" style="font-size:1.4rem;">🔔</div><h3 style="font-size:1.1rem;"><span data-lang="en">Notifications</span><span data-lang="de">Benachrichtigungen</span></h3></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <h2 class="reveal"><span data-lang="en">See tracking<br>in action.</span><span data-lang="de">Erleben Sie Tracking<br>in Aktion.</span></h2>
+  <div class="hero-btns reveal" style="margin-top:32px;"><a href="contact.html" class="btn-main"><span data-lang="en">Request a Demo</span><span data-lang="de">Demo anfragen</span></a></div>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand"><a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a><p><span data-lang="en">The operating system for multimodal logistics.</span><span data-lang="de">Das Betriebssystem für multimodale Logistik.</span></p></div>
+    <div class="footer-col"><h4><span data-lang="en">Product</span><span data-lang="de">Produkt</span></h4><ul><li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li><li><a href="solutions.html"><span data-lang="en">Solutions</span><span data-lang="de">Lösungen</span></a></li><li><a href="network.html"><span data-lang="en">Network</span><span data-lang="de">Netzwerk</span></a></li><li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li></ul></div>
+    <div class="footer-col"><h4><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></h4><ul><li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li><li><a href="contact.html"><span data-lang="en">Contact</span><span data-lang="de">Kontakt</span></a></li></ul></div>
+    <div class="footer-col"><h4><span data-lang="en">Legal</span><span data-lang="de">Rechtliches</span></h4><ul><li><a href="impressum.html"><span data-lang="en">Imprint</span><span data-lang="de">Impressum</span></a></li><li><a href="datenschutz.html"><span data-lang="en">Privacy</span><span data-lang="de">Datenschutz</span></a></li><li><a href="agb.html">AGB</a></li></ul></div>
+  </div>
+  <div class="footer-bottom"><p>© 2025 Neuroroute</p><p>neuroroute.ai</p></div>
+</footer>
+
+</body>
+</html>

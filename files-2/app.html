@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuroroute — App</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#03050a; --bg2:#070b14; --card:#0f1928; --card2:#131f33;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.1);
+  --cyan:#00d4ff; --green:#00ff9d; --amber:#ffb340; --indigo:#4f7cff; --purple:#7c5cfc; --red:#ff4d6d;
+  --text:#dde6f5; --muted:#5a6e8a; --muted2:#8a9dbf;
+  --display:'Bebas Neue',sans-serif; --body:'Outfit',sans-serif;
+  --role:#00d4ff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.6;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.018) 1px,transparent 1px);background-size:80px 80px;pointer-events:none;z-index:0;}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.6);opacity:0.6;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* ===== TOP BAR ===== */
+.topbar{position:fixed;top:0;left:0;right:0;height:60px;background:rgba(3,5,10,0.88);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:200;}
+.tb-left{display:flex;align-items:center;gap:24px;}
+.logo{font-family:var(--display);font-size:1.5rem;letter-spacing:0.04em;color:#fff;display:flex;align-items:center;gap:9px;text-decoration:none;}
+.logo-pulse{width:8px;height:8px;background:var(--role);border-radius:50%;box-shadow:0 0 14px var(--role);animation:breathe 2.4s infinite;}
+.role-indicator{display:flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:600;color:var(--role);background:rgba(0,212,255,0.08);border:1px solid var(--border2);padding:5px 14px;border-radius:100px;}
+.tb-right{display:flex;align-items:center;gap:14px;}
+.role-switch{background:var(--card2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--body);font-size:0.82rem;padding:7px 12px;cursor:pointer;}
+.tb-user{display:flex;align-items:center;gap:8px;font-size:0.85rem;color:var(--muted2);}
+.tb-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--role),var(--indigo));display:flex;align-items:center;justify-content:center;font-weight:700;color:#000;font-size:0.8rem;}
+.logout{color:var(--muted);text-decoration:none;font-size:0.82rem;transition:color 0.2s;}
+.logout:hover{color:var(--red);}
+
+/* ===== LAYOUT ===== */
+.shell{display:flex;padding-top:60px;min-height:100vh;}
+.sidebar{position:fixed;top:60px;bottom:0;left:0;width:230px;background:var(--bg2);border-right:1px solid var(--border);padding:24px 14px;overflow-y:auto;}
+.nav-section{margin-bottom:24px;}
+.nav-label{font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:0 12px;margin-bottom:10px;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:var(--muted2);font-size:0.9rem;font-weight:500;cursor:pointer;transition:all 0.15s;margin-bottom:2px;}
+.nav-item:hover{background:var(--card);color:var(--text);}
+.nav-item.active{background:rgba(0,212,255,0.1);color:var(--role);}
+.nav-item .ic{font-size:1.1rem;width:20px;text-align:center;}
+.main{margin-left:230px;flex:1;padding:32px 36px;animation:fadeIn 0.3s;}
+
+/* ===== PAGE HEADER ===== */
+.page-title{font-family:var(--display);font-size:2rem;letter-spacing:0.02em;color:#fff;margin-bottom:4px;}
+.page-sub{color:var(--muted2);font-size:0.9rem;margin-bottom:28px;}
+
+/* ===== STAT CARDS ===== */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.stat-label{font-size:0.72rem;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;}
+.stat-value{font-family:var(--display);font-size:1.9rem;color:var(--role);letter-spacing:0.02em;line-height:1;}
+.stat-change{font-size:0.74rem;color:var(--muted2);margin-top:5px;}
+.stat-change.up{color:var(--green);}
+
+/* ===== CARDS / PANELS ===== */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.panel-title{font-family:var(--display);font-size:1.2rem;letter-spacing:0.03em;color:#fff;}
+.panel-action{font-size:0.82rem;color:var(--role);cursor:pointer;text-decoration:none;}
+
+/* ===== TABLE / ROWS ===== */
+.rows{display:flex;flex-direction:column;gap:8px;}
+.row{display:grid;gap:14px;align-items:center;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;font-size:0.86rem;transition:border-color 0.2s;}
+.row:hover{border-color:var(--border2);}
+.row .rid{color:var(--muted);font-size:0.76rem;}
+.row .rmain{color:#fff;font-weight:600;}
+.row .rsub{color:var(--muted2);font-size:0.8rem;}
+.row .rprice{font-family:var(--display);font-size:1.2rem;color:var(--role);letter-spacing:0.02em;}
+.badge{font-size:0.68rem;font-weight:700;letter-spacing:0.04em;padding:3px 10px;border-radius:100px;white-space:nowrap;display:inline-block;}
+.badge.green{background:rgba(0,255,157,0.1);color:var(--green);border:1px solid rgba(0,255,157,0.25);}
+.badge.cyan{background:rgba(0,212,255,0.08);color:var(--cyan);border:1px solid rgba(0,212,255,0.2);}
+.badge.amber{background:rgba(255,179,64,0.1);color:var(--amber);border:1px solid rgba(255,179,64,0.25);}
+.badge.indigo{background:rgba(79,124,255,0.1);color:var(--indigo);border:1px solid rgba(79,124,255,0.25);}
+.badge.muted{background:rgba(255,255,255,0.04);color:var(--muted2);border:1px solid var(--border);}
+.badge.red{background:rgba(255,77,109,0.1);color:var(--red);border:1px solid rgba(255,77,109,0.25);}
+
+/* ===== BUTTONS ===== */
+.btn{background:var(--role);color:#000;font-family:var(--body);font-weight:700;font-size:0.82rem;padding:9px 18px;border:none;border-radius:6px;cursor:pointer;transition:all 0.2s;text-decoration:none;display:inline-block;}
+.btn:hover{opacity:0.88;transform:translateY(-1px);}
+.btn-sm{padding:6px 13px;font-size:0.76rem;}
+.btn-ghost{background:var(--card2);color:var(--text);border:1px solid var(--border2);}
+.btn-ghost:hover{border-color:var(--role);}
+.btn-green{background:var(--green);}
+.btn-block{display:block;width:100%;text-align:center;}
+
+/* ===== FORM ===== */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.field{margin-bottom:16px;}
+.field.full{grid-column:1/-1;}
+.field label{display:block;font-size:0.78rem;font-weight:600;color:var(--muted2);margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:11px 13px;color:var(--text);font-family:var(--body);font-size:0.9rem;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--role);}
+
+/* ===== TRACKING TIMELINE ===== */
+.track-stage{display:flex;gap:14px;align-items:flex-start;}
+.track-dot-col{display:flex;flex-direction:column;align-items:center;}
+.track-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;}
+.track-dot.done{background:var(--green);box-shadow:0 0 8px var(--green);}
+.track-dot.current{width:16px;height:16px;background:var(--cyan);box-shadow:0 0 12px var(--cyan);animation:breathe 1.5s infinite;}
+.track-dot.todo{background:var(--bg);border:2px solid var(--muted);}
+.track-line{width:2px;flex:1;min-height:28px;}
+.track-line.done{background:var(--green);}
+.track-line.todo{background:var(--border);}
+.track-info{padding-bottom:14px;}
+.track-info .ts{font-size:0.74rem;color:var(--muted);}
+
+/* ===== EMPTY ===== */
+.empty{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty .ic{font-size:2.5rem;margin-bottom:12px;opacity:0.5;}
+
+/* ===== MODAL ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:32px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;animation:fadeIn 0.25s;}
+.modal h2{font-family:var(--display);font-size:1.6rem;letter-spacing:0.03em;margin-bottom:6px;}
+.modal-close{float:right;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer;}
+
+/* ===== TOAST ===== */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--card2);border:1px solid var(--green);border-radius:10px;padding:14px 20px;color:var(--text);font-size:0.9rem;z-index:400;display:flex;align-items:center;gap:10px;animation:fadeIn 0.3s;box-shadow:0 10px 40px rgba(0,0,0,0.4);}
+.toast .ic{color:var(--green);font-size:1.2rem;}
+
+/* offer list inside abnehmer */
+.offer{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:13px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;}
+.offer.best{border-color:rgba(0,255,157,0.3);background:rgba(0,255,157,0.04);}
+.offer .oc-name{font-weight:600;color:#fff;font-size:0.88rem;}
+.offer .oc-meta{font-size:0.76rem;color:var(--muted2);}
+.offer .oprice{font-family:var(--display);font-size:1.3rem;color:var(--role);}
+.offer.best .oprice{color:var(--green);}
+
+/* phone for fahrer */
+.phone-frame{max-width:360px;margin:0 auto;background:var(--card);border:2px solid var(--border2);border-radius:28px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.phone-inner{background:var(--bg2);border-radius:18px;padding:22px 18px;}
+.status-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+.status-btn{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:14px 8px;font-size:0.8rem;color:var(--text);text-align:center;cursor:pointer;font-weight:500;transition:all 0.2s;}
+.status-btn:hover{border-color:var(--green);}
+.status-btn.active{background:var(--green);color:#000;border-color:var(--green);font-weight:700;}
+
+@media(max-width:900px){
+  .sidebar{display:none;}
+  .main{margin-left:0;padding:24px 18px;}
+  .stats{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .role-indicator span.rtext{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-left">
+    <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
+    <div class="role-indicator" id="roleIndicator"><span id="roleIcon">⚙️</span><span class="rtext" id="roleName">Admin</span></div>
+  </div>
+  <div class="tb-right">
+    <select class="role-switch" id="roleSwitch" onchange="switchRole(this.value)">
+      <option value="admin">⚙️ Admin</option>
+      <option value="anbieter">🚛 Anbieter</option>
+      <option value="abnehmer">📦 Abnehmer</option>
+      <option value="fahrer">📍 Fahrer</option>
+    </select>
+    <div class="tb-user"><div class="tb-avatar" id="userAvatar">D</div></div>
+    <a href="login.html" class="logout">Logout</a>
+  </div>
+</div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <main class="main" id="main"></main>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ============================================
+// NEUROROUTE PROTOTYPE — Data + Logic
+// ============================================
+
+// ---- Storage helpers (persist across sessions) ----
+async function dbGet(key, fallback) {
+  try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : fallback; }
+  catch(e) { return fallback; }
+}
+async function dbSet(key, val) {
+  try { await window.storage.set(key, JSON.stringify(val)); } catch(e) {}
+}
+
+// ---- Seed data (only first run) ----
+const SEED_REQUESTS = [
+  { id:'NR-4271', from:'Hamburg', to:'Mailand', weight:'24t', mode:'Straße', deadline:'48h', price:1900, status:'in_transit', shipper:'Stahlwerk Bremen AG', carrier:'Müller Spedition GmbH', accepted:1680,
+    stages:['created','confirmed','pickup','in_transit'] },
+  { id:'NR-4272', from:'Rotterdam', to:'Wien', weight:'Container', mode:'Multimodal', deadline:'5 Tage', price:2400, status:'open', shipper:'Stahlwerk Bremen AG', carrier:null, accepted:null, stages:['created'] },
+  { id:'NR-4273', from:'Frankfurt', to:'Madrid', weight:'12t', mode:'Straße', deadline:'3 Tage', price:1500, status:'matching', shipper:'Stahlwerk Bremen AG', carrier:null, accepted:null, stages:['created','matching'] },
+];
+const SEED_OFFERS = {
+  'NR-4272':[
+    {carrier:'Müller Spedition GmbH', rating:4.9, jobs:1240, eta:'118h', price:2180, internal:true},
+    {carrier:'Hansa Transport KG', rating:4.7, jobs:890, eta:'124h', price:2280, internal:false},
+    {carrier:'Alpenfracht AG', rating:4.8, jobs:540, eta:'109h', price:2350, internal:false},
+  ],
+  'NR-4273':[
+    {carrier:'Süd-Express GmbH', rating:4.5, jobs:320, eta:'70h', price:1480, internal:false},
+    {carrier:'Iberia Logistics', rating:4.6, jobs:410, eta:'66h', price:1520, internal:false},
+  ]
+};
+const SEED_USERS = [
+  {id:'A-1247', name:'Müller Spedition GmbH', type:'Anbieter · Straße', status:'verified'},
+  {id:'A-1248', name:'Nordic Rail Logistics', type:'Anbieter · Schiene', status:'pending'},
+  {id:'S-0891', name:'Stahlwerk Bremen AG', type:'Abnehmer · Industrie', status:'verified'},
+  {id:'A-1249', name:'Maritime Express', type:'Anbieter · See', status:'review'},
+  {id:'S-0892', name:'AutoParts Köln GmbH', type:'Abnehmer · Industrie', status:'pending'},
+];
+
+async function ensureSeed() {
+  const seeded = await dbGet('nr_seeded', false);
+  if (!seeded) {
+    await dbSet('nr_requests', SEED_REQUESTS);
+    await dbSet('nr_offers', SEED_OFFERS);
+    await dbSet('nr_users', SEED_USERS);
+    await dbSet('nr_seeded', true);
+  }
+}
+
+const STATUS_LABELS = {
+  open:{t:'Offen',c:'amber'}, matching:{t:'Matching',c:'indigo'}, in_transit:{t:'Unterwegs',c:'cyan'},
+  delivered:{t:'Geliefert',c:'green'}, confirmed:{t:'Bestätigt',c:'green'}
+};
+const STAGE_LABELS = {
+  created:'Erstellt', matching:'Partner-Matching', confirmed:'Bestätigt', pickup:'Abholung geplant',
+  in_transit:'Unterwegs', terminal:'Terminal-Ankunft', rail:'Auf der Schiene', delivered:'Geliefert'
+};
+const ALL_STAGES = ['created','confirmed','pickup','in_transit','terminal','delivered'];
+
+const ROLE_THEME = {
+  admin:{color:'#4f7cff', icon:'⚙️', name:'Admin'},
+  anbieter:{color:'#ffb340', icon:'🚛', name:'Anbieter'},
+  abnehmer:{color:'#00d4ff', icon:'📦', name:'Abnehmer'},
+  fahrer:{color:'#00ff9d', icon:'📍', name:'Fahrer'},
+};
+
+let currentRole = 'admin';
+let currentPage = 'dashboard';
+
+function switchRole(role) {
+  currentRole = role;
+  currentPage = 'dashboard';
+  location.hash = role;
+  applyTheme();
+  render();
+}
+function applyTheme() {
+  const t = ROLE_THEME[currentRole];
+  document.documentElement.style.setProperty('--role', t.color);
+  document.getElementById('roleIcon').textContent = t.icon;
+  document.getElementById('roleName').textContent = t.name;
+  document.getElementById('roleSwitch').value = currentRole;
+  document.getElementById('userAvatar').textContent = t.name[0];
+}
+
+// ---- Toast ----
+function toast(msg) {
+  const old = document.querySelector('.toast'); if(old) old.remove();
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = '<span class="ic">✓</span>' + msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3000);
+}
+
+// ---- Modal ----
+function openModal(html){ document.getElementById('modalContent').innerHTML = html; document.getElementById('modalBg').classList.add('open'); }
+function closeModal(){ document.getElementById('modalBg').classList.remove('open'); }
+
+// ============================================
+// SIDEBAR NAV per role
+// ============================================
+const NAV = {
+  admin:[
+    {id:'dashboard', ic:'📊', label:'Übersicht'},
+    {id:'users', ic:'👥', label:'Nutzerverwaltung'},
+    {id:'verify', ic:'✓', label:'Verifizierung'},
+    {id:'orders', ic:'📋', label:'Alle Aufträge'},
+    {id:'billing', ic:'💰', label:'Abrechnung'},
+  ],
+  anbieter:[
+    {id:'dashboard', ic:'📊', label:'Übersicht'},
+    {id:'requests', ic:'📥', label:'Anfragen'},
+    {id:'myorders', ic:'📦', label:'Meine Aufträge'},
+    {id:'fleet', ic:'🚛', label:'Flotte & Fahrer'},
+  ],
+  abnehmer:[
+    {id:'dashboard', ic:'📊', label:'Übersicht'},
+    {id:'neworder', ic:'➕', label:'Auftrag erstellen'},
+    {id:'myrequests', ic:'📋', label:'Meine Aufträge'},
+    {id:'partners', ic:'🤝', label:'Meine Partner'},
+  ],
+  fahrer:[
+    {id:'dashboard', ic:'📍', label:'Meine Tour'},
+    {id:'history', ic:'📜', label:'Verlauf'},
+  ],
+};
+
+function renderSidebar() {
+  const items = NAV[currentRole];
+  document.getElementById('sidebar').innerHTML =
+    '<div class="nav-section"><div class="nav-label">'+ROLE_THEME[currentRole].name+'</div>' +
+    items.map(it => '<div class="nav-item '+(it.id===currentPage?'active':'')+'" onclick="goPage(\''+it.id+'\')"><span class="ic">'+it.ic+'</span>'+it.label+'</div>').join('') +
+    '</div>';
+}
+function goPage(p){ currentPage = p; render(); }
+
+// ============================================
+// RENDER ROUTER
+// ============================================
+async function render() {
+  renderSidebar();
+  const main = document.getElementById('main');
+  const fn = PAGES[currentRole+'_'+currentPage] || PAGES[currentRole+'_dashboard'];
+  main.innerHTML = '<div class="empty"><div class="ic">⏳</div>Lädt…</div>';
+  main.innerHTML = await fn();
+}
+
+// helper renderers
+function statCard(label, value, change, up){
+  return '<div class="stat"><div class="stat-label">'+label+'</div><div class="stat-value">'+value+'</div>'+(change?'<div class="stat-change '+(up?'up':'')+'">'+change+'</div>':'')+'</div>';
+}
+function badge(status){ const s = STATUS_LABELS[status]||{t:status,c:'muted'}; return '<span class="badge '+s.c+'">'+s.t.toUpperCase()+'</span>'; }
+
+// ============================================
+// PAGE DEFINITIONS
+// ============================================
+const PAGES = {
+
+// ---------- ADMIN ----------
+admin_dashboard: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const users = await dbGet('nr_users', []);
+  const pending = users.filter(u=>u.status==='pending'||u.status==='review').length;
+  return `
+    <div class="page-title">Admin Dashboard</div>
+    <div class="page-sub">Vollständige Übersicht über die Plattform</div>
+    <div class="stats">
+      ${statCard('Aktive Nutzer', users.length, '+12% diese Woche', true)}
+      ${statCard('Aufträge gesamt', reqs.length, '+8%', true)}
+      ${statCard('Provisionen MTD', '€84k', '+24%', true)}
+      ${statCard('Offene Prüfungen', pending, pending+' wartend', false)}
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Neueste Nutzer</div><a class="panel-action" onclick="goPage('users')">Alle ansehen →</a></div>
+      <div class="rows">
+        ${users.slice(0,4).map(u=>`<div class="row" style="grid-template-columns:80px 1fr 1fr auto;">
+          <span class="rid">#${u.id}</span><span class="rmain">${u.name}</span><span class="rsub">${u.type}</span>
+          ${u.status==='verified'?'<span class="badge green">VERIFIZIERT</span>':u.status==='pending'?'<span class="badge amber">PRÜFUNG</span>':'<span class="badge indigo">REVIEW</span>'}
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Aktuelle Aufträge</div><a class="panel-action" onclick="goPage('orders')">Alle ansehen →</a></div>
+      <div class="rows">
+        ${reqs.slice(0,4).map(r=>`<div class="row" style="grid-template-columns:80px 1fr auto auto;">
+          <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span><span class="rsub">${r.weight} · ${r.mode}</span>${badge(r.status)}
+        </div>`).join('')}
+      </div>
+    </div>`;
+},
+admin_users: async () => {
+  const users = await dbGet('nr_users', []);
+  return `
+    <div class="page-title">Nutzerverwaltung</div>
+    <div class="page-sub">Alle Anbieter, Abnehmer und Konten</div>
+    <div class="panel">
+      <div class="rows">
+        ${users.map(u=>`<div class="row" style="grid-template-columns:80px 1fr 1fr auto auto;">
+          <span class="rid">#${u.id}</span><span class="rmain">${u.name}</span><span class="rsub">${u.type}</span>
+          ${u.status==='verified'?'<span class="badge green">VERIFIZIERT</span>':u.status==='pending'?'<span class="badge amber">PRÜFUNG</span>':'<span class="badge indigo">REVIEW</span>'}
+          <button class="btn btn-sm btn-ghost" onclick="toast('Profil von ${u.name.replace(/'/g,'')} geöffnet')">Details</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+},
+admin_verify: async () => {
+  const users = await dbGet('nr_users', []);
+  const pend = users.filter(u=>u.status!=='verified');
+  return `
+    <div class="page-title">Verifizierung</div>
+    <div class="page-sub">Neue Anmeldungen prüfen und freischalten</div>
+    ${pend.length===0?'<div class="panel"><div class="empty"><div class="ic">✓</div>Keine offenen Prüfungen</div></div>':
+    pend.map(u=>`<div class="panel">
+      <div class="panel-head"><div class="panel-title">${u.name}</div>${u.status==='pending'?'<span class="badge amber">PRÜFUNG</span>':'<span class="badge indigo">REVIEW</span>'}</div>
+      <p style="color:var(--muted2);font-size:0.86rem;margin-bottom:8px;">#${u.id} · ${u.type}</p>
+      <div class="rows" style="margin-bottom:16px;">
+        <div class="row" style="grid-template-columns:1fr auto;"><span>📄 Handelsregisterauszug</span><span class="badge green">OK</span></div>
+        <div class="row" style="grid-template-columns:1fr auto;"><span>📄 USt-ID</span><span class="badge green">OK</span></div>
+        ${u.type.includes('Anbieter')?'<div class="row" style="grid-template-columns:1fr auto;"><span>📄 Transportlizenz</span><span class="badge amber">PRÜFEN</span></div>':''}
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-green" onclick="verifyUser('${u.id}')">✓ Freischalten</button>
+        <button class="btn btn-ghost" onclick="toast('Rückfrage an ${u.name.replace(/'/g,'')} gesendet')">Rückfrage</button>
+      </div>
+    </div>`).join('')}`;
+},
+admin_orders: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  return `
+    <div class="page-title">Alle Aufträge</div>
+    <div class="page-sub">Plattformweite Auftragsübersicht</div>
+    <div class="panel"><div class="rows">
+      ${reqs.map(r=>`<div class="row" style="grid-template-columns:80px 1fr 1fr auto auto;">
+        <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span>
+        <span class="rsub">${r.shipper}</span>${badge(r.status)}
+        <span class="rprice">€${r.accepted||r.price}</span>
+      </div>`).join('')}
+    </div></div>`;
+},
+admin_billing: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const done = reqs.filter(r=>r.accepted);
+  const commission = done.reduce((s,r)=>s+Math.round(r.accepted*0.08),0);
+  return `
+    <div class="page-title">Abrechnung</div>
+    <div class="page-sub">Provisionen und Auszahlungen</div>
+    <div class="stats">
+      ${statCard('Provision (8%)', '€'+commission, 'aus '+done.length+' Aufträgen', true)}
+      ${statCard('Vermitteltes Volumen', '€'+done.reduce((s,r)=>s+r.accepted,0), '', false)}
+      ${statCard('Offene Auszahlungen', '€'+Math.round(commission*0.4), '', false)}
+      ${statCard('Abgerechnet MTD', '€'+Math.round(commission*0.6), '', false)}
+    </div>
+    <div class="panel">
+      <div class="panel-title" style="margin-bottom:16px;">Vermittelte Aufträge</div>
+      <div class="rows">
+        ${done.map(r=>`<div class="row" style="grid-template-columns:80px 1fr auto auto;">
+          <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span>
+          <span class="rsub">Volumen €${r.accepted}</span><span class="rprice">€${Math.round(r.accepted*0.08)}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+},
+
+// ---------- ANBIETER ----------
+anbieter_dashboard: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const open = reqs.filter(r=>r.status==='open'||r.status==='matching');
+  return `
+    <div class="page-title">Anbieter Dashboard</div>
+    <div class="page-sub">Müller Spedition GmbH · Verifiziert</div>
+    <div class="stats">
+      ${statCard('Offene Anfragen', open.length, 'in Ihrem Korridor', false)}
+      ${statCard('Auslastung', '87%', 'diese Woche', true)}
+      ${statCard('Umsatz MTD', '€42k', '+15%', true)}
+      ${statCard('Bewertung', '4.9★', '1.240 Aufträge', false)}
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Neue Anfragen</div><a class="panel-action" onclick="goPage('requests')">Alle ansehen →</a></div>
+      <div class="rows">
+        ${open.length===0?'<div class="empty"><div class="ic">📭</div>Keine offenen Anfragen</div>':
+        open.map(r=>`<div class="row" style="grid-template-columns:80px 1fr auto auto;">
+          <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span>
+          <span class="rsub">${r.weight} · ${r.deadline}</span>
+          <button class="btn btn-sm" onclick="openOfferModal('${r.id}')">Angebot abgeben</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+},
+anbieter_requests: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const open = reqs.filter(r=>r.status==='open'||r.status==='matching');
+  return `
+    <div class="page-title">Transportanfragen</div>
+    <div class="page-sub">Passende Anfragen in Ihrem Netzwerk</div>
+    <div class="panel"><div class="rows">
+      ${open.length===0?'<div class="empty"><div class="ic">📭</div>Aktuell keine Anfragen</div>':
+      open.map(r=>`<div class="row" style="grid-template-columns:70px 1fr 1fr auto auto;">
+        <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span>
+        <span class="rsub">${r.weight} · ${r.mode} · ${r.deadline}</span>
+        <span class="rprice">~€${r.price}</span>
+        <button class="btn btn-sm" onclick="openOfferModal('${r.id}')">Angebot</button>
+      </div>`).join('')}
+    </div></div>`;
+},
+anbieter_myorders: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const mine = reqs.filter(r=>r.carrier==='Müller Spedition GmbH');
+  return `
+    <div class="page-title">Meine Aufträge</div>
+    <div class="page-sub">Von Ihnen übernommene Transporte</div>
+    <div class="panel"><div class="rows">
+      ${mine.length===0?'<div class="empty"><div class="ic">📦</div>Noch keine Aufträge übernommen</div>':
+      mine.map(r=>`<div class="row" style="grid-template-columns:70px 1fr auto auto;">
+        <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span>${badge(r.status)}
+        <span class="rprice">€${r.accepted}</span>
+      </div>`).join('')}
+    </div></div>`;
+},
+anbieter_fleet: async () => {
+  return `
+    <div class="page-title">Flotte & Fahrer</div>
+    <div class="page-sub">Fahrzeuge und Fahrer verwalten</div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Fahrer</div><button class="btn btn-sm" onclick="toast('Einladungslink erstellt — an Fahrer senden')">+ Fahrer einladen</button></div>
+      <div class="rows">
+        <div class="row" style="grid-template-columns:1fr 1fr auto;"><span class="rmain">Thomas K.</span><span class="rsub">LKW · Hamburg</span><span class="badge green">AKTIV</span></div>
+        <div class="row" style="grid-template-columns:1fr 1fr auto;"><span class="rmain">Andreas M.</span><span class="rsub">LKW · Stuttgart</span><span class="badge green">AKTIV</span></div>
+        <div class="row" style="grid-template-columns:1fr 1fr auto;"><span class="rmain">Petra S.</span><span class="rsub">LKW · Köln</span><span class="badge amber">PAUSE</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Fahrzeuge</div><button class="btn btn-sm btn-ghost" onclick="toast('Fahrzeug-Editor geöffnet')">+ Fahrzeug</button></div>
+      <div class="rows">
+        <div class="row" style="grid-template-columns:1fr 1fr auto;"><span class="rmain">MAN TGX</span><span class="rsub">26t · HH-MS 1247</span><span class="badge green">VERFÜGBAR</span></div>
+        <div class="row" style="grid-template-columns:1fr 1fr auto;"><span class="rmain">Mercedes Actros</span><span class="rsub">40t · HH-MS 882</span><span class="badge cyan">UNTERWEGS</span></div>
+      </div>
+    </div>`;
+},
+
+// ---------- ABNEHMER ----------
+abnehmer_dashboard: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const mine = reqs.filter(r=>r.shipper==='Stahlwerk Bremen AG');
+  const open = mine.filter(r=>r.status==='open'||r.status==='matching');
+  return `
+    <div class="page-title">Abnehmer Dashboard</div>
+    <div class="page-sub">Stahlwerk Bremen AG · Verifiziert</div>
+    <div class="stats">
+      ${statCard('Meine Aufträge', mine.length, '', false)}
+      ${statCard('In Vermittlung', open.length, '', false)}
+      ${statCard('Unterwegs', mine.filter(r=>r.status==='in_transit').length, '', false)}
+      ${statCard('Ø Einsparung', '11%', 'vs. Listenpreis', true)}
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Schnellaktion</div></div>
+      <button class="btn btn-block" onclick="goPage('neworder')">➕ Neuen Transportauftrag erstellen</button>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Meine Aufträge</div><a class="panel-action" onclick="goPage('myrequests')">Alle ansehen →</a></div>
+      <div class="rows">
+        ${mine.map(r=>`<div class="row" style="grid-template-columns:70px 1fr auto auto;">
+          <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span>${badge(r.status)}
+          ${(r.status==='open'||r.status==='matching')?`<button class="btn btn-sm" onclick="viewOffers('${r.id}')">Angebote</button>`:`<span class="rsub">€${r.accepted||r.price}</span>`}
+        </div>`).join('')}
+      </div>
+    </div>`;
+},
+abnehmer_neworder: async () => {
+  return `
+    <div class="page-title">Transportauftrag erstellen</div>
+    <div class="page-sub">Wie eine Order an der Börse — in unter 2 Minuten</div>
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field"><label>Startort</label><input id="f_from" placeholder="z.B. Hamburg"></div>
+        <div class="field"><label>Zielort</label><input id="f_to" placeholder="z.B. Mailand"></div>
+        <div class="field"><label>Transportmodus</label><select id="f_mode"><option>Straße</option><option>Schiene</option><option>See</option><option>Luft</option><option>Multimodal</option></select></div>
+        <div class="field"><label>Volumen / Gewicht</label><input id="f_weight" placeholder="z.B. 24t"></div>
+        <div class="field"><label>Frist</label><input id="f_deadline" placeholder="z.B. 48h"></div>
+        <div class="field"><label>Preisvorstellung (€)</label><input id="f_price" type="number" placeholder="1900"></div>
+      </div>
+      <button class="btn btn-block" onclick="createOrder()">Auftrag einstellen →</button>
+    </div>
+    <div class="panel" style="background:rgba(0,212,255,0.04);border-color:rgba(0,212,255,0.15);">
+      <p style="font-size:0.86rem;color:var(--muted2);">ℹ️ Ihre bevorzugten Partner werden automatisch zuerst geprüft. Externe Anbieter erscheinen nur, wenn intern keine Kapazität verfügbar ist.</p>
+    </div>`;
+},
+abnehmer_myrequests: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const mine = reqs.filter(r=>r.shipper==='Stahlwerk Bremen AG');
+  return `
+    <div class="page-title">Meine Aufträge</div>
+    <div class="page-sub">Alle eingestellten Transportaufträge</div>
+    <div class="panel"><div class="rows">
+      ${mine.map(r=>`<div class="row" style="grid-template-columns:70px 1fr 1fr auto auto;">
+        <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span><span class="rsub">${r.weight} · ${r.mode}</span>${badge(r.status)}
+        ${(r.status==='open'||r.status==='matching')?`<button class="btn btn-sm" onclick="viewOffers('${r.id}')">Angebote ansehen</button>`:`<button class="btn btn-sm btn-ghost" onclick="viewTracking('${r.id}')">Tracking</button>`}
+      </div>`).join('')}
+    </div></div>`;
+},
+abnehmer_partners: async () => {
+  return `
+    <div class="page-title">Meine Partner</div>
+    <div class="page-sub">Ihr bevorzugtes Partnernetzwerk — wird zuerst gematcht</div>
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">Bevorzugte Partner</div><button class="btn btn-sm" onclick="toast('Partner-Suche geöffnet')">+ Partner hinzufügen</button></div>
+      <div class="rows">
+        <div class="row" style="grid-template-columns:1fr auto auto;"><span class="rmain">Müller Spedition GmbH</span><span class="rsub">4.9★ · Straße</span><span class="badge green">PRIORITÄT</span></div>
+        <div class="row" style="grid-template-columns:1fr auto auto;"><span class="rmain">Nordic Rail Logistics</span><span class="rsub">4.7★ · Schiene</span><span class="badge green">PRIORITÄT</span></div>
+        <div class="row" style="grid-template-columns:1fr auto auto;"><span class="rmain">Hansa Transport KG</span><span class="rsub">4.7★ · Straße</span><span class="badge muted">STANDARD</span></div>
+      </div>
+    </div>`;
+},
+
+// ---------- FAHRER ----------
+fahrer_dashboard: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  const tour = reqs.find(r=>r.status==='in_transit') || reqs[0];
+  const stageNow = tour.stages[tour.stages.length-1];
+  return `
+    <div class="page-title">Meine Tour</div>
+    <div class="page-sub">Status mit einem Tipp melden</div>
+    <div class="phone-frame">
+      <div class="phone-inner">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <span style="font-family:var(--display);font-size:1.1rem;color:var(--green);letter-spacing:0.05em;">AUFTRAG #${tour.id}</span>
+          <span style="font-size:0.7rem;color:var(--green);display:flex;align-items:center;gap:5px;"><span style="width:6px;height:6px;background:var(--green);border-radius:50%;animation:breathe 1.5s infinite;display:inline-block;"></span>LIVE</span>
+        </div>
+        <div style="background:rgba(0,255,157,0.04);border:1px solid rgba(0,255,157,0.2);border-radius:10px;padding:14px;">
+          <div style="font-weight:600;color:#fff;font-size:0.9rem;">${tour.from} → ${tour.to}</div>
+          <div style="font-size:0.74rem;color:var(--muted2);margin-bottom:6px;">${tour.weight} · ${tour.carrier||'—'}</div>
+          <div class="status-btns">
+            ${['Beladen','Unterwegs','Pause','Entladen'].map(s=>{
+              const key = s==='Unterwegs'?'in_transit':s==='Entladen'?'delivered':s.toLowerCase();
+              const active = (s==='Unterwegs'&&stageNow==='in_transit')||(s==='Entladen'&&stageNow==='delivered');
+              return `<div class="status-btn ${active?'active':''}" onclick="driverStatus('${tour.id}','${s}')">${active?'⚡ ':''}${s}</div>`;
+            }).join('')}
+          </div>
+        </div>
+        <p style="text-align:center;font-size:0.7rem;color:var(--muted);margin-top:14px;">↑ Status antippen, fertig.</p>
+      </div>
+    </div>`;
+},
+fahrer_history: async () => {
+  const reqs = await dbGet('nr_requests', []);
+  return `
+    <div class="page-title">Tour-Verlauf</div>
+    <div class="page-sub">Ihre abgeschlossenen und laufenden Touren</div>
+    <div class="panel"><div class="rows">
+      ${reqs.map(r=>`<div class="row" style="grid-template-columns:70px 1fr auto;">
+        <span class="rid">#${r.id}</span><span class="rmain">${r.from} → ${r.to}</span>${badge(r.status)}
+      </div>`).join('')}
+    </div></div>`;
+},
+
+};
+
+// ============================================
+// ACTIONS
+// ============================================
+async function verifyUser(id) {
+  const users = await dbGet('nr_users', []);
+  const u = users.find(x=>x.id===id); if(u) u.status='verified';
+  await dbSet('nr_users', users);
+  toast('Nutzer freigeschaltet ✓');
+  render();
+}
+
+function openOfferModal(reqId) {
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>Angebot abgeben</h2>
+    <p style="color:var(--muted);font-size:0.86rem;margin-bottom:20px;">Auftrag #${reqId}</p>
+    <div class="field"><label>Ihr Preis (€)</label><input id="offer_price" type="number" placeholder="1800"></div>
+    <div class="field"><label>Voraussichtliche Lieferzeit</label><input id="offer_eta" placeholder="z.B. 42h"></div>
+    <button class="btn btn-block" onclick="submitOffer('${reqId}')">Angebot senden →</button>
+  `);
+}
+async function submitOffer(reqId) {
+  const price = document.getElementById('offer_price').value || '1800';
+  const eta = document.getElementById('offer_eta').value || '42h';
+  const offers = await dbGet('nr_offers', {});
+  if(!offers[reqId]) offers[reqId]=[];
+  offers[reqId].unshift({carrier:'Müller Spedition GmbH', rating:4.9, jobs:1240, eta, price:parseInt(price), internal:true});
+  await dbSet('nr_offers', offers);
+  // set request to matching
+  const reqs = await dbGet('nr_requests', []);
+  const r = reqs.find(x=>x.id===reqId);
+  if(r && r.status==='open'){ r.status='matching'; if(!r.stages.includes('matching'))r.stages.push('matching'); }
+  await dbSet('nr_requests', reqs);
+  closeModal();
+  toast('Angebot gesendet ✓');
+  render();
+}
+
+async function viewOffers(reqId) {
+  const offers = (await dbGet('nr_offers', {}))[reqId] || [];
+  const reqs = await dbGet('nr_requests', []);
+  const r = reqs.find(x=>x.id===reqId);
+  const sorted = [...offers].sort((a,b)=>a.price-b.price);
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>Angebote</h2>
+    <p style="color:var(--muted);font-size:0.86rem;margin-bottom:20px;">${r.from} → ${r.to} · #${reqId}</p>
+    ${sorted.length===0?'<div class="empty"><div class="ic">⏳</div>Noch keine Angebote eingegangen</div>':
+    sorted.map((o,i)=>`<div class="offer ${i===0?'best':''}">
+      <div>${i===0?'<div style="font-size:0.62rem;color:var(--green);font-weight:700;letter-spacing:0.06em;margin-bottom:2px;">★ BESTES ANGEBOT'+(o.internal?' · INTERNER PARTNER':'')+'</div>':''}
+        <div class="oc-name">${o.carrier}</div><div class="oc-meta">${o.rating}★ · ${o.jobs} Aufträge · ETA ${o.eta}</div></div>
+      <span class="oprice">€${o.price}</span>
+      <button class="btn btn-sm ${i===0?'btn-green':''}" onclick="acceptOffer('${reqId}','${o.carrier.replace(/'/g,'')}',${o.price})">Annehmen</button>
+    </div>`).join('')}
+  `);
+}
+async function acceptOffer(reqId, carrier, price) {
+  const reqs = await dbGet('nr_requests', []);
+  const r = reqs.find(x=>x.id===reqId);
+  if(r){ r.status='in_transit'; r.carrier=carrier; r.accepted=price; r.stages=['created','confirmed','pickup','in_transit']; }
+  await dbSet('nr_requests', reqs);
+  closeModal();
+  toast('Auftrag vergeben an '+carrier+' ✓');
+  render();
+}
+
+async function viewTracking(reqId) {
+  const reqs = await dbGet('nr_requests', []);
+  const r = reqs.find(x=>x.id===reqId);
+  const done = r.stages;
+  const allShown = ['created','confirmed','pickup','in_transit','terminal','delivered'];
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>Tracking</h2>
+    <p style="color:var(--muted);font-size:0.86rem;margin-bottom:24px;">${r.from} → ${r.to} · #${reqId}</p>
+    <div>
+    ${allShown.map((st,i)=>{
+      const isDone = done.includes(st);
+      const isCurrent = done[done.length-1]===st;
+      const isLast = i===allShown.length-1;
+      return `<div class="track-stage">
+        <div class="track-dot-col">
+          <div class="track-dot ${isCurrent?'current':isDone?'done':'todo'}"></div>
+          ${!isLast?`<div class="track-line ${isDone&&done.includes(allShown[i+1])?'done':'todo'}"></div>`:''}
+        </div>
+        <div class="track-info"><strong style="color:${isCurrent?'var(--cyan)':isDone?'#fff':'var(--muted2)'};font-size:0.9rem;">${STAGE_LABELS[st]}</strong>
+        ${isCurrent?'<div class="ts">jetzt</div>':''}</div>
+      </div>`;
+    }).join('')}
+    </div>
+  `);
+}
+
+async function createOrder() {
+  const from = document.getElementById('f_from').value;
+  const to = document.getElementById('f_to').value;
+  if(!from || !to){ toast('Bitte Start und Ziel angeben'); return; }
+  const reqs = await dbGet('nr_requests', []);
+  const num = 4274 + reqs.filter(r=>r.id.startsWith('NR-42')&&parseInt(r.id.slice(3))>=4274).length;
+  const newReq = {
+    id:'NR-'+num, from, to,
+    weight: document.getElementById('f_weight').value||'—',
+    mode: document.getElementById('f_mode').value,
+    deadline: document.getElementById('f_deadline').value||'—',
+    price: parseInt(document.getElementById('f_price').value)||1500,
+    status:'open', shipper:'Stahlwerk Bremen AG', carrier:null, accepted:null, stages:['created']
+  };
+  reqs.unshift(newReq);
+  await dbSet('nr_requests', reqs);
+  toast('Auftrag #'+newReq.id+' eingestellt ✓ — Partner werden geprüft');
+  goPage('myrequests');
+}
+
+async function driverStatus(reqId, label) {
+  const reqs = await dbGet('nr_requests', []);
+  const r = reqs.find(x=>x.id===reqId);
+  const map = {'Beladen':'pickup','Unterwegs':'in_transit','Pause':'in_transit','Entladen':'delivered'};
+  const st = map[label];
+  if(r && !r.stages.includes(st)) r.stages.push(st);
+  if(label==='Entladen'){ r.status='delivered'; }
+  await dbSet('nr_requests', reqs);
+  toast('Status gemeldet: '+label+' ✓');
+  render();
+}
+
+// ============================================
+// INIT
+// ============================================
+async function init() {
+  await ensureSeed();
+  const hash = (location.hash||'#admin').slice(1);
+  if(ROLE_THEME[hash]) currentRole = hash;
+  applyTheme();
+  render();
+}
+window.addEventListener('hashchange', ()=>{
+  const hash = location.hash.slice(1);
+  if(ROLE_THEME[hash] && hash!==currentRole){ currentRole=hash; currentPage='dashboard'; applyTheme(); render(); }
+});
+init();
+</script>
+</body>
+</html>
