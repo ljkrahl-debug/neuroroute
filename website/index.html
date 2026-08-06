@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuroroute — Plan. Connect. Move the World.</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   NEUROROUTE · Shared Styles
+   ============================================ */
+:root {
+  --bg: #03050a;
+  --bg2: #070b14;
+  --surface: #0b1120;
+  --card: #0f1928;
+  --card2: #131f33;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --cyan: #00d4ff;
+  --cyan2: #00a8cc;
+  --green: #00ff9d;
+  --amber: #ffb340;
+  --indigo: #4f7cff;
+  --purple: #7c5cfc;
+  --text: #dde6f5;
+  --muted: #5a6e8a;
+  --muted2: #8a9dbf;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'Outfit', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.022) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none; z-index: 0;
+}
+@keyframes breathe { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.6; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--indigo); border-radius: 2px; }
+
+/* ===== NAV ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px; height: 68px;
+  background: rgba(3,5,10,0.82);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family: var(--display); font-size: 1.7rem; letter-spacing: 0.04em;
+  color: #fff; display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.logo-pulse {
+  width: 9px; height: 9px; background: var(--cyan); border-radius: 50%;
+  box-shadow: 0 0 16px var(--cyan), 0 0 40px rgba(0,212,255,0.3);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+.nav-links {
+  display: flex; gap: 30px; list-style: none;
+  font-size: 0.88rem; font-weight: 500; color: var(--muted2);
+}
+.nav-links a { color: inherit; text-decoration: none; transition: color 0.2s; position: relative; }
+.nav-links a:hover { color: #fff; }
+.nav-links a.active { color: var(--cyan); }
+.nav-right { display: flex; align-items: center; gap: 16px; }
+
+/* Language switcher */
+.lang-switch {
+  display: flex; border: 1px solid var(--border2); border-radius: 6px; overflow: hidden;
+}
+.lang-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--muted2); font-family: var(--body); font-size: 0.78rem; font-weight: 600;
+  padding: 6px 12px; transition: all 0.2s;
+}
+.lang-btn.active { background: var(--cyan); color: #000; }
+
+.nav-cta {
+  background: var(--cyan); color: #000;
+  font-weight: 700; font-size: 0.85rem;
+  padding: 10px 24px; border-radius: 4px; text-decoration: none;
+  transition: all 0.2s; white-space: nowrap;
+}
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,212,255,0.35); }
+
+.nav-burger { display: none; background: none; border: none; cursor: pointer; flex-direction: column; gap: 5px; }
+.nav-burger span { width: 24px; height: 2px; background: var(--text); border-radius: 2px; transition: 0.3s; }
+
+/* ===== SHARED LAYOUT ===== */
+section { position: relative; z-index: 1; }
+.section-inner { max-width: 1240px; margin: 0 auto; padding: 100px 48px; }
+.section-tag { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); margin-bottom: 16px; }
+h1 { font-family: var(--display); font-size: clamp(3rem, 7vw, 6.5rem); line-height: 0.95; letter-spacing: 0.02em; color: #fff; }
+h2 { font-family: var(--display); font-size: clamp(2.5rem, 4.5vw, 4.5rem); line-height: 0.95; letter-spacing: 0.02em; color: #fff; margin-bottom: 20px; }
+h3 { font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.03em; color: #fff; }
+.accent { color: var(--cyan); }
+.dim { color: rgba(255,255,255,0.35); }
+.gradient-text { background: linear-gradient(135deg, var(--cyan), var(--indigo)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.body-large { font-size: 1.1rem; font-weight: 300; color: var(--muted2); line-height: 1.75; max-width: 620px; margin-bottom: 60px; }
+
+/* ===== HERO ===== */
+.hero {
+  position: relative; min-height: 92vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 130px 48px 80px; text-align: center; overflow: hidden;
+}
+.hero-orb1 { position: absolute; width: 900px; height: 900px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 65%); top: 50%; left: 50%; transform: translate(-50%, -58%); pointer-events: none; }
+.hero-orb2 { position: absolute; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(79,124,255,0.07) 0%, transparent 65%); top: 55%; left: 28%; pointer-events: none; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.18);
+  color: var(--cyan); font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 7px 18px; border-radius: 100px; margin-bottom: 34px;
+  position: relative; z-index: 1;
+}
+.eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: breathe 1.8s infinite; }
+.hero h1 { margin-bottom: 28px; position: relative; z-index: 1; }
+.hero-desc { font-size: 1.18rem; font-weight: 300; color: var(--muted2); max-width: 640px; line-height: 1.7; margin: 0 auto 46px; position: relative; z-index: 1; }
+.hero-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; position: relative; z-index: 1; }
+
+/* ===== PAGE HEADER (sub-pages) ===== */
+.page-header {
+  position: relative; padding: 150px 48px 70px; text-align: center; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.page-header-orb { position: absolute; width: 700px; height: 500px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,212,255,0.07) 0%, transparent 65%); top: 30%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.page-header h1 { font-size: clamp(2.8rem, 6vw, 5rem); margin-bottom: 20px; position: relative; z-index: 1; }
+.page-header p { font-size: 1.15rem; color: var(--muted2); max-width: 600px; margin: 0 auto; font-weight: 300; position: relative; z-index: 1; }
+
+/* ===== BUTTONS ===== */
+.btn-main { background: var(--cyan); color: #000; font-weight: 700; font-size: 0.95rem; padding: 17px 38px; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; transition: all 0.25s; }
+.btn-main:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(0,212,255,0.4); }
+.btn-outline { background: transparent; color: var(--text); font-weight: 600; font-size: 0.95rem; padding: 17px 38px; border-radius: 4px; text-decoration: none; border: 1px solid var(--border2); cursor: pointer; transition: all 0.2s; }
+.btn-outline:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+
+/* ===== CARD GRIDS ===== */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 34px 30px; transition: all 0.3s; position: relative; overflow: hidden;
+}
+.card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity: 0; transition: opacity 0.3s; }
+.card:hover { border-color: rgba(0,212,255,0.2); transform: translateY(-3px); }
+.card:hover::after { opacity: 1; }
+.card-num { font-family: var(--display); font-size: 0.75rem; letter-spacing: 0.1em; color: var(--cyan); opacity: 0.6; margin-bottom: 14px; }
+.card-icon { font-size: 1.9rem; margin-bottom: 16px; }
+.card h3 { margin-bottom: 10px; }
+.card p { font-size: 0.9rem; color: var(--muted2); line-height: 1.65; }
+
+/* ===== STEPS ===== */
+.steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; position: relative; }
+.steps-grid::before { content: ''; position: absolute; top: 32px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, var(--cyan), var(--indigo)); z-index: 0; }
+.step { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 32px 26px; position: relative; z-index: 1; transition: all 0.3s; }
+.step:hover { border-color: rgba(0,212,255,0.2); transform: translateY(-2px); }
+.step-circle { width: 56px; height: 56px; border-radius: 50%; background: var(--bg); border: 2px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 1.3rem; color: var(--cyan); margin-bottom: 22px; box-shadow: 0 0 20px rgba(0,212,255,0.2); }
+.step h3 { font-size: 1.3rem; margin-bottom: 10px; }
+.step p { font-size: 0.88rem; color: var(--muted2); line-height: 1.6; }
+
+/* ===== FOOTER ===== */
+footer { border-top: 1px solid var(--border); padding: 60px 48px 40px; background: var(--bg2); }
+.footer-grid { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+.footer-brand .logo { margin-bottom: 16px; }
+.footer-brand p { font-size: 0.88rem; color: var(--muted); max-width: 280px; line-height: 1.6; }
+.footer-col h4 { font-family: var(--body); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-col a { color: var(--muted2); font-size: 0.9rem; text-decoration: none; transition: color 0.2s; }
+.footer-col a:hover { color: var(--cyan); }
+.footer-bottom { max-width: 1240px; margin: 0 auto; padding-top: 28px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.footer-bottom p { font-size: 0.82rem; color: var(--muted); }
+
+/* ===== CTA BAND ===== */
+.cta-band { padding: 130px 48px; text-align: center; position: relative; overflow: hidden; }
+.cta-band::before { content: ''; position: absolute; width: 900px; height: 450px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,212,255,0.07) 0%, transparent 65%); top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.cta-band h2 { max-width: 800px; margin: 0 auto 24px; }
+.cta-band .body-large { margin: 0 auto 46px; }
+
+/* ===== REVEAL ANIMATION ===== */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ===== LANGUAGE VISIBILITY ===== */
+[data-lang] { display: none; }
+body.lang-en [data-lang="en"] { display: revert; }
+body.lang-de [data-lang="de"] { display: revert; }
+/* inline variants */
+span[data-lang], a[data-lang] { display: none; }
+body.lang-en span[data-lang="en"], body.lang-en a[data-lang="en"] { display: inline; }
+body.lang-de span[data-lang="de"], body.lang-de a[data-lang="de"] { display: inline; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 980px) {
+  nav { padding: 0 20px; }
+  .nav-links { display: none; position: absolute; top: 68px; left: 0; right: 0; flex-direction: column; background: rgba(3,5,10,0.97); padding: 24px; gap: 20px; border-bottom: 1px solid var(--border); }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: flex; }
+  .section-inner { padding: 70px 24px; }
+  .hero { padding: 120px 24px 60px; }
+  .page-header { padding: 120px 24px 50px; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr; gap: 16px; }
+  .steps-grid::before { display: none; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .cta-band { padding: 90px 24px; }
+}
+@media (max-width: 560px) {
+  .footer-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== ICONS ===== */
+.ico { display:inline-flex; align-items:center; justify-content:center; vertical-align:middle; line-height:0; color:var(--cyan); }
+.ico svg { display:block; }
+/* Large card icons */
+.card-icon .ico svg { width:30px; height:30px; }
+.card-icon { color:var(--cyan); }
+/* eyebrow dot icons stay small */
+.eyebrow .ico svg { width:14px; height:14px; }
+/* network/ecosystem big icons keep emoji-free via svg in markup already */
+
+
+/* ============================================
+   NEUROROUTE · High-Tech FX Layer
+   ============================================ */
+
+/* Animated aurora background */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(ellipse 800px 600px at 15% 10%, rgba(0,212,255,0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 20%, rgba(79,124,255,0.09), transparent 60%),
+    radial-gradient(ellipse 900px 700px at 50% 100%, rgba(124,92,252,0.08), transparent 60%);
+  animation: auroraShift 18s ease-in-out infinite;
+}
+@keyframes auroraShift {
+  0%,100% { opacity: 0.7; transform: translate3d(0,0,0) scale(1); }
+  33%     { opacity: 1;   transform: translate3d(2%,-1%,0) scale(1.05); }
+  66%     { opacity: 0.85;transform: translate3d(-2%,1%,0) scale(1.02); }
+}
+
+/* Floating particles canvas sits behind content */
+#fx-particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.55; }
+nav, section, footer, .modal-bg { position: relative; z-index: 1; }
+
+/* Hero parallax orbs follow mouse */
+.hero-orb1, .hero-orb2 { transition: transform 0.5s cubic-bezier(.2,.7,.2,1); will-change: transform; }
+
+/* Glow pulse on primary buttons */
+.btn-main, .nav-cta {
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 0 rgba(0,212,255,0);
+  animation: ctaGlow 3.5s ease-in-out infinite;
+}
+@keyframes ctaGlow {
+  0%,100% { box-shadow: 0 4px 20px rgba(0,212,255,0.18); }
+  50%     { box-shadow: 0 6px 34px rgba(0,212,255,0.42); }
+}
+/* Shine sweep across buttons */
+.btn-main::before, .nav-cta::before {
+  content: ''; position: absolute; top: 0; left: -120%;
+  width: 80%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-18deg);
+  animation: shineSweep 4.5s ease-in-out infinite;
+}
+@keyframes shineSweep {
+  0%, 60% { left: -120%; }
+  80%,100% { left: 130%; }
+}
+
+/* Cards: glow border + lift + sheen on hover */
+.card, .price-card, .uc, .article, .pf-section, .listing, .step, .stat {
+  transition: transform 0.35s cubic-bezier(.2,.7,.2,1), box-shadow 0.35s, border-color 0.35s;
+}
+.card:hover, .price-card:hover, .article:hover, .step:hover {
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,212,255,0.12);
+}
+
+/* Gradient text gets animated shimmer */
+.gradient-text {
+  background: linear-gradient(110deg, var(--cyan), var(--indigo), var(--purple), var(--cyan));
+  background-size: 300% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shimmerText 6s linear infinite;
+}
+@keyframes shimmerText { to { background-position: 300% center; } }
+
+/* Section tag gets a pulsing dot */
+.section-tag { display: inline-flex; align-items: center; gap: 9px; }
+.section-tag::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 12px var(--cyan);
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+/* Logo pulse stronger */
+.logo-pulse { animation: breathe 2s ease-in-out infinite, hueGlow 4s ease-in-out infinite; }
+@keyframes hueGlow {
+  0%,100% { box-shadow: 0 0 16px var(--cyan), 0 0 40px rgba(0,212,255,0.3); }
+  50%     { box-shadow: 0 0 22px var(--cyan), 0 0 60px rgba(0,212,255,0.55); }
+}
+
+/* Scroll reveal: richer entrance */
+.reveal { opacity: 0; transform: translateY(34px) scale(0.985); filter: blur(4px);
+  transition: opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1), filter 0.7s; }
+.reveal.visible { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+
+/* Scroll progress bar */
+#fx-progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--indigo), var(--purple));
+  box-shadow: 0 0 12px rgba(0,212,255,0.6); z-index: 999;
+  transition: width 0.1s linear;
+}
+
+/* Nav gains glass depth on scroll */
+nav.scrolled { background: rgba(3,5,10,0.92); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+
+/* Magnetic hover for nav links */
+.nav-links a::after {
+  content: ''; position: absolute; left: 0; bottom: -4px; width: 0; height: 2px;
+  background: var(--cyan); box-shadow: 0 0 8px var(--cyan); transition: width 0.3s;
+}
+.nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+
+/* Stat numbers glow subtly */
+.stat-value, .pf-stat .v { text-shadow: 0 0 24px rgba(0,212,255,0.25); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::after, .btn-main, .nav-cta, .btn-main::before, .nav-cta::before,
+  .gradient-text, .logo-pulse, .section-tag::before { animation: none !important; }
+}
+
+</style>
+<script>
+/* ============================================
+   NEUROROUTE · Shared Script
+   ============================================ */
+
+// --- Language switching ---
+function setLang(lang) {
+  document.body.classList.remove('lang-en', 'lang-de');
+  document.body.classList.add('lang-' + lang);
+  document.documentElement.lang = lang;
+  try { localStorage.setItem('nr-lang', lang); } catch(e) {}
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.set === lang);
+  });
+}
+
+(function initLang() {
+  let saved = 'en';
+  try { saved = localStorage.getItem('nr-lang') || 'en'; } catch(e) {}
+  // run as soon as body exists
+  document.addEventListener('DOMContentLoaded', () => {
+    setLang(saved);
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.set));
+    });
+    // burger
+    const burger = document.querySelector('.nav-burger');
+    const links = document.querySelector('.nav-links');
+    if (burger && links) {
+      burger.addEventListener('click', () => links.classList.toggle('open'));
+      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+    }
+    // reveal
+    const obs = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    }), { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach((el, i) => {
+      el.style.transitionDelay = `${(i % 4) * 0.07}s`;
+      obs.observe(el);
+    });
+  });
+  // set class immediately to avoid flash
+  document.documentElement.classList.add('lang-' + saved);
+})();
+
+</script>
+</head>
+<body class="lang-en">
+
+<nav>
+  <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
+  <ul class="nav-links">
+    <li><a href="index.html" class="active"><span data-lang="en">Home</span><span data-lang="de">Start</span></a></li>
+    <li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li>
+    <li><a href="marketplace.html" style="color:var(--green);"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li>
+    <li><a href="solutions.html"><span data-lang="en">Solutions</span><span data-lang="de">Lösungen</span></a></li>
+    <li><a href="pricing.html"><span data-lang="en">Pricing</span><span data-lang="de">Preise</span></a></li>
+    <li><a href="network.html"><span data-lang="en">Network</span><span data-lang="de">Netzwerk</span></a></li>
+    <li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li>
+    <li><a href="login.html" style="color:var(--green);"><span data-lang="en">Login</span><span data-lang="de">Login</span></a></li>
+    <li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="lang-switch">
+      <button class="lang-btn active" data-set="en">EN</button>
+      <button class="lang-btn" data-set="de">DE</button>
+    </div>
+    <a href="contact.html" class="nav-cta"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a>
+    <button class="nav-burger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-orb1"></div>
+  <div class="hero-orb2"></div>
+  <div class="eyebrow"><span class="eyebrow-dot"></span><span data-lang="en">The Operating System for Multimodal Logistics</span><span data-lang="de">Das Betriebssystem für multimodale Logistik</span></div>
+
+  <h1>
+    <span data-lang="en">PLAN. CONNECT.<br><span class="gradient-text">MOVE THE WORLD.</span></span>
+    <span data-lang="de">PLANEN. VERBINDEN.<br><span class="gradient-text">DIE WELT BEWEGEN.</span></span>
+  </h1>
+
+  <p class="hero-desc">
+    <span data-lang="en">Neuroroute is the intelligent logistics platform connecting companies, partners and transport capacity across multimodal networks — road, rail, sea and air.</span>
+    <span data-lang="de">Neuroroute ist die intelligente Logistikplattform, die Unternehmen, Partner und Transportkapazitäten über multimodale Netzwerke verbindet — Straße, Schiene, See und Luft.</span>
+  </p>
+
+  <div class="hero-btns">
+    <a href="contact.html" class="btn-main"><span data-lang="en">Start Moving The World With Us</span><span data-lang="de">Bewegen Sie die Welt mit uns</span></a>
+    <a href="platform.html" class="btn-outline"><span data-lang="en">Explore the Platform</span><span data-lang="de">Plattform entdecken</span></a>
+  </div>
+
+  <!-- Network SVG -->
+  <div style="max-width:980px;width:100%;margin-top:70px;position:relative;z-index:1;">
+    <svg viewBox="0 0 1000 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;filter:drop-shadow(0 0 30px rgba(0,212,255,0.12));">
+      <defs>
+        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#00d4ff" stop-opacity="0.05"/><stop offset="50%" stop-color="#00d4ff" stop-opacity="0.7"/><stop offset="100%" stop-color="#4f7cff" stop-opacity="0.05"/></linearGradient>
+        <filter id="gl"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <circle cx="500" cy="130" r="44" fill="rgba(0,212,255,0.04)"/>
+      <path d="M 80,160 C 220,90 340,150 500,130 C 660,110 780,170 920,90" stroke="url(#g1)" stroke-width="1.5" fill="none" filter="url(#gl)"/>
+      <path d="M 150,70 C 280,120 380,90 500,130" stroke="rgba(79,124,255,0.4)" stroke-width="1" fill="none"/>
+      <path d="M 500,130 C 620,180 760,150 860,200" stroke="rgba(0,255,157,0.3)" stroke-width="1" fill="none"/>
+      <g filter="url(#gl)">
+        <circle cx="80" cy="160" r="5" fill="#03050a" stroke="#4f7cff" stroke-width="1.5"/><circle cx="80" cy="160" r="2" fill="#4f7cff"/>
+        <circle cx="150" cy="70" r="5" fill="#03050a" stroke="#00d4ff" stroke-width="1.5"/><circle cx="150" cy="70" r="2" fill="#00d4ff"/>
+        <circle cx="500" cy="130" r="13" fill="#03050a" stroke="#00d4ff" stroke-width="2"/><circle cx="500" cy="130" r="4" fill="#00d4ff"/>
+        <circle cx="500" cy="130" r="26" fill="none" stroke="rgba(0,212,255,0.12)" stroke-width="1"/>
+        <circle cx="860" cy="200" r="5" fill="#03050a" stroke="#00ff9d" stroke-width="1.5"/><circle cx="860" cy="200" r="2" fill="#00ff9d"/>
+        <circle cx="920" cy="90" r="6" fill="#03050a" stroke="#00d4ff" stroke-width="1.5"/><circle cx="920" cy="90" r="2.5" fill="#00d4ff"/>
+      </g>
+      <text x="500" y="162" text-anchor="middle" fill="#00d4ff" font-family="Bebas Neue" font-size="12" letter-spacing="2">NEUROROUTE</text>
+      <text x="200" y="120" fill="rgba(255,255,255,0.18)" font-family="Outfit" font-size="9"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg></span> Air</text>
+      <text x="380" y="150" fill="rgba(255,255,255,0.18)" font-family="Outfit" font-size="9"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 18a2 2 0 100-4 2 2 0 000 4zM18 18a2 2 0 100-4 2 2 0 000 4z"/></svg></span> Road</text>
+      <text x="640" y="120" fill="rgba(255,255,255,0.18)" font-family="Outfit" font-size="9"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v11H6zM6 9h12M9 18l-2 3M15 18l2 3M9 18h6"/><circle cx="9" cy="11.5" r="1"/><circle cx="15" cy="11.5" r="1"/></svg></span> Rail</text>
+      <text x="770" y="170" fill="rgba(255,255,255,0.18)" font-family="Outfit" font-size="9"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l9-4 9 4-2 6H5zM12 10V4M8 6h8"/></svg></span> Sea</text>
+    </svg>
+  </div>
+</section>
+
+<!-- WHY NEUROROUTE -->
+<section>
+  <div class="section-inner">
+    <p class="section-tag reveal"><span data-lang="en">Why Neuroroute</span><span data-lang="de">Warum Neuroroute</span></p>
+    <h2 class="reveal"><span data-lang="en">Five reasons.<br>One platform.</span><span data-lang="de">Fünf Gründe.<br>Eine Plattform.</span></h2>
+    <p class="body-large reveal"><span data-lang="en">Everything you need to coordinate multimodal transport — without giving up your existing partner network.</span><span data-lang="de">Alles, was Sie zur Koordination multimodaler Transporte brauchen — ohne Ihr bestehendes Partnernetzwerk aufzugeben.</span></p>
+
+    <div class="grid-4 reveal">
+      <div class="card">
+        <div class="card-num">01</div>
+        <div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg></span></div>
+        <h3><span data-lang="en">One Platform</span><span data-lang="de">Eine Plattform</span></h3>
+        <p><span data-lang="en">Road, rail, sea and air — coordinated in a single environment instead of scattered across emails and tools.</span><span data-lang="de">Straße, Schiene, See und Luft — koordiniert in einer Umgebung statt verstreut über E-Mails und Tools.</span></p>
+      </div>
+      <div class="card">
+        <div class="card-num">02</div>
+        <div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div>
+        <h3><span data-lang="en">Existing Partners First</span><span data-lang="de">Eigene Partner zuerst</span></h3>
+        <p><span data-lang="en">Your preferred partners are always checked first. External providers only when there's no internal match.</span><span data-lang="de">Ihre bevorzugten Partner werden immer zuerst geprüft. Externe Anbieter nur, wenn intern nichts passt.</span></p>
+      </div>
+      <div class="card">
+        <div class="card-num">03</div>
+        <div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span></div>
+        <h3><span data-lang="en">Multimodal Visibility</span><span data-lang="de">Multimodale Transparenz</span></h3>
+        <p><span data-lang="en">Full status visibility across every leg of the journey, no matter how many modes are involved.</span><span data-lang="de">Volle Statustransparenz über jeden Abschnitt der Reise — egal wie viele Verkehrsträger beteiligt sind.</span></p>
+      </div>
+      <div class="card">
+        <div class="card-num">04</div>
+        <div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg></span></div>
+        <h3><span data-lang="en">Faster Decisions</span><span data-lang="de">Schnellere Entscheidungen</span></h3>
+        <p><span data-lang="en">Compare offers and confirm transport in minutes — what used to take days of phone calls and emails.</span><span data-lang="de">Angebote vergleichen und Transporte in Minuten bestätigen — was früher Tage an Telefonaten kostete.</span></p>
+      </div>
+    </div>
+    <div class="grid-4 reveal" style="margin-top:18px;grid-template-columns:1fr;">
+      <div class="card" style="background:linear-gradient(135deg,rgba(0,212,255,0.05),rgba(79,124,255,0.04));border-color:rgba(0,212,255,0.12);">
+        <div class="card-num">05</div>
+        <div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-1 5 3 3 0 002 5 3 3 0 005 1V4a3 3 0 00-3-1zM15 3a3 3 0 013 3 3 3 0 011 5 3 3 0 01-2 5 3 3 0 01-5 1"/></svg></span></div>
+        <h3><span data-lang="en">Future AI Intelligence</span><span data-lang="de">Künftige KI-Intelligenz</span></h3>
+        <p style="max-width:640px;"><span data-lang="en">Neuroroute starts rule-based and evolves into a predictive system that forecasts demand, optimizes routes and coordinates logistics autonomously.</span><span data-lang="de">Neuroroute startet regelbasiert und entwickelt sich zu einem vorausschauenden System, das Nachfrage prognostiziert, Routen optimiert und Logistik autonom koordiniert.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section style="background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div class="section-inner">
+    <p class="section-tag reveal"><span data-lang="en">How It Works</span><span data-lang="de">So funktioniert es</span></p>
+    <h2 class="reveal"><span data-lang="en">Four steps.<br>Request to delivery.</span><span data-lang="de">Vier Schritte.<br>Anfrage bis Lieferung.</span></h2>
+    <p class="body-large reveal"><span data-lang="en">Like placing an order on an exchange — but for freight capacity.</span><span data-lang="de">Wie eine Order an der Börse — nur für Frachtkapazität.</span></p>
+
+    <div class="steps-grid reveal">
+      <div class="step">
+        <div class="step-circle">1</div>
+        <h3><span data-lang="en">Create Request</span><span data-lang="de">Anfrage erstellen</span></h3>
+        <p><span data-lang="en">Define origin, destination, mode, volume and deadline.</span><span data-lang="de">Start, Ziel, Modus, Volumen und Frist festlegen.</span></p>
+      </div>
+      <div class="step">
+        <div class="step-circle">2</div>
+        <h3><span data-lang="en">Partner Matching</span><span data-lang="de">Partner-Matching</span></h3>
+        <p><span data-lang="en">Your preferred partners are checked and prioritized first.</span><span data-lang="de">Ihre bevorzugten Partner werden zuerst geprüft und priorisiert.</span></p>
+      </div>
+      <div class="step">
+        <div class="step-circle">3</div>
+        <h3><span data-lang="en">Capacity Search</span><span data-lang="de">Kapazitätssuche</span></h3>
+        <p><span data-lang="en">If needed, external providers and new capacity are added.</span><span data-lang="de">Bei Bedarf werden externe Anbieter und neue Kapazitäten eingebunden.</span></p>
+      </div>
+      <div class="step">
+        <div class="step-circle">4</div>
+        <h3><span data-lang="en">Execution & Tracking</span><span data-lang="de">Ausführung & Tracking</span></h3>
+        <p><span data-lang="en">Confirm the order and follow every status to delivery.</span><span data-lang="de">Auftrag bestätigen und jeden Status bis zur Lieferung verfolgen.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HYBRID MODEL TEASER -->
+<section>
+  <div class="section-inner">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;" class="reveal hybrid-split">
+      <div>
+        <p class="section-tag"><span data-lang="en">The Core Innovation</span><span data-lang="de">Die Kerninnovation</span></p>
+        <h2><span data-lang="en">Use your own<br>network first.</span><span data-lang="de">Nutze zuerst dein<br>eigenes Netzwerk.</span></h2>
+        <p class="body-large" style="margin-bottom:32px;"><span data-lang="en">Most platforms say "use our network." Neuroroute says: keep your contracts, keep your relationships — and extend them only when you need to.</span><span data-lang="de">Die meisten Plattformen sagen "nutze unser Netzwerk." Neuroroute sagt: behalte deine Verträge, behalte deine Beziehungen — und erweitere sie nur, wenn du musst.</span></p>
+        <a href="network.html" class="btn-outline"><span data-lang="en">See the Network →</span><span data-lang="de">Netzwerk ansehen →</span></a>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:36px;">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(0,255,157,0.05);border:1px solid rgba(0,255,157,0.2);border-radius:8px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,255,157,0.12);display:flex;align-items:center;justify-content:center;">①</div>
+            <div><strong style="color:#fff;font-size:0.9rem;"><span data-lang="en">Your preferred partners</span><span data-lang="de">Ihre bevorzugten Partner</span></strong><br><span style="font-size:0.78rem;color:var(--muted2);"><span data-lang="en">Checked first, always</span><span data-lang="de">Immer zuerst geprüft</span></span></div>
+            <span style="margin-left:auto;font-size:0.7rem;font-weight:700;color:var(--green);background:rgba(0,255,157,0.1);border:1px solid rgba(0,255,157,0.25);padding:3px 10px;border-radius:100px;"><span data-lang="en">PRIORITY</span><span data-lang="de">PRIORITÄT</span></span>
+          </div>
+          <div style="text-align:center;color:var(--cyan);opacity:0.5;">↓</div>
+          <div style="display:flex;align-items:center;gap:14px;padding:16px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.15);border-radius:8px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,212,255,0.1);display:flex;align-items:center;justify-content:center;">②</div>
+            <div><strong style="color:#fff;font-size:0.9rem;"><span data-lang="en">External providers</span><span data-lang="de">Externe Anbieter</span></strong><br><span style="font-size:0.78rem;color:var(--muted2);"><span data-lang="en">Only if no internal match</span><span data-lang="de">Nur wenn intern nichts passt</span></span></div>
+            <span style="margin-left:auto;font-size:0.7rem;font-weight:700;color:var(--cyan);background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);padding:3px 10px;border-radius:100px;"><span data-lang="en">ON DEMAND</span><span data-lang="de">BEI BEDARF</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-band">
+  <p class="section-tag reveal"><span data-lang="en">Get Started</span><span data-lang="de">Loslegen</span></p>
+  <h2 class="reveal"><span data-lang="en">Ready to move<br>the world?</span><span data-lang="de">Bereit, die Welt<br>zu bewegen?</span></h2>
+  <p class="body-large reveal"><span data-lang="en">Neuroroute is in beta. Request early access and help shape the operating system for global logistics.</span><span data-lang="de">Neuroroute ist in der Beta-Phase. Sichern Sie sich Frühzugang und gestalten Sie das Betriebssystem für globale Logistik mit.</span></p>
+  <div class="hero-btns reveal">
+    <a href="contact.html" class="btn-main"><span data-lang="en">Request a Demo</span><span data-lang="de">Demo anfragen</span></a>
+    <a href="platform.html" class="btn-outline"><span data-lang="en">Learn More</span><span data-lang="de">Mehr erfahren</span></a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand"><a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a><p><span data-lang="en">The operating system for multimodal logistics. Connecting companies, partners and transport capacity worldwide.</span><span data-lang="de">Das Betriebssystem für multimodale Logistik. Verbindet Unternehmen, Partner und Transportkapazitäten weltweit.</span></p></div>
+    <div class="footer-col"><h4><span data-lang="en">Product</span><span data-lang="de">Produkt</span></h4><ul><li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li><li><a href="marketplace.html"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li><li><a href="pricing.html"><span data-lang="en">Pricing</span><span data-lang="de">Preise</span></a></li><li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li><li><a href="roadmap.html">Roadmap</a></li></ul></div>
+    <div class="footer-col"><h4><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></h4><ul><li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li><li><a href="usecases.html"><span data-lang="en">Use Cases</span><span data-lang="de">Anwendungen</span></a></li><li><a href="profile.html"><span data-lang="en">Company Profiles</span><span data-lang="de">Firmenprofile</span></a></li><li><a href="news.html">News</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html"><span data-lang="en">Contact</span><span data-lang="de">Kontakt</span></a></li></ul></div>
+    <div class="footer-col"><h4><span data-lang="en">Legal</span><span data-lang="de">Rechtliches</span></h4><ul><li><a href="impressum.html"><span data-lang="en">Imprint</span><span data-lang="de">Impressum</span></a></li><li><a href="datenschutz.html"><span data-lang="en">Privacy</span><span data-lang="de">Datenschutz</span></a></li><li><a href="agb.html">AGB</a></li></ul></div>
+  </div>
+  <div class="footer-bottom"><p>© 2025 Neuroroute · <span data-lang="en">The Logistics Operating System</span><span data-lang="de">Das Logistik-Betriebssystem</span></p><p>neuroroute.ai</p></div>
+</footer>
+
+<script>
+/* ============================================
+   NEUROROUTE · High-Tech FX Engine
+   ============================================ */
+(function(){
+  if (window.__nrFx) return; window.__nrFx = true;
+
+  function ready(fn){ if(document.readyState!='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+
+  ready(function(){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // --- Scroll progress bar ---
+    var bar = document.createElement('div'); bar.id = 'fx-progress'; document.body.appendChild(bar);
+    function onScroll(){
+      var h = document.documentElement;
+      var p = (h.scrollTop) / (h.scrollHeight - h.clientHeight || 1);
+      bar.style.width = (p*100) + '%';
+      var nav = document.querySelector('nav');
+      if (nav){ if (h.scrollTop > 20) nav.classList.add('scrolled'); else nav.classList.remove('scrolled'); }
+    }
+    document.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+    // --- Mouse parallax on hero orbs ---
+    if (!reduce) {
+      var orb1 = document.querySelector('.hero-orb1'), orb2 = document.querySelector('.hero-orb2');
+      window.addEventListener('mousemove', function(e){
+        var x = (e.clientX / window.innerWidth - 0.5);
+        var y = (e.clientY / window.innerHeight - 0.5);
+        if (orb1) orb1.style.transform = 'translate(calc(-50% + '+(x*40)+'px), calc(-58% + '+(y*40)+'px))';
+        if (orb2) orb2.style.transform = 'translate('+(x*-30)+'px, '+(y*-30)+'px)';
+      }, {passive:true});
+    }
+
+    // --- Particle network canvas ---
+    if (!reduce) {
+      var c = document.createElement('canvas'); c.id = 'fx-particles';
+      document.body.insertBefore(c, document.body.firstChild);
+      var ctx = c.getContext('2d'), W, H, pts, DPR = Math.min(window.devicePixelRatio||1, 2);
+      function resize(){
+        W = c.width = innerWidth*DPR; H = c.height = innerHeight*DPR;
+        c.style.width = innerWidth+'px'; c.style.height = innerHeight+'px';
+        var n = Math.min(70, Math.floor(innerWidth/22));
+        pts = []; for (var i=0;i<n;i++) pts.push({
+          x: Math.random()*W, y: Math.random()*H,
+          vx: (Math.random()-0.5)*0.25*DPR, vy: (Math.random()-0.5)*0.25*DPR
+        });
+      }
+      resize(); addEventListener('resize', resize, {passive:true});
+      var mx = -9999, my = -9999;
+      addEventListener('mousemove', function(e){ mx = e.clientX*DPR; my = e.clientY*DPR; }, {passive:true});
+      function tick(){
+        ctx.clearRect(0,0,W,H);
+        for (var i=0;i<pts.length;i++){
+          var p = pts[i]; p.x+=p.vx; p.y+=p.vy;
+          if(p.x<0||p.x>W) p.vx*=-1; if(p.y<0||p.y>H) p.vy*=-1;
+          // link to mouse
+          var dmx = p.x-mx, dmy = p.y-my, dm = Math.sqrt(dmx*dmx+dmy*dmy);
+          for (var j=i+1;j<pts.length;j++){
+            var q = pts[j], dx=p.x-q.x, dy=p.y-q.y, d=Math.sqrt(dx*dx+dy*dy);
+            if (d < 130*DPR){
+              ctx.strokeStyle = 'rgba(0,212,255,'+(0.12*(1-d/(130*DPR)))+')';
+              ctx.lineWidth = DPR*0.6;
+              ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+            }
+          }
+          var near = dm < 160*DPR;
+          ctx.fillStyle = near ? 'rgba(0,255,157,'+(0.7*(1-dm/(160*DPR)))+')' : 'rgba(0,212,255,0.45)';
+          ctx.beginPath(); ctx.arc(p.x,p.y, (near?2.2:1.4)*DPR, 0, 6.28); ctx.fill();
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    }
+
+    // --- Tilt on cards ---
+    if (!reduce) {
+      document.querySelectorAll('.card, .price-card, .uc, .article').forEach(function(el){
+        el.addEventListener('mousemove', function(e){
+          var r = el.getBoundingClientRect();
+          var rx = ((e.clientY-r.top)/r.height - 0.5) * -5;
+          var ry = ((e.clientX-r.left)/r.width - 0.5) * 5;
+          el.style.transform = 'translateY(-4px) perspective(800px) rotateX('+rx+'deg) rotateY('+ry+'deg)';
+        });
+        el.addEventListener('mouseleave', function(){ el.style.transform = ''; });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

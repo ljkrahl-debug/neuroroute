@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuroroute — News</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   NEUROROUTE · Shared Styles
+   ============================================ */
+:root {
+  --bg: #03050a;
+  --bg2: #070b14;
+  --surface: #0b1120;
+  --card: #0f1928;
+  --card2: #131f33;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --cyan: #00d4ff;
+  --cyan2: #00a8cc;
+  --green: #00ff9d;
+  --amber: #ffb340;
+  --indigo: #4f7cff;
+  --purple: #7c5cfc;
+  --text: #dde6f5;
+  --muted: #5a6e8a;
+  --muted2: #8a9dbf;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'Outfit', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.022) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none; z-index: 0;
+}
+@keyframes breathe { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.6); opacity: 0.6; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--indigo); border-radius: 2px; }
+
+/* ===== NAV ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 48px; height: 68px;
+  background: rgba(3,5,10,0.82);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  font-family: var(--display); font-size: 1.7rem; letter-spacing: 0.04em;
+  color: #fff; display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.logo-pulse {
+  width: 9px; height: 9px; background: var(--cyan); border-radius: 50%;
+  box-shadow: 0 0 16px var(--cyan), 0 0 40px rgba(0,212,255,0.3);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+.nav-links {
+  display: flex; gap: 30px; list-style: none;
+  font-size: 0.88rem; font-weight: 500; color: var(--muted2);
+}
+.nav-links a { color: inherit; text-decoration: none; transition: color 0.2s; position: relative; }
+.nav-links a:hover { color: #fff; }
+.nav-links a.active { color: var(--cyan); }
+.nav-right { display: flex; align-items: center; gap: 16px; }
+
+/* Language switcher */
+.lang-switch {
+  display: flex; border: 1px solid var(--border2); border-radius: 6px; overflow: hidden;
+}
+.lang-btn {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--muted2); font-family: var(--body); font-size: 0.78rem; font-weight: 600;
+  padding: 6px 12px; transition: all 0.2s;
+}
+.lang-btn.active { background: var(--cyan); color: #000; }
+
+.nav-cta {
+  background: var(--cyan); color: #000;
+  font-weight: 700; font-size: 0.85rem;
+  padding: 10px 24px; border-radius: 4px; text-decoration: none;
+  transition: all 0.2s; white-space: nowrap;
+}
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,212,255,0.35); }
+
+.nav-burger { display: none; background: none; border: none; cursor: pointer; flex-direction: column; gap: 5px; }
+.nav-burger span { width: 24px; height: 2px; background: var(--text); border-radius: 2px; transition: 0.3s; }
+
+/* ===== SHARED LAYOUT ===== */
+section { position: relative; z-index: 1; }
+.section-inner { max-width: 1240px; margin: 0 auto; padding: 100px 48px; }
+.section-tag { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cyan); margin-bottom: 16px; }
+h1 { font-family: var(--display); font-size: clamp(3rem, 7vw, 6.5rem); line-height: 0.95; letter-spacing: 0.02em; color: #fff; }
+h2 { font-family: var(--display); font-size: clamp(2.5rem, 4.5vw, 4.5rem); line-height: 0.95; letter-spacing: 0.02em; color: #fff; margin-bottom: 20px; }
+h3 { font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.03em; color: #fff; }
+.accent { color: var(--cyan); }
+.dim { color: rgba(255,255,255,0.35); }
+.gradient-text { background: linear-gradient(135deg, var(--cyan), var(--indigo)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.body-large { font-size: 1.1rem; font-weight: 300; color: var(--muted2); line-height: 1.75; max-width: 620px; margin-bottom: 60px; }
+
+/* ===== HERO ===== */
+.hero {
+  position: relative; min-height: 92vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 130px 48px 80px; text-align: center; overflow: hidden;
+}
+.hero-orb1 { position: absolute; width: 900px; height: 900px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,255,0.08) 0%, transparent 65%); top: 50%; left: 50%; transform: translate(-50%, -58%); pointer-events: none; }
+.hero-orb2 { position: absolute; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(79,124,255,0.07) 0%, transparent 65%); top: 55%; left: 28%; pointer-events: none; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.18);
+  color: var(--cyan); font-size: 0.75rem; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 7px 18px; border-radius: 100px; margin-bottom: 34px;
+  position: relative; z-index: 1;
+}
+.eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: breathe 1.8s infinite; }
+.hero h1 { margin-bottom: 28px; position: relative; z-index: 1; }
+.hero-desc { font-size: 1.18rem; font-weight: 300; color: var(--muted2); max-width: 640px; line-height: 1.7; margin: 0 auto 46px; position: relative; z-index: 1; }
+.hero-btns { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; position: relative; z-index: 1; }
+
+/* ===== PAGE HEADER (sub-pages) ===== */
+.page-header {
+  position: relative; padding: 150px 48px 70px; text-align: center; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.page-header-orb { position: absolute; width: 700px; height: 500px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,212,255,0.07) 0%, transparent 65%); top: 30%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.page-header h1 { font-size: clamp(2.8rem, 6vw, 5rem); margin-bottom: 20px; position: relative; z-index: 1; }
+.page-header p { font-size: 1.15rem; color: var(--muted2); max-width: 600px; margin: 0 auto; font-weight: 300; position: relative; z-index: 1; }
+
+/* ===== BUTTONS ===== */
+.btn-main { background: var(--cyan); color: #000; font-weight: 700; font-size: 0.95rem; padding: 17px 38px; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; transition: all 0.25s; }
+.btn-main:hover { transform: translateY(-2px); box-shadow: 0 10px 36px rgba(0,212,255,0.4); }
+.btn-outline { background: transparent; color: var(--text); font-weight: 600; font-size: 0.95rem; padding: 17px 38px; border-radius: 4px; text-decoration: none; border: 1px solid var(--border2); cursor: pointer; transition: all 0.2s; }
+.btn-outline:hover { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.04); }
+
+/* ===== CARD GRIDS ===== */
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 34px 30px; transition: all 0.3s; position: relative; overflow: hidden;
+}
+.card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity: 0; transition: opacity 0.3s; }
+.card:hover { border-color: rgba(0,212,255,0.2); transform: translateY(-3px); }
+.card:hover::after { opacity: 1; }
+.card-num { font-family: var(--display); font-size: 0.75rem; letter-spacing: 0.1em; color: var(--cyan); opacity: 0.6; margin-bottom: 14px; }
+.card-icon { font-size: 1.9rem; margin-bottom: 16px; }
+.card h3 { margin-bottom: 10px; }
+.card p { font-size: 0.9rem; color: var(--muted2); line-height: 1.65; }
+
+/* ===== STEPS ===== */
+.steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; position: relative; }
+.steps-grid::before { content: ''; position: absolute; top: 32px; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, var(--cyan), var(--indigo)); z-index: 0; }
+.step { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 32px 26px; position: relative; z-index: 1; transition: all 0.3s; }
+.step:hover { border-color: rgba(0,212,255,0.2); transform: translateY(-2px); }
+.step-circle { width: 56px; height: 56px; border-radius: 50%; background: var(--bg); border: 2px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 1.3rem; color: var(--cyan); margin-bottom: 22px; box-shadow: 0 0 20px rgba(0,212,255,0.2); }
+.step h3 { font-size: 1.3rem; margin-bottom: 10px; }
+.step p { font-size: 0.88rem; color: var(--muted2); line-height: 1.6; }
+
+/* ===== FOOTER ===== */
+footer { border-top: 1px solid var(--border); padding: 60px 48px 40px; background: var(--bg2); }
+.footer-grid { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+.footer-brand .logo { margin-bottom: 16px; }
+.footer-brand p { font-size: 0.88rem; color: var(--muted); max-width: 280px; line-height: 1.6; }
+.footer-col h4 { font-family: var(--body); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; }
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-col a { color: var(--muted2); font-size: 0.9rem; text-decoration: none; transition: color 0.2s; }
+.footer-col a:hover { color: var(--cyan); }
+.footer-bottom { max-width: 1240px; margin: 0 auto; padding-top: 28px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.footer-bottom p { font-size: 0.82rem; color: var(--muted); }
+
+/* ===== CTA BAND ===== */
+.cta-band { padding: 130px 48px; text-align: center; position: relative; overflow: hidden; }
+.cta-band::before { content: ''; position: absolute; width: 900px; height: 450px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,212,255,0.07) 0%, transparent 65%); top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.cta-band h2 { max-width: 800px; margin: 0 auto 24px; }
+.cta-band .body-large { margin: 0 auto 46px; }
+
+/* ===== REVEAL ANIMATION ===== */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ===== LANGUAGE VISIBILITY ===== */
+[data-lang] { display: none; }
+body.lang-en [data-lang="en"] { display: revert; }
+body.lang-de [data-lang="de"] { display: revert; }
+/* inline variants */
+span[data-lang], a[data-lang] { display: none; }
+body.lang-en span[data-lang="en"], body.lang-en a[data-lang="en"] { display: inline; }
+body.lang-de span[data-lang="de"], body.lang-de a[data-lang="de"] { display: inline; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 980px) {
+  nav { padding: 0 20px; }
+  .nav-links { display: none; position: absolute; top: 68px; left: 0; right: 0; flex-direction: column; background: rgba(3,5,10,0.97); padding: 24px; gap: 20px; border-bottom: 1px solid var(--border); }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: flex; }
+  .section-inner { padding: 70px 24px; }
+  .hero { padding: 120px 24px 60px; }
+  .page-header { padding: 120px 24px 50px; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr; gap: 16px; }
+  .steps-grid::before { display: none; }
+  .footer-grid { grid-template-columns: 1fr 1fr; gap: 28px; }
+  .cta-band { padding: 90px 24px; }
+}
+@media (max-width: 560px) {
+  .footer-grid { grid-template-columns: 1fr; }
+}
+
+/* ===== ICONS ===== */
+.ico { display:inline-flex; align-items:center; justify-content:center; vertical-align:middle; line-height:0; color:var(--cyan); }
+.ico svg { display:block; }
+/* Large card icons */
+.card-icon .ico svg { width:30px; height:30px; }
+.card-icon { color:var(--cyan); }
+/* eyebrow dot icons stay small */
+.eyebrow .ico svg { width:14px; height:14px; }
+/* network/ecosystem big icons keep emoji-free via svg in markup already */
+
+
+/* ============================================
+   NEUROROUTE · High-Tech FX Layer
+   ============================================ */
+
+/* Animated aurora background */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(ellipse 800px 600px at 15% 10%, rgba(0,212,255,0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 20%, rgba(79,124,255,0.09), transparent 60%),
+    radial-gradient(ellipse 900px 700px at 50% 100%, rgba(124,92,252,0.08), transparent 60%);
+  animation: auroraShift 18s ease-in-out infinite;
+}
+@keyframes auroraShift {
+  0%,100% { opacity: 0.7; transform: translate3d(0,0,0) scale(1); }
+  33%     { opacity: 1;   transform: translate3d(2%,-1%,0) scale(1.05); }
+  66%     { opacity: 0.85;transform: translate3d(-2%,1%,0) scale(1.02); }
+}
+
+/* Floating particles canvas sits behind content */
+#fx-particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.55; }
+nav, section, footer, .modal-bg { position: relative; z-index: 1; }
+
+/* Hero parallax orbs follow mouse */
+.hero-orb1, .hero-orb2 { transition: transform 0.5s cubic-bezier(.2,.7,.2,1); will-change: transform; }
+
+/* Glow pulse on primary buttons */
+.btn-main, .nav-cta {
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 0 rgba(0,212,255,0);
+  animation: ctaGlow 3.5s ease-in-out infinite;
+}
+@keyframes ctaGlow {
+  0%,100% { box-shadow: 0 4px 20px rgba(0,212,255,0.18); }
+  50%     { box-shadow: 0 6px 34px rgba(0,212,255,0.42); }
+}
+/* Shine sweep across buttons */
+.btn-main::before, .nav-cta::before {
+  content: ''; position: absolute; top: 0; left: -120%;
+  width: 80%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-18deg);
+  animation: shineSweep 4.5s ease-in-out infinite;
+}
+@keyframes shineSweep {
+  0%, 60% { left: -120%; }
+  80%,100% { left: 130%; }
+}
+
+/* Cards: glow border + lift + sheen on hover */
+.card, .price-card, .uc, .article, .pf-section, .listing, .step, .stat {
+  transition: transform 0.35s cubic-bezier(.2,.7,.2,1), box-shadow 0.35s, border-color 0.35s;
+}
+.card:hover, .price-card:hover, .article:hover, .step:hover {
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,212,255,0.12);
+}
+
+/* Gradient text gets animated shimmer */
+.gradient-text {
+  background: linear-gradient(110deg, var(--cyan), var(--indigo), var(--purple), var(--cyan));
+  background-size: 300% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shimmerText 6s linear infinite;
+}
+@keyframes shimmerText { to { background-position: 300% center; } }
+
+/* Section tag gets a pulsing dot */
+.section-tag { display: inline-flex; align-items: center; gap: 9px; }
+.section-tag::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 12px var(--cyan);
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+/* Logo pulse stronger */
+.logo-pulse { animation: breathe 2s ease-in-out infinite, hueGlow 4s ease-in-out infinite; }
+@keyframes hueGlow {
+  0%,100% { box-shadow: 0 0 16px var(--cyan), 0 0 40px rgba(0,212,255,0.3); }
+  50%     { box-shadow: 0 0 22px var(--cyan), 0 0 60px rgba(0,212,255,0.55); }
+}
+
+/* Scroll reveal: richer entrance */
+.reveal { opacity: 0; transform: translateY(34px) scale(0.985); filter: blur(4px);
+  transition: opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1), filter 0.7s; }
+.reveal.visible { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+
+/* Scroll progress bar */
+#fx-progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--indigo), var(--purple));
+  box-shadow: 0 0 12px rgba(0,212,255,0.6); z-index: 999;
+  transition: width 0.1s linear;
+}
+
+/* Nav gains glass depth on scroll */
+nav.scrolled { background: rgba(3,5,10,0.92); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+
+/* Magnetic hover for nav links */
+.nav-links a::after {
+  content: ''; position: absolute; left: 0; bottom: -4px; width: 0; height: 2px;
+  background: var(--cyan); box-shadow: 0 0 8px var(--cyan); transition: width 0.3s;
+}
+.nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+
+/* Stat numbers glow subtly */
+.stat-value, .pf-stat .v { text-shadow: 0 0 24px rgba(0,212,255,0.25); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::after, .btn-main, .nav-cta, .btn-main::before, .nav-cta::before,
+  .gradient-text, .logo-pulse, .section-tag::before { animation: none !important; }
+}
+
+</style>
+<script>
+/* ============================================
+   NEUROROUTE · Shared Script
+   ============================================ */
+
+// --- Language switching ---
+function setLang(lang) {
+  document.body.classList.remove('lang-en', 'lang-de');
+  document.body.classList.add('lang-' + lang);
+  document.documentElement.lang = lang;
+  try { localStorage.setItem('nr-lang', lang); } catch(e) {}
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.set === lang);
+  });
+}
+
+(function initLang() {
+  let saved = 'en';
+  try { saved = localStorage.getItem('nr-lang') || 'en'; } catch(e) {}
+  // run as soon as body exists
+  document.addEventListener('DOMContentLoaded', () => {
+    setLang(saved);
+    document.querySelectorAll('.lang-btn').forEach(b => {
+      b.addEventListener('click', () => setLang(b.dataset.set));
+    });
+    // burger
+    const burger = document.querySelector('.nav-burger');
+    const links = document.querySelector('.nav-links');
+    if (burger && links) {
+      burger.addEventListener('click', () => links.classList.toggle('open'));
+      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+    }
+    // reveal
+    const obs = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    }), { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach((el, i) => {
+      el.style.transitionDelay = `${(i % 4) * 0.07}s`;
+      obs.observe(el);
+    });
+  });
+  // set class immediately to avoid flash
+  document.documentElement.classList.add('lang-' + saved);
+})();
+
+</script>
+<style>
+.news-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
+.article{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all 0.3s;display:flex;flex-direction:column;}
+.article:hover{transform:translateY(-3px);border-color:rgba(0,212,255,0.2);}
+.article-img{height:160px;background:linear-gradient(135deg,rgba(0,212,255,0.12),rgba(79,124,255,0.08));display:flex;align-items:center;justify-content:center;color:var(--cyan);position:relative;border-bottom:1px solid var(--border);}
+.article-img.green{background:linear-gradient(135deg,rgba(0,255,157,0.12),rgba(0,212,255,0.06));color:var(--green);}
+.article-img.purple{background:linear-gradient(135deg,rgba(124,92,252,0.12),rgba(79,124,255,0.06));color:var(--purple);}
+.article-img.amber{background:linear-gradient(135deg,rgba(255,179,64,0.12),rgba(255,179,64,0.04));color:var(--amber);}
+.article-body{padding:24px;flex:1;display:flex;flex-direction:column;}
+.article-meta{font-size:0.74rem;color:var(--muted);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px;}
+.article-title{font-family:var(--display);font-size:1.5rem;letter-spacing:0.02em;color:#fff;margin-bottom:10px;line-height:1.1;}
+.article-excerpt{font-size:0.9rem;color:var(--muted2);line-height:1.6;flex:1;}
+.article-link{color:var(--cyan);font-size:0.85rem;font-weight:600;margin-top:16px;text-decoration:none;}
+.featured-article{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;}
+.featured-article .article-img{height:100%;min-height:240px;}
+@media(max-width:800px){.news-grid{grid-template-columns:1fr;}.featured-article{grid-template-columns:1fr;}}
+</style>
+</head>
+<body class="lang-en">
+
+<nav>
+  <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
+  <ul class="nav-links">
+    <li><a href="index.html"><span data-lang="en">Home</span><span data-lang="de">Start</span></a></li>
+    <li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li>
+    <li><a href="marketplace.html" style="color:var(--green);"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li>
+    <li><a href="solutions.html"><span data-lang="en">Solutions</span><span data-lang="de">Lösungen</span></a></li>
+    <li><a href="pricing.html"><span data-lang="en">Pricing</span><span data-lang="de">Preise</span></a></li>
+    <li><a href="network.html"><span data-lang="en">Network</span><span data-lang="de">Netzwerk</span></a></li>
+    <li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li>
+    <li><a href="login.html" style="color:var(--green);"><span data-lang="en">Login</span><span data-lang="de">Login</span></a></li>
+    <li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li>
+  </ul>
+  <div class="nav-right">
+    <div class="lang-switch"><button class="lang-btn active" data-set="en">EN</button><button class="lang-btn" data-set="de">DE</button></div>
+    <a href="contact.html" class="nav-cta"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a>
+    <button class="nav-burger"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<header class="page-header">
+  <div class="page-header-orb"></div>
+  <p class="section-tag">News</p>
+  <h1><span data-lang="en">News & Insights</span><span data-lang="de">News & Einblicke</span></h1>
+  <p><span data-lang="en">Updates from the team and ideas about the future of logistics.</span><span data-lang="de">Updates aus dem Team und Gedanken zur Zukunft der Logistik.</span></p>
+</header>
+
+<section>
+  <div class="section-inner">
+    <div class="news-grid reveal">
+
+      <div class="article featured-article">
+        <div class="article-img"><span class="ico"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg></span></div>
+        <div class="article-body">
+          <div class="article-meta"><span data-lang="en">Announcement · Beta</span><span data-lang="de">Ankündigung · Beta</span></div>
+          <div class="article-title"><span data-lang="en">Neuroroute Enters Beta</span><span data-lang="de">Neuroroute startet in die Beta</span></div>
+          <div class="article-excerpt"><span data-lang="en">We're opening Neuroroute to first partners. The platform that puts your own network first — and turns empty miles into revenue — is ready for early adopters. Here's what's live today and what's coming next.</span><span data-lang="de">Wir öffnen Neuroroute für erste Partner. Die Plattform, die Ihr eigenes Netzwerk zuerst nutzt — und aus Leerfahrten Umsatz macht — ist bereit für Early Adopters. Das ist heute live und das kommt als Nächstes.</span></div>
+          <a href="contact.html" class="article-link"><span data-lang="en">Request early access →</span><span data-lang="de">Frühzugang anfragen →</span></a>
+        </div>
+      </div>
+
+      <div class="article">
+        <div class="article-img green"><span class="ico"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l6 6 4-4 8 8M21 17v-5h-5"/></svg></span></div>
+        <div class="article-body">
+          <div class="article-meta"><span data-lang="en">Insight</span><span data-lang="de">Einblick</span></div>
+          <div class="article-title"><span data-lang="en">The Hidden Cost of Empty Miles</span><span data-lang="de">Die versteckten Kosten leerer Kilometer</span></div>
+          <div class="article-excerpt"><span data-lang="en">Up to 1 in 4 truck kilometers in Europe are driven empty. We look at why — and how a capacity marketplace can change the math for carriers.</span><span data-lang="de">Bis zu jeder 4. LKW-Kilometer in Europa wird leer gefahren. Wir schauen, warum — und wie ein Kapazitätsmarktplatz die Rechnung für Carrier verändert.</span></div>
+          <a href="marketplace.html" class="article-link"><span data-lang="en">Read more →</span><span data-lang="de">Mehr lesen →</span></a>
+        </div>
+      </div>
+
+      <div class="article">
+        <div class="article-img purple"><span class="ico"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-1 5 3 3 0 002 5 3 3 0 005 1V4a3 3 0 00-3-1zM15 3a3 3 0 013 3 3 3 0 011 5 3 3 0 01-2 5 3 3 0 01-5 1"/></svg></span></div>
+        <div class="article-body">
+          <div class="article-meta"><span data-lang="en">Vision</span><span data-lang="de">Vision</span></div>
+          <div class="article-title"><span data-lang="en">From Platform to Logistics OS</span><span data-lang="de">Von der Plattform zum Logistik-OS</span></div>
+          <div class="article-excerpt"><span data-lang="en">Why we believe the future of freight isn't another portal, but a shared operating system that coordinates every mode and respects existing networks.</span><span data-lang="de">Warum die Zukunft der Fracht kein weiteres Portal ist, sondern ein gemeinsames Betriebssystem, das alle Verkehrsträger koordiniert und bestehende Netzwerke respektiert.</span></div>
+          <a href="about.html" class="article-link"><span data-lang="en">Read more →</span><span data-lang="de">Mehr lesen →</span></a>
+        </div>
+      </div>
+
+      <div class="article">
+        <div class="article-img amber"><span class="ico"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div>
+        <div class="article-body">
+          <div class="article-meta"><span data-lang="en">Product</span><span data-lang="de">Produkt</span></div>
+          <div class="article-title"><span data-lang="en">Why "Partners First" Matters</span><span data-lang="de">Warum "Partner zuerst" zählt</span></div>
+          <div class="article-excerpt"><span data-lang="en">Most platforms ask you to abandon your contacts. We do the opposite — and it's the single biggest reason logistics teams adopt Neuroroute without friction.</span><span data-lang="de">Die meisten Plattformen wollen, dass Sie Ihre Kontakte aufgeben. Wir machen das Gegenteil — und das ist der größte Grund, warum Logistik-Teams Neuroroute reibungslos übernehmen.</span></div>
+          <a href="network.html" class="article-link"><span data-lang="en">Read more →</span><span data-lang="de">Mehr lesen →</span></a>
+        </div>
+      </div>
+
+      <div class="article">
+        <div class="article-img"><span class="ico"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4M7 13h2M11 13h2M15 13h2M7 17h2M11 17h2"/></svg></span></div>
+        <div class="article-body">
+          <div class="article-meta"><span data-lang="en">Product</span><span data-lang="de">Produkt</span></div>
+          <div class="article-title"><span data-lang="en">Plan Capacity Months Ahead</span><span data-lang="de">Kapazität Monate im Voraus planen</span></div>
+          <div class="article-excerpt"><span data-lang="en">The new Capacity Planning module lets carriers map future transports, spot empty runs early, and market free slots before they go to waste.</span><span data-lang="de">Das neue Kapazitätsplanungs-Modul lässt Carrier zukünftige Transporte abbilden, Leerfahrten früh erkennen und freie Slots vermarkten, bevor sie verfallen.</span></div>
+          <a href="marketplace.html" class="article-link"><span data-lang="en">Read more →</span><span data-lang="de">Mehr lesen →</span></a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="cta-band">
+  <h2 class="reveal"><span data-lang="en">Stay in the loop.</span><span data-lang="de">Bleiben Sie informiert.</span></h2>
+  <p class="body-large reveal"><span data-lang="en">Be the first to hear about new features, partners and milestones.</span><span data-lang="de">Erfahren Sie als Erste von neuen Funktionen, Partnern und Meilensteinen.</span></p>
+  <div class="hero-btns reveal"><a href="contact.html" class="btn-main"><span data-lang="en">Get Updates</span><span data-lang="de">Updates erhalten</span></a></div>
+</section>
+
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand"><a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a><p><span data-lang="en">The operating system for multimodal logistics.</span><span data-lang="de">Das Betriebssystem für multimodale Logistik.</span></p></div>
+    <div class="footer-col"><h4><span data-lang="en">Product</span><span data-lang="de">Produkt</span></h4><ul><li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li><li><a href="marketplace.html"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li><li><a href="pricing.html"><span data-lang="en">Pricing</span><span data-lang="de">Preise</span></a></li><li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li><li><a href="roadmap.html">Roadmap</a></li></ul></div>
+    <div class="footer-col"><h4><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></h4><ul><li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li><li><a href="usecases.html"><span data-lang="en">Use Cases</span><span data-lang="de">Anwendungen</span></a></li><li><a href="profile.html"><span data-lang="en">Company Profiles</span><span data-lang="de">Firmenprofile</span></a></li><li><a href="news.html">News</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html"><span data-lang="en">Contact</span><span data-lang="de">Kontakt</span></a></li></ul></div>
+    <div class="footer-col"><h4><span data-lang="en">Legal</span><span data-lang="de">Rechtliches</span></h4><ul><li><a href="impressum.html"><span data-lang="en">Imprint</span><span data-lang="de">Impressum</span></a></li><li><a href="datenschutz.html"><span data-lang="en">Privacy</span><span data-lang="de">Datenschutz</span></a></li><li><a href="agb.html">AGB</a></li></ul></div>
+  </div>
+  <div class="footer-bottom"><p>© 2025 Neuroroute</p><p>neuroroute.ai</p></div>
+</footer>
+
+<script>
+/* ============================================
+   NEUROROUTE · High-Tech FX Engine
+   ============================================ */
+(function(){
+  if (window.__nrFx) return; window.__nrFx = true;
+
+  function ready(fn){ if(document.readyState!='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+
+  ready(function(){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // --- Scroll progress bar ---
+    var bar = document.createElement('div'); bar.id = 'fx-progress'; document.body.appendChild(bar);
+    function onScroll(){
+      var h = document.documentElement;
+      var p = (h.scrollTop) / (h.scrollHeight - h.clientHeight || 1);
+      bar.style.width = (p*100) + '%';
+      var nav = document.querySelector('nav');
+      if (nav){ if (h.scrollTop > 20) nav.classList.add('scrolled'); else nav.classList.remove('scrolled'); }
+    }
+    document.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+    // --- Mouse parallax on hero orbs ---
+    if (!reduce) {
+      var orb1 = document.querySelector('.hero-orb1'), orb2 = document.querySelector('.hero-orb2');
+      window.addEventListener('mousemove', function(e){
+        var x = (e.clientX / window.innerWidth - 0.5);
+        var y = (e.clientY / window.innerHeight - 0.5);
+        if (orb1) orb1.style.transform = 'translate(calc(-50% + '+(x*40)+'px), calc(-58% + '+(y*40)+'px))';
+        if (orb2) orb2.style.transform = 'translate('+(x*-30)+'px, '+(y*-30)+'px)';
+      }, {passive:true});
+    }
+
+    // --- Particle network canvas ---
+    if (!reduce) {
+      var c = document.createElement('canvas'); c.id = 'fx-particles';
+      document.body.insertBefore(c, document.body.firstChild);
+      var ctx = c.getContext('2d'), W, H, pts, DPR = Math.min(window.devicePixelRatio||1, 2);
+      function resize(){
+        W = c.width = innerWidth*DPR; H = c.height = innerHeight*DPR;
+        c.style.width = innerWidth+'px'; c.style.height = innerHeight+'px';
+        var n = Math.min(70, Math.floor(innerWidth/22));
+        pts = []; for (var i=0;i<n;i++) pts.push({
+          x: Math.random()*W, y: Math.random()*H,
+          vx: (Math.random()-0.5)*0.25*DPR, vy: (Math.random()-0.5)*0.25*DPR
+        });
+      }
+      resize(); addEventListener('resize', resize, {passive:true});
+      var mx = -9999, my = -9999;
+      addEventListener('mousemove', function(e){ mx = e.clientX*DPR; my = e.clientY*DPR; }, {passive:true});
+      function tick(){
+        ctx.clearRect(0,0,W,H);
+        for (var i=0;i<pts.length;i++){
+          var p = pts[i]; p.x+=p.vx; p.y+=p.vy;
+          if(p.x<0||p.x>W) p.vx*=-1; if(p.y<0||p.y>H) p.vy*=-1;
+          // link to mouse
+          var dmx = p.x-mx, dmy = p.y-my, dm = Math.sqrt(dmx*dmx+dmy*dmy);
+          for (var j=i+1;j<pts.length;j++){
+            var q = pts[j], dx=p.x-q.x, dy=p.y-q.y, d=Math.sqrt(dx*dx+dy*dy);
+            if (d < 130*DPR){
+              ctx.strokeStyle = 'rgba(0,212,255,'+(0.12*(1-d/(130*DPR)))+')';
+              ctx.lineWidth = DPR*0.6;
+              ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+            }
+          }
+          var near = dm < 160*DPR;
+          ctx.fillStyle = near ? 'rgba(0,255,157,'+(0.7*(1-dm/(160*DPR)))+')' : 'rgba(0,212,255,0.45)';
+          ctx.beginPath(); ctx.arc(p.x,p.y, (near?2.2:1.4)*DPR, 0, 6.28); ctx.fill();
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    }
+
+    // --- Tilt on cards ---
+    if (!reduce) {
+      document.querySelectorAll('.card, .price-card, .uc, .article').forEach(function(el){
+        el.addEventListener('mousemove', function(e){
+          var r = el.getBoundingClientRect();
+          var rx = ((e.clientY-r.top)/r.height - 0.5) * -5;
+          var ry = ((e.clientX-r.left)/r.width - 0.5) * 5;
+          el.style.transform = 'translateY(-4px) perspective(800px) rotateX('+rx+'deg) rotateY('+ry+'deg)';
+        });
+        el.addEventListener('mouseleave', function(){ el.style.transform = ''; });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

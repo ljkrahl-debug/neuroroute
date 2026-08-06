@@ -221,3 +221,13 @@ body.lang-de span[data-lang="de"], body.lang-de a[data-lang="de"] { display: inl
 @media (max-width: 560px) {
   .footer-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== ICONS ===== */
+.ico { display:inline-flex; align-items:center; justify-content:center; vertical-align:middle; line-height:0; color:var(--cyan); }
+.ico svg { display:block; }
+/* Large card icons */
+.card-icon .ico svg { width:30px; height:30px; }
+.card-icon { color:var(--cyan); }
+/* eyebrow dot icons stay small */
+.eyebrow .ico svg { width:14px; height:14px; }
+/* network/ecosystem big icons keep emoji-free via svg in markup already */

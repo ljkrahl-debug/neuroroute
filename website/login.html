@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neuroroute — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#03050a; --bg2:#070b14; --card:#0f1928; --card2:#131f33;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.1);
+  --cyan:#00d4ff; --green:#00ff9d; --amber:#ffb340; --indigo:#4f7cff;
+  --text:#dde6f5; --muted:#5a6e8a; --muted2:#8a9dbf;
+  --display:'Bebas Neue',sans-serif; --body:'Outfit',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.022) 1px,transparent 1px);background-size:80px 80px;pointer-events:none;z-index:0;}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.6);opacity:0.6;}}
+.orb{position:fixed;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,255,0.08) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.wrap{position:relative;z-index:1;width:100%;max-width:480px;text-align:center;}
+.logo{font-family:var(--display);font-size:2.4rem;letter-spacing:0.04em;color:#fff;display:inline-flex;align-items:center;gap:12px;margin-bottom:10px;text-decoration:none;}
+.logo-pulse{width:11px;height:11px;background:var(--cyan);border-radius:50%;box-shadow:0 0 16px var(--cyan);animation:breathe 2.4s infinite;}
+.subtitle{color:var(--muted2);font-size:0.95rem;margin-bottom:8px;}
+.demo-badge{display:inline-block;font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--amber);background:rgba(255,179,64,0.1);border:1px solid rgba(255,179,64,0.25);padding:4px 12px;border-radius:100px;margin-bottom:36px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px;margin-bottom:20px;}
+.card h2{font-family:var(--display);font-size:1.6rem;letter-spacing:0.03em;margin-bottom:6px;}
+.card p.hint{color:var(--muted);font-size:0.85rem;margin-bottom:24px;}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.role-btn{background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:22px 16px;cursor:pointer;transition:all 0.2s;text-align:center;text-decoration:none;color:inherit;display:block;}
+.role-btn:hover{transform:translateY(-3px);}
+.role-btn .ic{font-size:1.8rem;margin-bottom:10px;}
+.role-btn .name{font-family:var(--display);font-size:1.2rem;letter-spacing:0.03em;color:#fff;}
+.role-btn .desc{font-size:0.75rem;color:var(--muted2);margin-top:3px;}
+.role-btn.admin:hover{border-color:var(--indigo);box-shadow:0 8px 30px rgba(79,124,255,0.25);}
+.role-btn.anbieter:hover{border-color:var(--amber);box-shadow:0 8px 30px rgba(255,179,64,0.25);}
+.role-btn.abnehmer:hover{border-color:var(--cyan);box-shadow:0 8px 30px rgba(0,212,255,0.25);}
+.role-btn.fahrer:hover{border-color:var(--green);box-shadow:0 8px 30px rgba(0,255,157,0.25);}
+.role-btn.admin .ic{filter:drop-shadow(0 0 8px rgba(79,124,255,0.5));}
+.fields{margin-bottom:20px;}
+.field{margin-bottom:14px;text-align:left;}
+.field label{display:block;font-size:0.78rem;font-weight:600;color:var(--muted2);margin-bottom:6px;}
+.field input{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;color:var(--text);font-family:var(--body);font-size:0.92rem;}
+.field input:focus{outline:none;border-color:var(--cyan);}
+.demo-note{font-size:0.78rem;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:20px;line-height:1.5;}
+.back-link{color:var(--muted2);font-size:0.85rem;text-decoration:none;transition:color 0.2s;}
+.back-link:hover{color:var(--cyan);}
+
+/* ============================================
+   NEUROROUTE · High-Tech FX Layer
+   ============================================ */
+
+/* Animated aurora background */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(ellipse 800px 600px at 15% 10%, rgba(0,212,255,0.10), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 20%, rgba(79,124,255,0.09), transparent 60%),
+    radial-gradient(ellipse 900px 700px at 50% 100%, rgba(124,92,252,0.08), transparent 60%);
+  animation: auroraShift 18s ease-in-out infinite;
+}
+@keyframes auroraShift {
+  0%,100% { opacity: 0.7; transform: translate3d(0,0,0) scale(1); }
+  33%     { opacity: 1;   transform: translate3d(2%,-1%,0) scale(1.05); }
+  66%     { opacity: 0.85;transform: translate3d(-2%,1%,0) scale(1.02); }
+}
+
+/* Floating particles canvas sits behind content */
+#fx-particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.55; }
+nav, section, footer, .modal-bg { position: relative; z-index: 1; }
+
+/* Hero parallax orbs follow mouse */
+.hero-orb1, .hero-orb2 { transition: transform 0.5s cubic-bezier(.2,.7,.2,1); will-change: transform; }
+
+/* Glow pulse on primary buttons */
+.btn-main, .nav-cta {
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 0 rgba(0,212,255,0);
+  animation: ctaGlow 3.5s ease-in-out infinite;
+}
+@keyframes ctaGlow {
+  0%,100% { box-shadow: 0 4px 20px rgba(0,212,255,0.18); }
+  50%     { box-shadow: 0 6px 34px rgba(0,212,255,0.42); }
+}
+/* Shine sweep across buttons */
+.btn-main::before, .nav-cta::before {
+  content: ''; position: absolute; top: 0; left: -120%;
+  width: 80%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-18deg);
+  animation: shineSweep 4.5s ease-in-out infinite;
+}
+@keyframes shineSweep {
+  0%, 60% { left: -120%; }
+  80%,100% { left: 130%; }
+}
+
+/* Cards: glow border + lift + sheen on hover */
+.card, .price-card, .uc, .article, .pf-section, .listing, .step, .stat {
+  transition: transform 0.35s cubic-bezier(.2,.7,.2,1), box-shadow 0.35s, border-color 0.35s;
+}
+.card:hover, .price-card:hover, .article:hover, .step:hover {
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5), 0 0 30px rgba(0,212,255,0.12);
+}
+
+/* Gradient text gets animated shimmer */
+.gradient-text {
+  background: linear-gradient(110deg, var(--cyan), var(--indigo), var(--purple), var(--cyan));
+  background-size: 300% auto;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  animation: shimmerText 6s linear infinite;
+}
+@keyframes shimmerText { to { background-position: 300% center; } }
+
+/* Section tag gets a pulsing dot */
+.section-tag { display: inline-flex; align-items: center; gap: 9px; }
+.section-tag::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cyan); box-shadow: 0 0 12px var(--cyan);
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+/* Logo pulse stronger */
+.logo-pulse { animation: breathe 2s ease-in-out infinite, hueGlow 4s ease-in-out infinite; }
+@keyframes hueGlow {
+  0%,100% { box-shadow: 0 0 16px var(--cyan), 0 0 40px rgba(0,212,255,0.3); }
+  50%     { box-shadow: 0 0 22px var(--cyan), 0 0 60px rgba(0,212,255,0.55); }
+}
+
+/* Scroll reveal: richer entrance */
+.reveal { opacity: 0; transform: translateY(34px) scale(0.985); filter: blur(4px);
+  transition: opacity 0.7s cubic-bezier(.2,.7,.2,1), transform 0.7s cubic-bezier(.2,.7,.2,1), filter 0.7s; }
+.reveal.visible { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+
+/* Scroll progress bar */
+#fx-progress {
+  position: fixed; top: 0; left: 0; height: 2px; width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--indigo), var(--purple));
+  box-shadow: 0 0 12px rgba(0,212,255,0.6); z-index: 999;
+  transition: width 0.1s linear;
+}
+
+/* Nav gains glass depth on scroll */
+nav.scrolled { background: rgba(3,5,10,0.92); box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+
+/* Magnetic hover for nav links */
+.nav-links a::after {
+  content: ''; position: absolute; left: 0; bottom: -4px; width: 0; height: 2px;
+  background: var(--cyan); box-shadow: 0 0 8px var(--cyan); transition: width 0.3s;
+}
+.nav-links a:hover::after, .nav-links a.active::after { width: 100%; }
+
+/* Stat numbers glow subtly */
+.stat-value, .pf-stat .v { text-shadow: 0 0 24px rgba(0,212,255,0.25); }
+
+@media (prefers-reduced-motion: reduce) {
+  body::after, .btn-main, .nav-cta, .btn-main::before, .nav-cta::before,
+  .gradient-text, .logo-pulse, .section-tag::before { animation: none !important; }
+}
+
+</style>
+</head>
+<body>
+<div class="orb"></div>
+<div class="wrap">
+  <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
+  <div class="subtitle">Logistics Operating System</div>
+  <div class="demo-badge">● Demo / Prototyp</div>
+
+  <div class="card">
+    <h2>Anmelden</h2>
+    <p class="hint">Wählen Sie eine Rolle, um die Demo zu starten</p>
+
+    <div class="fields">
+      <div class="field">
+        <label>E-Mail</label>
+        <input type="email" id="email" value="demo@neuroroute.ai" placeholder="ihre@email.de">
+      </div>
+      <div class="field">
+        <label>Passwort</label>
+        <input type="password" id="password" value="demo1234" placeholder="••••••••">
+      </div>
+    </div>
+
+    <div class="demo-note">
+      ℹ️ Dies ist ein klickbarer Prototyp. Die Anmeldedaten sind bereits ausgefüllt — wählen Sie einfach eine Rolle:
+    </div>
+
+    <div class="roles">
+      <a href="app.html#admin" class="role-btn admin">
+        <div class="ic"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></span></div>
+        <div class="name">Admin</div>
+        <div class="desc">Plattform-Steuerung</div>
+      </a>
+      <a href="app.html#anbieter" class="role-btn anbieter">
+        <div class="ic"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 18a2 2 0 100-4 2 2 0 000 4zM18 18a2 2 0 100-4 2 2 0 000 4z"/></svg></span></div>
+        <div class="name">Anbieter</div>
+        <div class="desc">Kapazität anbieten</div>
+      </a>
+      <a href="app.html#abnehmer" class="role-btn abnehmer">
+        <div class="ic"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10"/></svg></span></div>
+        <div class="name">Abnehmer</div>
+        <div class="desc">Transport anfragen</div>
+      </a>
+      <a href="app.html#fahrer" class="role-btn fahrer">
+        <div class="ic"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 1114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span></div>
+        <div class="name">Fahrer</div>
+        <div class="desc">Status melden</div>
+      </a>
+    </div>
+  </div>
+
+  <a href="index.html" class="back-link">← Zurück zur Website</a>
+</div>
+<script>
+/* ============================================
+   NEUROROUTE · High-Tech FX Engine
+   ============================================ */
+(function(){
+  if (window.__nrFx) return; window.__nrFx = true;
+
+  function ready(fn){ if(document.readyState!='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+
+  ready(function(){
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // --- Scroll progress bar ---
+    var bar = document.createElement('div'); bar.id = 'fx-progress'; document.body.appendChild(bar);
+    function onScroll(){
+      var h = document.documentElement;
+      var p = (h.scrollTop) / (h.scrollHeight - h.clientHeight || 1);
+      bar.style.width = (p*100) + '%';
+      var nav = document.querySelector('nav');
+      if (nav){ if (h.scrollTop > 20) nav.classList.add('scrolled'); else nav.classList.remove('scrolled'); }
+    }
+    document.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+    // --- Mouse parallax on hero orbs ---
+    if (!reduce) {
+      var orb1 = document.querySelector('.hero-orb1'), orb2 = document.querySelector('.hero-orb2');
+      window.addEventListener('mousemove', function(e){
+        var x = (e.clientX / window.innerWidth - 0.5);
+        var y = (e.clientY / window.innerHeight - 0.5);
+        if (orb1) orb1.style.transform = 'translate(calc(-50% + '+(x*40)+'px), calc(-58% + '+(y*40)+'px))';
+        if (orb2) orb2.style.transform = 'translate('+(x*-30)+'px, '+(y*-30)+'px)';
+      }, {passive:true});
+    }
+
+    // --- Particle network canvas ---
+    if (!reduce) {
+      var c = document.createElement('canvas'); c.id = 'fx-particles';
+      document.body.insertBefore(c, document.body.firstChild);
+      var ctx = c.getContext('2d'), W, H, pts, DPR = Math.min(window.devicePixelRatio||1, 2);
+      function resize(){
+        W = c.width = innerWidth*DPR; H = c.height = innerHeight*DPR;
+        c.style.width = innerWidth+'px'; c.style.height = innerHeight+'px';
+        var n = Math.min(70, Math.floor(innerWidth/22));
+        pts = []; for (var i=0;i<n;i++) pts.push({
+          x: Math.random()*W, y: Math.random()*H,
+          vx: (Math.random()-0.5)*0.25*DPR, vy: (Math.random()-0.5)*0.25*DPR
+        });
+      }
+      resize(); addEventListener('resize', resize, {passive:true});
+      var mx = -9999, my = -9999;
+      addEventListener('mousemove', function(e){ mx = e.clientX*DPR; my = e.clientY*DPR; }, {passive:true});
+      function tick(){
+        ctx.clearRect(0,0,W,H);
+        for (var i=0;i<pts.length;i++){
+          var p = pts[i]; p.x+=p.vx; p.y+=p.vy;
+          if(p.x<0||p.x>W) p.vx*=-1; if(p.y<0||p.y>H) p.vy*=-1;
+          // link to mouse
+          var dmx = p.x-mx, dmy = p.y-my, dm = Math.sqrt(dmx*dmx+dmy*dmy);
+          for (var j=i+1;j<pts.length;j++){
+            var q = pts[j], dx=p.x-q.x, dy=p.y-q.y, d=Math.sqrt(dx*dx+dy*dy);
+            if (d < 130*DPR){
+              ctx.strokeStyle = 'rgba(0,212,255,'+(0.12*(1-d/(130*DPR)))+')';
+              ctx.lineWidth = DPR*0.6;
+              ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+            }
+          }
+          var near = dm < 160*DPR;
+          ctx.fillStyle = near ? 'rgba(0,255,157,'+(0.7*(1-dm/(160*DPR)))+')' : 'rgba(0,212,255,0.45)';
+          ctx.beginPath(); ctx.arc(p.x,p.y, (near?2.2:1.4)*DPR, 0, 6.28); ctx.fill();
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    }
+
+    // --- Tilt on cards ---
+    if (!reduce) {
+      document.querySelectorAll('.card, .price-card, .uc, .article').forEach(function(el){
+        el.addEventListener('mousemove', function(e){
+          var r = el.getBoundingClientRect();
+          var rx = ((e.clientY-r.top)/r.height - 0.5) * -5;
+          var ry = ((e.clientX-r.left)/r.width - 0.5) * 5;
+          el.style.transform = 'translateY(-4px) perspective(800px) rotateX('+rx+'deg) rotateY('+ry+'deg)';
+        });
+        el.addEventListener('mouseleave', function(){ el.style.transform = ''; });
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>
