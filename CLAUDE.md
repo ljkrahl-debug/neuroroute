@@ -33,7 +33,7 @@ die Leerfahrt und schlägt vor, sie vergünstigt auf dem Marktplatz anzubieten.
 
 ## 2. Aktueller Stand (was in diesem Ordner liegt)
 
-### `/website/` — 19 fertige HTML-Seiten
+### `/website/` — 20 fertige HTML-Seiten
 Voll funktionsfähige, zweisprachige (DE/EN) Marketing-Website + klickbarer Prototyp.
 **Wichtig:** CSS und JavaScript sind in JEDE HTML-Datei INLINE eingebettet. Es gibt
 bewusst KEINE externen `shared.css` / `shared.js` mehr — damit beim Hosten nichts
@@ -43,6 +43,19 @@ fehlen kann. (Die Original-Quelldateien liegen separat in `/docs/source/`.)
 network, tracking, about, contact, faq, usecases, roadmap, news
 **Rechtstexte:** impressum, datenschutz, agb (⚠️ enthalten Platzhalter — Anwalt muss prüfen)
 **Prototyp:** login.html + app.html
+**Sonstiges:** 404.html, assets/ (Favicon + Vorschaubild), robots.txt, sitemap.xml
+
+Die Seite ist launch-fertig: Meta-Tags/Open Graph auf allen Seiten, funktionierendes
+Demo-Formular (Netlify Forms mit mailto-Fallback), Security-Header via `netlify.toml`.
+**Einziger offener Punkt vor dem Livegang sind die Platzhalter in den Rechtstexten.**
+
+### `/tools/` — Wartungs-Skripte
+Weil das CSS/JS in allen 20 Seiten dupliziert liegt, werden seitenübergreifende
+Dinge nicht von Hand editiert, sondern von Skripten verwaltet:
+- `finalize_site.py` — Meta-Tags, ARIA/Barrierefreiheit, sitemap.xml, robots.txt.
+  Idempotent, nach Inhaltsänderungen erneut laufen lassen. `--check` meldet Drift.
+- `prelaunch_check.py` — Startfreigabe: Platzhalter, tote Links, fehlende Assets.
+- `browser_check.py` — lädt jede Seite im echten Browser, meldet JS-Fehler.
 
 ### `app.html` — der klickbare Prototyp (WICHTIG zu verstehen)
 Das ist eine **Simulation im Browser**, KEINE echte Software:

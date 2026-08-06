@@ -4,6 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neuroroute — Network</title>
+<!-- nr:meta:start -->
+<meta name="description" content="The hybrid model: your own partner network first, the open network second. Keep your business relationships and still reach new capacity.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://neuroroute.ai/network.html">
+<meta name="theme-color" content="#03050a">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Neuroroute">
+<meta property="og:title" content="Neuroroute — Network">
+<meta property="og:description" content="The hybrid model: your own partner network first, the open network second. Keep your business relationships and still reach new capacity.">
+<meta property="og:url" content="https://neuroroute.ai/network.html">
+<meta property="og:image" content="https://neuroroute.ai/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Neuroroute — Plan. Connect. Move the World.">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="de_DE">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Neuroroute — Network">
+<meta name="twitter:description" content="The hybrid model: your own partner network first, the open network second. Keep your business relationships and still reach new capacity.">
+<meta name="twitter:image" content="https://neuroroute.ai/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- nr:meta:end -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================
@@ -367,7 +399,9 @@ function setLang(lang) {
   document.documentElement.lang = lang;
   try { localStorage.setItem('nr-lang', lang); } catch(e) {}
   document.querySelectorAll('.lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.set === lang);
+    var on = b.dataset.set === lang;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
 
@@ -384,8 +418,14 @@ function setLang(lang) {
     const burger = document.querySelector('.nav-burger');
     const links = document.querySelector('.nav-links');
     if (burger && links) {
-      burger.addEventListener('click', () => links.classList.toggle('open'));
-      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+      burger.addEventListener('click', () => {
+        const open = links.classList.toggle('open');
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+        links.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+      }));
     }
     // reveal
     const obs = new IntersectionObserver(es => es.forEach(e => {
@@ -401,12 +441,82 @@ function setLang(lang) {
 })();
 
 </script>
+<!-- nr:css:start -->
+<style>
+/* nr:a11y — keyboard and screen-reader affordances */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 999;
+  background: var(--cyan); color: #03050a; font-weight: 700;
+  padding: 10px 18px; border-radius: 0 0 8px 8px; text-decoration: none;
+  transition: top 0.18s ease;
+}
+.skip-link:focus { top: 0; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* nr:stacking — a rule late in the FX block,
+     nav, section, footer, .modal-bg { position: relative; z-index: 1; }
+   overrides the nav's own position:fixed/z-index:200 and the prototype
+   modal's position:fixed/z-index:300. Consequences: the nav scrolled away
+   instead of sticking, the open burger menu rendered *under* the hero
+   (unreadable on phones), and app.html's dialogs stopped being overlays.
+   The rule exists to lift content above the particle canvas at z-index 0,
+   which only section and footer need. Restore the two it broke. */
+nav { position: fixed; z-index: 200; }
+.modal-bg { position: fixed; z-index: 300; }
+
+/* nr:nav — two viewport ranges where the top bar did not fit.
+
+   981-1180px (iPad landscape, small laptops): the original stylesheet only
+   collapsed the link row below 980px, so the full row plus language switch
+   plus CTA — about 1200px of content — pushed the CTA off the right edge.
+   nav is position:fixed, so body's overflow-x:hidden does not clip it and
+   the button was really unreachable. Collapse earlier.
+
+   Below 640px: even collapsed, logo + language switch + CTA + burger need
+   roughly 500px and overflowed a 390px phone by ~150px. Move the CTA into
+   the burger menu rather than drop it — it is the primary conversion. */
+@media (max-width: 1180px) {
+  .nav-links {
+    display: none; position: absolute; top: 68px; left: 0; right: 0;
+    flex-direction: column; padding: 24px;
+    gap: 20px; border-bottom: 1px solid var(--border);
+    /* opaque, not the original 97%: the 3% that showed through rendered the
+       hero headline as ghost text behind the links. On this near-black theme
+       the two are visually indistinguishable, minus the legibility problem. */
+    background: #05080f;
+    box-shadow: 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: flex; }
+}
+.nav-links .nav-cta-mobile { display: none; }
+.nav-links .nav-cta-mobile a {
+  display: block; text-align: center; background: var(--cyan); color: #000;
+  font-weight: 700; padding: 12px 18px; border-radius: 4px;
+}
+@media (max-width: 640px) {
+  nav { padding: 0 16px; }
+  .logo { font-size: 1.3rem; }
+  .nav-right { gap: 10px; }
+  .lang-btn { padding: 6px 9px; font-size: 0.72rem; }
+  .nav-right .nav-cta { display: none; }
+  .nav-links .nav-cta-mobile { display: block; }
+}
+</style>
+<!-- nr:css:end -->
 </head>
 <body class="lang-en">
+<!-- nr:a11y:start -->
+<a class="skip-link" href="#main"><span data-lang="en">Skip to content</span><span data-lang="de">Zum Inhalt springen</span></a>
+<!-- nr:a11y:end -->
 
 <nav>
   <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
-  <ul class="nav-links">
+  <ul class="nav-links" id="nav-links">
     <li><a href="index.html"><span data-lang="en">Home</span><span data-lang="de">Start</span></a></li>
     <li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li>
     <li><a href="marketplace.html" style="color:var(--green);"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li>
@@ -416,13 +526,16 @@ function setLang(lang) {
     <li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li>
     <li><a href="login.html" style="color:var(--green);"><span data-lang="en">Login</span><span data-lang="de">Login</span></a></li>
     <li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li>
+    <li class="nav-cta-mobile"><a href="contact.html"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a></li>
   </ul>
   <div class="nav-right">
-    <div class="lang-switch"><button class="lang-btn active" data-set="en">EN</button><button class="lang-btn" data-set="de">DE</button></div>
+    <div class="lang-switch" role="group" aria-label="Language / Sprache"><button class="lang-btn active" type="button" data-set="en" aria-label="Switch to English" aria-pressed="true">EN</button><button class="lang-btn" type="button" data-set="de" aria-label="Auf Deutsch umschalten" aria-pressed="false">DE</button></div>
     <a href="contact.html" class="nav-cta"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a>
-    <button class="nav-burger"><span></span><span></span><span></span></button>
+    <button class="nav-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span></button>
   </div>
 </nav>
+
+<main id="main">
 
 <header class="page-header">
   <div class="page-header-orb"></div>
@@ -463,9 +576,9 @@ function setLang(lang) {
     <p class="section-tag reveal"><span data-lang="en">Why It Works</span><span data-lang="de">Warum es funktioniert</span></p>
     <h2 class="reveal"><span data-lang="en">Lower barriers.<br>Higher acceptance.</span><span data-lang="de">Niedrigere Hürden.<br>Höhere Akzeptanz.</span></h2>
     <div class="grid-3 reveal">
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v13a3 3 0 01-3 3H6a2 2 0 002-2V6a2 2 0 00-2-2zM18 4a2 2 0 012 2v2h-4"/></svg></span></div><h3><span data-lang="en">Contracts Stay Intact</span><span data-lang="de">Verträge bleiben erhalten</span></h3><p><span data-lang="en">No need to break existing agreements. Your relationships continue exactly as before.</span><span data-lang="de">Keine bestehenden Verträge müssen gebrochen werden. Ihre Beziehungen laufen genau wie zuvor weiter.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div><h3><span data-lang="en">Higher Acceptance</span><span data-lang="de">Höhere Akzeptanz</span></h3><p><span data-lang="en">Because nothing is taken away, teams adopt Neuroroute faster and more willingly.</span><span data-lang="de">Weil nichts weggenommen wird, übernehmen Teams Neuroroute schneller und williger.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4a1 1 0 011-1h10a1 1 0 011 1v17M4 21h16M14 12h.01"/></svg></span></div><h3><span data-lang="en">Low Switching Barriers</span><span data-lang="de">Niedrige Wechselbarrieren</span></h3><p><span data-lang="en">Starting with your own network means there's almost no risk in trying Neuroroute.</span><span data-lang="de">Der Start mit dem eigenen Netzwerk bedeutet fast kein Risiko beim Ausprobieren.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v13a3 3 0 01-3 3H6a2 2 0 002-2V6a2 2 0 00-2-2zM18 4a2 2 0 012 2v2h-4"/></svg></span></div><h3><span data-lang="en">Contracts Stay Intact</span><span data-lang="de">Verträge bleiben erhalten</span></h3><p><span data-lang="en">No need to break existing agreements. Your relationships continue exactly as before.</span><span data-lang="de">Keine bestehenden Verträge müssen gebrochen werden. Ihre Beziehungen laufen genau wie zuvor weiter.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div><h3><span data-lang="en">Higher Acceptance</span><span data-lang="de">Höhere Akzeptanz</span></h3><p><span data-lang="en">Because nothing is taken away, teams adopt Neuroroute faster and more willingly.</span><span data-lang="de">Weil nichts weggenommen wird, übernehmen Teams Neuroroute schneller und williger.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V4a1 1 0 011-1h10a1 1 0 011 1v17M4 21h16M14 12h.01"/></svg></span></div><h3><span data-lang="en">Low Switching Barriers</span><span data-lang="de">Niedrige Wechselbarrieren</span></h3><p><span data-lang="en">Starting with your own network means there's almost no risk in trying Neuroroute.</span><span data-lang="de">Der Start mit dem eigenen Netzwerk bedeutet fast kein Risiko beim Ausprobieren.</span></p></div>
     </div>
   </div>
 </section>
@@ -477,7 +590,7 @@ function setLang(lang) {
     <h2 class="reveal"><span data-lang="en">Everyone connected.</span><span data-lang="de">Alle verbunden.</span></h2>
     <p class="body-large reveal"><span data-lang="en">Neuroroute becomes the central coordination layer between all logistics actors.</span><span data-lang="de">Neuroroute wird zur zentralen Koordinationsebene zwischen allen Logistikakteuren.</span></p>
     <div class="reveal" style="text-align:center;">
-      <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:760px;filter:drop-shadow(0 0 30px rgba(0,212,255,0.08));">
+      <svg aria-hidden="true" focusable="false" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:760px;filter:drop-shadow(0 0 30px rgba(0,212,255,0.08));">
         <defs><filter id="g"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
         <line x1="400" y1="200" x2="150" y2="90" stroke="#4f7cff" stroke-width="1" opacity="0.4" stroke-dasharray="4,4"/>
         <line x1="400" y1="200" x2="650" y2="90" stroke="#ffb340" stroke-width="1" opacity="0.4" stroke-dasharray="4,4"/>
@@ -488,11 +601,11 @@ function setLang(lang) {
         <g filter="url(#g)"><circle cx="400" cy="200" r="34" fill="#03050a" stroke="#00d4ff" stroke-width="2"/><circle cx="400" cy="200" r="6" fill="#00d4ff"/></g>
         <text x="400" y="252" text-anchor="middle" fill="#00d4ff" font-family="Bebas Neue" font-size="13" letter-spacing="2">NEUROROUTE</text>
         <g filter="url(#g)">
-          <circle cx="150" cy="90" r="32" fill="#03050a" stroke="#4f7cff" stroke-width="1.5"/><text x="150" y="97" text-anchor="middle" font-size="20"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10"/></svg></span></text>
-          <circle cx="650" cy="90" r="32" fill="#03050a" stroke="#ffb340" stroke-width="1.5"/><text x="650" y="97" text-anchor="middle" font-size="20"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 18a2 2 0 100-4 2 2 0 000 4zM18 18a2 2 0 100-4 2 2 0 000 4z"/></svg></span></text>
-          <circle cx="120" cy="310" r="32" fill="#03050a" stroke="#00d4ff" stroke-width="1.5"/><text x="120" y="317" text-anchor="middle" font-size="20"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v11H6zM6 9h12M9 18l-2 3M15 18l2 3M9 18h6"/><circle cx="9" cy="11.5" r="1"/><circle cx="15" cy="11.5" r="1"/></svg></span></text>
-          <circle cx="400" cy="340" r="32" fill="#03050a" stroke="#00ff9d" stroke-width="1.5"/><text x="400" y="347" text-anchor="middle" font-size="20"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l9-4 9 4-2 6H5zM12 10V4M8 6h8"/></svg></span></text>
-          <circle cx="680" cy="310" r="32" fill="#03050a" stroke="#7c5cfc" stroke-width="1.5"/><text x="680" y="317" text-anchor="middle" font-size="20"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a1 1 0 011-1h6a1 1 0 011 1v16M12 21V9a1 1 0 011-1h6a1 1 0 011 1v12M7 8h2M7 12h2M16 12h2M16 16h2"/></svg></span></text>
+          <circle cx="150" cy="90" r="32" fill="#03050a" stroke="#4f7cff" stroke-width="1.5"/><text x="150" y="97" text-anchor="middle" font-size="20"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10"/></svg></span></text>
+          <circle cx="650" cy="90" r="32" fill="#03050a" stroke="#ffb340" stroke-width="1.5"/><text x="650" y="97" text-anchor="middle" font-size="20"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 18a2 2 0 100-4 2 2 0 000 4zM18 18a2 2 0 100-4 2 2 0 000 4z"/></svg></span></text>
+          <circle cx="120" cy="310" r="32" fill="#03050a" stroke="#00d4ff" stroke-width="1.5"/><text x="120" y="317" text-anchor="middle" font-size="20"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v11H6zM6 9h12M9 18l-2 3M15 18l2 3M9 18h6"/><circle cx="9" cy="11.5" r="1"/><circle cx="15" cy="11.5" r="1"/></svg></span></text>
+          <circle cx="400" cy="340" r="32" fill="#03050a" stroke="#00ff9d" stroke-width="1.5"/><text x="400" y="347" text-anchor="middle" font-size="20"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14l9-4 9 4-2 6H5zM12 10V4M8 6h8"/></svg></span></text>
+          <circle cx="680" cy="310" r="32" fill="#03050a" stroke="#7c5cfc" stroke-width="1.5"/><text x="680" y="317" text-anchor="middle" font-size="20"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V5a1 1 0 011-1h6a1 1 0 011 1v16M12 21V9a1 1 0 011-1h6a1 1 0 011 1v12M7 8h2M7 12h2M16 12h2M16 16h2"/></svg></span></text>
         </g>
         <text x="150" y="48" text-anchor="middle" fill="#8a9dbf" font-family="Outfit" font-size="11"><tspan class="eco-l">Shippers</tspan></text>
         <text x="650" y="48" text-anchor="middle" fill="#8a9dbf" font-family="Outfit" font-size="11">Carriers</text>
@@ -509,6 +622,8 @@ function setLang(lang) {
   <div class="hero-btns reveal" style="margin-top:32px;"><a href="contact.html" class="btn-main"><span data-lang="en">Request a Demo</span><span data-lang="de">Demo anfragen</span></a></div>
 </section>
 
+</main>
+
 <footer>
   <div class="footer-grid">
     <div class="footer-brand"><a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a><p><span data-lang="en">The operating system for multimodal logistics.</span><span data-lang="de">Das Betriebssystem für multimodale Logistik.</span></p></div>
@@ -516,7 +631,7 @@ function setLang(lang) {
     <div class="footer-col"><h4><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></h4><ul><li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li><li><a href="usecases.html"><span data-lang="en">Use Cases</span><span data-lang="de">Anwendungen</span></a></li><li><a href="profile.html"><span data-lang="en">Company Profiles</span><span data-lang="de">Firmenprofile</span></a></li><li><a href="news.html">News</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html"><span data-lang="en">Contact</span><span data-lang="de">Kontakt</span></a></li></ul></div>
     <div class="footer-col"><h4><span data-lang="en">Legal</span><span data-lang="de">Rechtliches</span></h4><ul><li><a href="impressum.html"><span data-lang="en">Imprint</span><span data-lang="de">Impressum</span></a></li><li><a href="datenschutz.html"><span data-lang="en">Privacy</span><span data-lang="de">Datenschutz</span></a></li><li><a href="agb.html">AGB</a></li></ul></div>
   </div>
-  <div class="footer-bottom"><p>© 2025 Neuroroute</p><p>neuroroute.ai</p></div>
+  <div class="footer-bottom"><p>© <span class="js-year">2026</span> Neuroroute</p><p>neuroroute.ai</p></div>
 </footer>
 
 <script>
@@ -609,5 +724,6 @@ function setLang(lang) {
   });
 })();
 </script>
+<script>/* nr:year */document.querySelectorAll(".js-year").forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
 </html>

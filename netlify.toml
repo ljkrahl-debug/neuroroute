@@ -1,0 +1,43 @@
+# Netlify configuration for the Neuroroute marketing site.
+# The site is fully static — website/ is published as-is, no build step.
+
+[build]
+  publish = "website"
+  command = ""
+
+# Netlify's "pretty URLs" post-processing would redirect /pricing.html to
+# /pricing. Every internal link and every canonical tag on this site uses the
+# .html form, so leaving it on would point canonicals at a redirect. Keep one
+# canonical shape instead.
+[build.processing]
+  skip_processing = true
+
+# --- Security headers (apply to every response) ---
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    # CSS and JS are inlined into every page by design (see CLAUDE.md), so
+    # 'unsafe-inline' is required here. Fonts are the only third-party origin.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
+
+# --- Caching ---
+# Hashless asset names, so keep HTML always fresh and let the CDN revalidate.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/site.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

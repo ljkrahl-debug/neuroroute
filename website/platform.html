@@ -4,6 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neuroroute — Platform</title>
+<!-- nr:meta:start -->
+<meta name="description" content="One platform for requests, offers, capacity and tracking across road, rail, sea and air — built for forwarders and shippers.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://neuroroute.ai/platform.html">
+<meta name="theme-color" content="#03050a">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Neuroroute">
+<meta property="og:title" content="Neuroroute — Platform">
+<meta property="og:description" content="One platform for requests, offers, capacity and tracking across road, rail, sea and air — built for forwarders and shippers.">
+<meta property="og:url" content="https://neuroroute.ai/platform.html">
+<meta property="og:image" content="https://neuroroute.ai/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Neuroroute — Plan. Connect. Move the World.">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="de_DE">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Neuroroute — Platform">
+<meta name="twitter:description" content="One platform for requests, offers, capacity and tracking across road, rail, sea and air — built for forwarders and shippers.">
+<meta name="twitter:image" content="https://neuroroute.ai/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- nr:meta:end -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================
@@ -367,7 +399,9 @@ function setLang(lang) {
   document.documentElement.lang = lang;
   try { localStorage.setItem('nr-lang', lang); } catch(e) {}
   document.querySelectorAll('.lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.set === lang);
+    var on = b.dataset.set === lang;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
 
@@ -384,8 +418,14 @@ function setLang(lang) {
     const burger = document.querySelector('.nav-burger');
     const links = document.querySelector('.nav-links');
     if (burger && links) {
-      burger.addEventListener('click', () => links.classList.toggle('open'));
-      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+      burger.addEventListener('click', () => {
+        const open = links.classList.toggle('open');
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+        links.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+      }));
     }
     // reveal
     const obs = new IntersectionObserver(es => es.forEach(e => {
@@ -401,12 +441,82 @@ function setLang(lang) {
 })();
 
 </script>
+<!-- nr:css:start -->
+<style>
+/* nr:a11y — keyboard and screen-reader affordances */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 999;
+  background: var(--cyan); color: #03050a; font-weight: 700;
+  padding: 10px 18px; border-radius: 0 0 8px 8px; text-decoration: none;
+  transition: top 0.18s ease;
+}
+.skip-link:focus { top: 0; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* nr:stacking — a rule late in the FX block,
+     nav, section, footer, .modal-bg { position: relative; z-index: 1; }
+   overrides the nav's own position:fixed/z-index:200 and the prototype
+   modal's position:fixed/z-index:300. Consequences: the nav scrolled away
+   instead of sticking, the open burger menu rendered *under* the hero
+   (unreadable on phones), and app.html's dialogs stopped being overlays.
+   The rule exists to lift content above the particle canvas at z-index 0,
+   which only section and footer need. Restore the two it broke. */
+nav { position: fixed; z-index: 200; }
+.modal-bg { position: fixed; z-index: 300; }
+
+/* nr:nav — two viewport ranges where the top bar did not fit.
+
+   981-1180px (iPad landscape, small laptops): the original stylesheet only
+   collapsed the link row below 980px, so the full row plus language switch
+   plus CTA — about 1200px of content — pushed the CTA off the right edge.
+   nav is position:fixed, so body's overflow-x:hidden does not clip it and
+   the button was really unreachable. Collapse earlier.
+
+   Below 640px: even collapsed, logo + language switch + CTA + burger need
+   roughly 500px and overflowed a 390px phone by ~150px. Move the CTA into
+   the burger menu rather than drop it — it is the primary conversion. */
+@media (max-width: 1180px) {
+  .nav-links {
+    display: none; position: absolute; top: 68px; left: 0; right: 0;
+    flex-direction: column; padding: 24px;
+    gap: 20px; border-bottom: 1px solid var(--border);
+    /* opaque, not the original 97%: the 3% that showed through rendered the
+       hero headline as ghost text behind the links. On this near-black theme
+       the two are visually indistinguishable, minus the legibility problem. */
+    background: #05080f;
+    box-shadow: 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: flex; }
+}
+.nav-links .nav-cta-mobile { display: none; }
+.nav-links .nav-cta-mobile a {
+  display: block; text-align: center; background: var(--cyan); color: #000;
+  font-weight: 700; padding: 12px 18px; border-radius: 4px;
+}
+@media (max-width: 640px) {
+  nav { padding: 0 16px; }
+  .logo { font-size: 1.3rem; }
+  .nav-right { gap: 10px; }
+  .lang-btn { padding: 6px 9px; font-size: 0.72rem; }
+  .nav-right .nav-cta { display: none; }
+  .nav-links .nav-cta-mobile { display: block; }
+}
+</style>
+<!-- nr:css:end -->
 </head>
 <body class="lang-en">
+<!-- nr:a11y:start -->
+<a class="skip-link" href="#main"><span data-lang="en">Skip to content</span><span data-lang="de">Zum Inhalt springen</span></a>
+<!-- nr:a11y:end -->
 
 <nav>
   <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
-  <ul class="nav-links">
+  <ul class="nav-links" id="nav-links">
     <li><a href="index.html"><span data-lang="en">Home</span><span data-lang="de">Start</span></a></li>
     <li><a href="platform.html" class="active"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li>
     <li><a href="marketplace.html" style="color:var(--green);"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li>
@@ -416,13 +526,16 @@ function setLang(lang) {
     <li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li>
     <li><a href="login.html" style="color:var(--green);"><span data-lang="en">Login</span><span data-lang="de">Login</span></a></li>
     <li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li>
+    <li class="nav-cta-mobile"><a href="contact.html"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a></li>
   </ul>
   <div class="nav-right">
-    <div class="lang-switch"><button class="lang-btn active" data-set="en">EN</button><button class="lang-btn" data-set="de">DE</button></div>
+    <div class="lang-switch" role="group" aria-label="Language / Sprache"><button class="lang-btn active" type="button" data-set="en" aria-label="Switch to English" aria-pressed="true">EN</button><button class="lang-btn" type="button" data-set="de" aria-label="Auf Deutsch umschalten" aria-pressed="false">DE</button></div>
     <a href="contact.html" class="nav-cta"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a>
-    <button class="nav-burger"><span></span><span></span><span></span></button>
+    <button class="nav-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span></button>
   </div>
 </nav>
+
+<main id="main">
 
 <header class="page-header">
   <div class="page-header-orb"></div>
@@ -440,32 +553,32 @@ function setLang(lang) {
 
     <div class="grid-3 reveal">
       <div class="card">
-        <div class="card-num">01</div><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span></div>
+        <div class="card-num">01</div><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span></div>
         <h3><span data-lang="en">Transport Requests</span><span data-lang="de">Transportanfragen</span></h3>
         <p><span data-lang="en">Create and manage transport requests with origin, destination, mode, volume and deadlines — in one structured form.</span><span data-lang="de">Transportanfragen mit Start, Ziel, Modus, Volumen und Fristen erstellen und verwalten — in einem strukturierten Formular.</span></p>
       </div>
       <div class="card">
-        <div class="card-num">02</div><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div>
+        <div class="card-num">02</div><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div>
         <h3><span data-lang="en">Partner Management</span><span data-lang="de">Partnerverwaltung</span></h3>
         <p><span data-lang="en">Store your preferred partners, set priorities and let the system match them first on every request.</span><span data-lang="de">Bevorzugte Partner hinterlegen, Prioritäten setzen und bei jeder Anfrage zuerst matchen lassen.</span></p>
       </div>
       <div class="card">
-        <div class="card-num">03</div><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10"/></svg></span></div>
+        <div class="card-num">03</div><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v10l-8 4-8-4V7zM4 7l8 4 8-4M12 11v10"/></svg></span></div>
         <h3><span data-lang="en">Capacity Management</span><span data-lang="de">Kapazitätsverwaltung</span></h3>
         <p><span data-lang="en">Providers list available capacity and routes. The platform matches supply and demand intelligently.</span><span data-lang="de">Anbieter listen verfügbare Kapazitäten und Routen. Die Plattform matcht Angebot und Nachfrage intelligent.</span></p>
       </div>
       <div class="card">
-        <div class="card-num">04</div><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 1114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span></div>
+        <div class="card-num">04</div><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 1114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span></div>
         <h3><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></h3>
         <p><span data-lang="en">Status-based tracking across every leg — from created to delivered, with full timeline and history.</span><span data-lang="de">Statusbasiertes Tracking über jeden Abschnitt — von erstellt bis geliefert, mit Timeline und Historie.</span></p>
       </div>
       <div class="card">
-        <div class="card-num">05</div><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div>
+        <div class="card-num">05</div><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div>
         <h3><span data-lang="en">Analytics</span><span data-lang="de">Analytics</span></h3>
         <p><span data-lang="en">Costs, utilization, lead times and partner performance — measurable, comparable and exportable.</span><span data-lang="de">Kosten, Auslastung, Laufzeiten und Partnerperformance — messbar, vergleichbar und exportierbar.</span></p>
       </div>
       <div class="card" style="background:linear-gradient(135deg,rgba(124,92,252,0.06),rgba(79,124,255,0.04));border-color:rgba(124,92,252,0.15);">
-        <div class="card-num" style="color:var(--purple);">06</div><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-1 5 3 3 0 002 5 3 3 0 005 1V4a3 3 0 00-3-1zM15 3a3 3 0 013 3 3 3 0 011 5 3 3 0 01-2 5 3 3 0 01-5 1"/></svg></span></div>
+        <div class="card-num" style="color:var(--purple);">06</div><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a3 3 0 00-3 3 3 3 0 00-1 5 3 3 0 002 5 3 3 0 005 1V4a3 3 0 00-3-1zM15 3a3 3 0 013 3 3 3 0 011 5 3 3 0 01-2 5 3 3 0 01-5 1"/></svg></span></div>
         <h3><span data-lang="en">Future AI</span><span data-lang="de">Künftige KI</span></h3>
         <p><span data-lang="en">Predictive recommendations, capacity forecasting and autonomous coordination — the roadmap ahead.</span><span data-lang="de">Vorausschauende Empfehlungen, Kapazitätsprognosen und autonome Koordination — die Roadmap.</span></p>
       </div>
@@ -502,7 +615,7 @@ function setLang(lang) {
       </div>
       <div style="margin-left:34px;width:1px;height:16px;background:linear-gradient(to bottom,rgba(0,212,255,0.3),transparent);"></div>
       <div style="display:flex;gap:18px;align-items:flex-start;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.25);border-radius:10px;padding:22px 24px;">
-        <div style="width:34px;height:34px;flex-shrink:0;border-radius:8px;background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--display);color:var(--cyan);"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
+        <div style="width:34px;height:34px;flex-shrink:0;border-radius:8px;background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);display:flex;align-items:center;justify-content:center;font-family:var(--display);color:var(--cyan);"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span></div>
         <div><h3 style="font-size:1.1rem;margin-bottom:5px;"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></h3><p style="font-size:0.85rem;color:var(--muted2);"><span data-lang="en">Follow the status and view the complete transport history.</span><span data-lang="de">Status verfolgen und die komplette Transporthistorie ansehen.</span></p></div>
       </div>
     </div>
@@ -517,12 +630,12 @@ function setLang(lang) {
     <p class="body-large reveal"><span data-lang="en">Everything important at a glance — the moment you log in.</span><span data-lang="de">Alles Wichtige auf einen Blick — sobald Sie sich einloggen.</span></p>
 
     <div class="grid-3 reveal">
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-9h12l3 9v6H3zM3 13h5l1 2h6l1-2h5"/></svg></span></div><h3><span data-lang="en">Open Requests</span><span data-lang="de">Offene Anfragen</span></h3><p><span data-lang="en">All pending transport requests waiting for a match or decision.</span><span data-lang="de">Alle offenen Transportanfragen, die auf ein Match oder eine Entscheidung warten.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div><h3><span data-lang="en">Preferred Partners</span><span data-lang="de">Bevorzugte Partner</span></h3><p><span data-lang="en">Your trusted partner network and their current availability.</span><span data-lang="de">Ihr vertrautes Partnernetzwerk und dessen aktuelle Verfügbarkeit.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span></div><h3><span data-lang="en">External Providers</span><span data-lang="de">Externe Anbieter</span></h3><p><span data-lang="en">Additional capacity from the wider network, when you need it.</span><span data-lang="de">Zusätzliche Kapazität aus dem erweiterten Netzwerk, wenn Sie sie brauchen.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 1114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span></div><h3><span data-lang="en">Tracking Overview</span><span data-lang="de">Tracking-Übersicht</span></h3><p><span data-lang="en">Live status of all transports currently in motion.</span><span data-lang="de">Live-Status aller Transporte, die gerade unterwegs sind.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div><h3><span data-lang="en">Recent Activity</span><span data-lang="de">Letzte Aktivität</span></h3><p><span data-lang="en">A clear feed of the latest actions across your account.</span><span data-lang="de">Ein klarer Verlauf der letzten Aktionen in Ihrem Konto.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div><h3><span data-lang="en">Performance Metrics</span><span data-lang="de">Performance-Kennzahlen</span></h3><p><span data-lang="en">Key numbers on costs, utilization and delivery reliability.</span><span data-lang="de">Kennzahlen zu Kosten, Auslastung und Lieferzuverlässigkeit.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13l3-9h12l3 9v6H3zM3 13h5l1 2h6l1-2h5"/></svg></span></div><h3><span data-lang="en">Open Requests</span><span data-lang="de">Offene Anfragen</span></h3><p><span data-lang="en">All pending transport requests waiting for a match or decision.</span><span data-lang="de">Alle offenen Transportanfragen, die auf ein Match oder eine Entscheidung warten.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div><h3><span data-lang="en">Preferred Partners</span><span data-lang="de">Bevorzugte Partner</span></h3><p><span data-lang="en">Your trusted partner network and their current availability.</span><span data-lang="de">Ihr vertrautes Partnernetzwerk und dessen aktuelle Verfügbarkeit.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></span></div><h3><span data-lang="en">External Providers</span><span data-lang="de">Externe Anbieter</span></h3><p><span data-lang="en">Additional capacity from the wider network, when you need it.</span><span data-lang="de">Zusätzliche Kapazität aus dem erweiterten Netzwerk, wenn Sie sie brauchen.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 1114 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span></div><h3><span data-lang="en">Tracking Overview</span><span data-lang="de">Tracking-Übersicht</span></h3><p><span data-lang="en">Live status of all transports currently in motion.</span><span data-lang="de">Live-Status aller Transporte, die gerade unterwegs sind.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div><h3><span data-lang="en">Recent Activity</span><span data-lang="de">Letzte Aktivität</span></h3><p><span data-lang="en">A clear feed of the latest actions across your account.</span><span data-lang="de">Ein klarer Verlauf der letzten Aktionen in Ihrem Konto.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div><h3><span data-lang="en">Performance Metrics</span><span data-lang="de">Performance-Kennzahlen</span></h3><p><span data-lang="en">Key numbers on costs, utilization and delivery reliability.</span><span data-lang="de">Kennzahlen zu Kosten, Auslastung und Lieferzuverlässigkeit.</span></p></div>
     </div>
   </div>
 </section>
@@ -567,6 +680,8 @@ function setLang(lang) {
   </div>
 </section>
 
+</main>
+
 <footer>
   <div class="footer-grid">
     <div class="footer-brand">
@@ -578,7 +693,7 @@ function setLang(lang) {
     <div class="footer-col"><h4><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></h4><ul><li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li><li><a href="usecases.html"><span data-lang="en">Use Cases</span><span data-lang="de">Anwendungen</span></a></li><li><a href="profile.html"><span data-lang="en">Company Profiles</span><span data-lang="de">Firmenprofile</span></a></li><li><a href="news.html">News</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html"><span data-lang="en">Contact</span><span data-lang="de">Kontakt</span></a></li></ul></div>
     <div class="footer-col"><h4><span data-lang="en">Legal</span><span data-lang="de">Rechtliches</span></h4><ul><li><a href="impressum.html"><span data-lang="en">Imprint</span><span data-lang="de">Impressum</span></a></li><li><a href="datenschutz.html"><span data-lang="en">Privacy</span><span data-lang="de">Datenschutz</span></a></li><li><a href="agb.html">AGB</a></li></ul></div>
   </div>
-  <div class="footer-bottom"><p>© 2025 Neuroroute</p><p>neuroroute.ai</p></div>
+  <div class="footer-bottom"><p>© <span class="js-year">2026</span> Neuroroute</p><p>neuroroute.ai</p></div>
 </footer>
 
 <script>
@@ -671,5 +786,6 @@ function setLang(lang) {
   });
 })();
 </script>
+<script>/* nr:year */document.querySelectorAll(".js-year").forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
 </html>

@@ -4,6 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neuroroute — Pricing</title>
+<!-- nr:meta:start -->
+<meta name="description" content="Transparent pricing for Neuroroute — three packages for forwarders and shippers, with commission only on brokered transports.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://neuroroute.ai/pricing.html">
+<meta name="theme-color" content="#03050a">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Neuroroute">
+<meta property="og:title" content="Neuroroute — Pricing">
+<meta property="og:description" content="Transparent pricing for Neuroroute — three packages for forwarders and shippers, with commission only on brokered transports.">
+<meta property="og:url" content="https://neuroroute.ai/pricing.html">
+<meta property="og:image" content="https://neuroroute.ai/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Neuroroute — Plan. Connect. Move the World.">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="de_DE">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Neuroroute — Pricing">
+<meta name="twitter:description" content="Transparent pricing for Neuroroute — three packages for forwarders and shippers, with commission only on brokered transports.">
+<meta name="twitter:image" content="https://neuroroute.ai/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- nr:meta:end -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================
@@ -367,7 +399,9 @@ function setLang(lang) {
   document.documentElement.lang = lang;
   try { localStorage.setItem('nr-lang', lang); } catch(e) {}
   document.querySelectorAll('.lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.set === lang);
+    var on = b.dataset.set === lang;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
 
@@ -384,8 +418,14 @@ function setLang(lang) {
     const burger = document.querySelector('.nav-burger');
     const links = document.querySelector('.nav-links');
     if (burger && links) {
-      burger.addEventListener('click', () => links.classList.toggle('open'));
-      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+      burger.addEventListener('click', () => {
+        const open = links.classList.toggle('open');
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+        links.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+      }));
     }
     // reveal
     const obs = new IntersectionObserver(es => es.forEach(e => {
@@ -419,12 +459,82 @@ function setLang(lang) {
 .price-note{text-align:center;color:var(--muted);font-size:0.86rem;margin-top:40px;}
 @media(max-width:900px){.price-grid{grid-template-columns:1fr;}}
 </style>
+<!-- nr:css:start -->
+<style>
+/* nr:a11y — keyboard and screen-reader affordances */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 999;
+  background: var(--cyan); color: #03050a; font-weight: 700;
+  padding: 10px 18px; border-radius: 0 0 8px 8px; text-decoration: none;
+  transition: top 0.18s ease;
+}
+.skip-link:focus { top: 0; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* nr:stacking — a rule late in the FX block,
+     nav, section, footer, .modal-bg { position: relative; z-index: 1; }
+   overrides the nav's own position:fixed/z-index:200 and the prototype
+   modal's position:fixed/z-index:300. Consequences: the nav scrolled away
+   instead of sticking, the open burger menu rendered *under* the hero
+   (unreadable on phones), and app.html's dialogs stopped being overlays.
+   The rule exists to lift content above the particle canvas at z-index 0,
+   which only section and footer need. Restore the two it broke. */
+nav { position: fixed; z-index: 200; }
+.modal-bg { position: fixed; z-index: 300; }
+
+/* nr:nav — two viewport ranges where the top bar did not fit.
+
+   981-1180px (iPad landscape, small laptops): the original stylesheet only
+   collapsed the link row below 980px, so the full row plus language switch
+   plus CTA — about 1200px of content — pushed the CTA off the right edge.
+   nav is position:fixed, so body's overflow-x:hidden does not clip it and
+   the button was really unreachable. Collapse earlier.
+
+   Below 640px: even collapsed, logo + language switch + CTA + burger need
+   roughly 500px and overflowed a 390px phone by ~150px. Move the CTA into
+   the burger menu rather than drop it — it is the primary conversion. */
+@media (max-width: 1180px) {
+  .nav-links {
+    display: none; position: absolute; top: 68px; left: 0; right: 0;
+    flex-direction: column; padding: 24px;
+    gap: 20px; border-bottom: 1px solid var(--border);
+    /* opaque, not the original 97%: the 3% that showed through rendered the
+       hero headline as ghost text behind the links. On this near-black theme
+       the two are visually indistinguishable, minus the legibility problem. */
+    background: #05080f;
+    box-shadow: 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: flex; }
+}
+.nav-links .nav-cta-mobile { display: none; }
+.nav-links .nav-cta-mobile a {
+  display: block; text-align: center; background: var(--cyan); color: #000;
+  font-weight: 700; padding: 12px 18px; border-radius: 4px;
+}
+@media (max-width: 640px) {
+  nav { padding: 0 16px; }
+  .logo { font-size: 1.3rem; }
+  .nav-right { gap: 10px; }
+  .lang-btn { padding: 6px 9px; font-size: 0.72rem; }
+  .nav-right .nav-cta { display: none; }
+  .nav-links .nav-cta-mobile { display: block; }
+}
+</style>
+<!-- nr:css:end -->
 </head>
 <body class="lang-en">
+<!-- nr:a11y:start -->
+<a class="skip-link" href="#main"><span data-lang="en">Skip to content</span><span data-lang="de">Zum Inhalt springen</span></a>
+<!-- nr:a11y:end -->
 
 <nav>
   <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
-  <ul class="nav-links">
+  <ul class="nav-links" id="nav-links">
     <li><a href="index.html"><span data-lang="en">Home</span><span data-lang="de">Start</span></a></li>
     <li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li>
     <li><a href="marketplace.html" style="color:var(--green);"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li>
@@ -434,13 +544,16 @@ function setLang(lang) {
     <li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li>
     <li><a href="login.html" style="color:var(--green);"><span data-lang="en">Login</span><span data-lang="de">Login</span></a></li>
     <li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li>
+    <li class="nav-cta-mobile"><a href="contact.html"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a></li>
   </ul>
   <div class="nav-right">
-    <div class="lang-switch"><button class="lang-btn active" data-set="en">EN</button><button class="lang-btn" data-set="de">DE</button></div>
+    <div class="lang-switch" role="group" aria-label="Language / Sprache"><button class="lang-btn active" type="button" data-set="en" aria-label="Switch to English" aria-pressed="true">EN</button><button class="lang-btn" type="button" data-set="de" aria-label="Auf Deutsch umschalten" aria-pressed="false">DE</button></div>
     <a href="contact.html" class="nav-cta"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a>
-    <button class="nav-burger"><span></span><span></span><span></span></button>
+    <button class="nav-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span></button>
   </div>
 </nav>
+
+<main id="main">
 
 <header class="page-header">
   <div class="page-header-orb"></div>
@@ -459,12 +572,12 @@ function setLang(lang) {
         <div class="price-amount"><span data-lang="en">Free</span><span data-lang="de">Gratis</span></div>
         <div class="price-unit"><span data-lang="en">during beta</span><span data-lang="de">während der Beta</span></div>
         <ul class="price-features">
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Up to 10 transport requests / month</span><span data-lang="de">Bis zu 10 Transportanfragen / Monat</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Status-based tracking (V1)</span><span data-lang="de">Statusbasiertes Tracking (V1)</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Marketplace access</span><span data-lang="de">Marktplatz-Zugang</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Email support</span><span data-lang="de">E-Mail-Support</span></span></li>
-          <li class="off"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3zM12 9v5M12 17h.01"/></svg></span><span><span data-lang="en">Capacity planning</span><span data-lang="de">Kapazitätsplanung</span></span></li>
-          <li class="off"><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3zM12 9v5M12 17h.01"/></svg></span><span><span data-lang="en">API access</span><span data-lang="de">API-Zugang</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Up to 10 transport requests / month</span><span data-lang="de">Bis zu 10 Transportanfragen / Monat</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Status-based tracking (V1)</span><span data-lang="de">Statusbasiertes Tracking (V1)</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Marketplace access</span><span data-lang="de">Marktplatz-Zugang</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Email support</span><span data-lang="de">E-Mail-Support</span></span></li>
+          <li class="off"><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3zM12 9v5M12 17h.01"/></svg></span><span><span data-lang="en">Capacity planning</span><span data-lang="de">Kapazitätsplanung</span></span></li>
+          <li class="off"><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3zM12 9v5M12 17h.01"/></svg></span><span><span data-lang="en">API access</span><span data-lang="de">API-Zugang</span></span></li>
         </ul>
         <a href="contact.html" class="btn-outline btn-block"><span data-lang="en">Get Started</span><span data-lang="de">Loslegen</span></a>
       </div>
@@ -476,12 +589,12 @@ function setLang(lang) {
         <div class="price-amount">€199</div>
         <div class="price-unit"><span data-lang="en">per month, billed annually</span><span data-lang="de">pro Monat, jährliche Abrechnung</span></div>
         <ul class="price-features">
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Unlimited transport requests</span><span data-lang="de">Unbegrenzte Transportanfragen</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Full capacity planning & calendar</span><span data-lang="de">Volle Kapazitätsplanung & Kalender</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Empty capacity marketplace</span><span data-lang="de">Marktplatz für freie Kapazitäten</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Fleet & driver management</span><span data-lang="de">Flotten- & Fahrerverwaltung</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Priority support</span><span data-lang="de">Priorisierter Support</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Analytics dashboard</span><span data-lang="de">Analytics-Dashboard</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Unlimited transport requests</span><span data-lang="de">Unbegrenzte Transportanfragen</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Full capacity planning & calendar</span><span data-lang="de">Volle Kapazitätsplanung & Kalender</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Empty capacity marketplace</span><span data-lang="de">Marktplatz für freie Kapazitäten</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Fleet & driver management</span><span data-lang="de">Flotten- & Fahrerverwaltung</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Priority support</span><span data-lang="de">Priorisierter Support</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Analytics dashboard</span><span data-lang="de">Analytics-Dashboard</span></span></li>
         </ul>
         <a href="contact.html" class="btn-main btn-block"><span data-lang="en">Request a Demo</span><span data-lang="de">Demo anfragen</span></a>
       </div>
@@ -492,12 +605,12 @@ function setLang(lang) {
         <div class="price-amount"><span data-lang="en">Custom</span><span data-lang="de">Individuell</span></div>
         <div class="price-unit"><span data-lang="en">tailored to your scale</span><span data-lang="de">auf Ihre Größe zugeschnitten</span></div>
         <ul class="price-features">
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Everything in Professional</span><span data-lang="de">Alles aus Professional</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">API access & integrations</span><span data-lang="de">API-Zugang & Integrationen</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Single Sign-On (SSO)</span><span data-lang="de">Single Sign-On (SSO)</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Dedicated account manager</span><span data-lang="de">Dedizierter Account Manager</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Custom matching rules</span><span data-lang="de">Eigene Matching-Regeln</span></span></li>
-          <li><span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">SLA & onboarding support</span><span data-lang="de">SLA & Onboarding-Support</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Everything in Professional</span><span data-lang="de">Alles aus Professional</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">API access & integrations</span><span data-lang="de">API-Zugang & Integrationen</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Single Sign-On (SSO)</span><span data-lang="de">Single Sign-On (SSO)</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Dedicated account manager</span><span data-lang="de">Dedizierter Account Manager</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">Custom matching rules</span><span data-lang="de">Eigene Matching-Regeln</span></span></li>
+          <li><span class="ico"><svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 6"/></svg></span><span><span data-lang="en">SLA & onboarding support</span><span data-lang="de">SLA & Onboarding-Support</span></span></li>
         </ul>
         <a href="contact.html" class="btn-outline btn-block"><span data-lang="en">Contact Sales</span><span data-lang="de">Vertrieb kontaktieren</span></a>
       </div>
@@ -512,9 +625,9 @@ function setLang(lang) {
     <p class="section-tag reveal"><span data-lang="en">How Billing Works</span><span data-lang="de">So funktioniert die Abrechnung</span></p>
     <h2 class="reveal"><span data-lang="en">Transparent.<br>No surprises.</span><span data-lang="de">Transparent.<br>Keine Überraschungen.</span></h2>
     <div class="grid-3 reveal">
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l8-8 9 9-8 8zM3 11v6a2 2 0 002 2h6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span></div><h3><span data-lang="en">Subscription</span><span data-lang="de">Abonnement</span></h3><p><span data-lang="en">A predictable monthly or annual fee for platform access and features.</span><span data-lang="de">Eine planbare monatliche oder jährliche Gebühr für Plattform und Funktionen.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div><h3><span data-lang="en">Commission</span><span data-lang="de">Provision</span></h3><p><span data-lang="en">A fair commission only on transports successfully brokered through Neuroroute.</span><span data-lang="de">Eine faire Provision nur auf Transporte, die erfolgreich über Neuroroute vermittelt werden.</span></p></div>
-      <div class="card"><div class="card-icon"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div><h3><span data-lang="en">Scales With You</span><span data-lang="de">Wächst mit Ihnen</span></h3><p><span data-lang="en">Start free, upgrade when you grow. No long-term lock-in.</span><span data-lang="de">Kostenlos starten, upgraden beim Wachsen. Keine lange Bindung.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l8-8 9 9-8 8zM3 11v6a2 2 0 002 2h6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg></span></div><h3><span data-lang="en">Subscription</span><span data-lang="de">Abonnement</span></h3><p><span data-lang="en">A predictable monthly or annual fee for platform access and features.</span><span data-lang="de">Eine planbare monatliche oder jährliche Gebühr für Plattform und Funktionen.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div><h3><span data-lang="en">Commission</span><span data-lang="de">Provision</span></h3><p><span data-lang="en">A fair commission only on transports successfully brokered through Neuroroute.</span><span data-lang="de">Eine faire Provision nur auf Transporte, die erfolgreich über Neuroroute vermittelt werden.</span></p></div>
+      <div class="card"><div class="card-icon"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span></div><h3><span data-lang="en">Scales With You</span><span data-lang="de">Wächst mit Ihnen</span></h3><p><span data-lang="en">Start free, upgrade when you grow. No long-term lock-in.</span><span data-lang="de">Kostenlos starten, upgraden beim Wachsen. Keine lange Bindung.</span></p></div>
     </div>
   </div>
 </section>
@@ -525,6 +638,8 @@ function setLang(lang) {
   <div class="hero-btns reveal"><a href="contact.html" class="btn-main"><span data-lang="en">Talk to Us</span><span data-lang="de">Sprechen Sie mit uns</span></a><a href="faq.html" class="btn-outline">FAQ</a></div>
 </section>
 
+</main>
+
 <footer>
   <div class="footer-grid">
     <div class="footer-brand"><a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a><p><span data-lang="en">The operating system for multimodal logistics.</span><span data-lang="de">Das Betriebssystem für multimodale Logistik.</span></p></div>
@@ -532,7 +647,7 @@ function setLang(lang) {
     <div class="footer-col"><h4><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></h4><ul><li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li><li><a href="usecases.html"><span data-lang="en">Use Cases</span><span data-lang="de">Anwendungen</span></a></li><li><a href="profile.html"><span data-lang="en">Company Profiles</span><span data-lang="de">Firmenprofile</span></a></li><li><a href="news.html">News</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html"><span data-lang="en">Contact</span><span data-lang="de">Kontakt</span></a></li></ul></div>
     <div class="footer-col"><h4><span data-lang="en">Legal</span><span data-lang="de">Rechtliches</span></h4><ul><li><a href="impressum.html"><span data-lang="en">Imprint</span><span data-lang="de">Impressum</span></a></li><li><a href="datenschutz.html"><span data-lang="en">Privacy</span><span data-lang="de">Datenschutz</span></a></li><li><a href="agb.html">AGB</a></li></ul></div>
   </div>
-  <div class="footer-bottom"><p>© 2025 Neuroroute</p><p>neuroroute.ai</p></div>
+  <div class="footer-bottom"><p>© <span class="js-year">2026</span> Neuroroute</p><p>neuroroute.ai</p></div>
 </footer>
 
 <script>
@@ -625,5 +740,6 @@ function setLang(lang) {
   });
 })();
 </script>
+<script>/* nr:year */document.querySelectorAll(".js-year").forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
 </html>

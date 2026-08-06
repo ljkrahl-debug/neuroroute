@@ -9,10 +9,15 @@ Fahrer und Admins über Straße, Schiene, See und Luft — mit dem Prinzip
 ## Ordner-Struktur
 
 ```
-neuroroute_package/
+neuroroute/
 ├── CLAUDE.md          ← WICHTIG: Kontext & Bauanleitung (zuerst lesen!)
 ├── README.md          ← diese Datei
-├── website/           ← 19 fertige HTML-Seiten (Marketing + Prototyp)
+├── netlify.toml       Hosting-Konfiguration (Security-Header, Caching)
+├── tools/             Wartungs-Skripte (siehe unten)
+│   ├── finalize_site.py    Meta-Tags, Barrierefreiheit, sitemap.xml, robots.txt
+│   ├── prelaunch_check.py  Startfreigabe-Check — MUSS grün sein vor dem Livegang
+│   └── browser_check.py    Lädt jede Seite im echten Browser
+├── website/           ← 20 HTML-Seiten (Marketing + Prototyp) + Assets
 │   ├── index.html         Startseite
 │   ├── platform.html      Plattform-Übersicht
 │   ├── marketplace.html   Empty Capacity Marketplace + Transport-Kategorien
@@ -29,9 +34,14 @@ neuroroute_package/
 │   ├── news.html          Blog / News
 │   ├── login.html         Demo-Login (→ app.html)
 │   ├── app.html           KLICKBARER PROTOTYP (alle 4 Rollen)
+│   ├── 404.html           Fehlerseite im Seitendesign
 │   ├── impressum.html     ⚠️ Platzhalter — Anwalt muss prüfen
 │   ├── datenschutz.html   ⚠️ Platzhalter — Anwalt muss prüfen
-│   └── agb.html           ⚠️ Platzhalter — Anwalt muss prüfen
+│   ├── agb.html           ⚠️ Platzhalter — Anwalt muss prüfen
+│   ├── assets/            Favicon, App-Icons, Vorschaubild fürs Teilen
+│   ├── site.webmanifest   PWA-Manifest
+│   ├── robots.txt         generiert
+│   └── sitemap.xml        generiert
 └── docs/
     ├── PROTOTYPE.md       Wie der Prototyp (app.html) funktioniert
     └── source/            Original CSS/JS (Design-Referenz)
@@ -47,11 +57,52 @@ CSS und JS sind in jede Seite eingebettet.
 
 Den Prototyp testen: `website/login.html` öffnen → Rolle wählen → durchklicken.
 
+## Vor dem Livegang — Checkliste
+
+```bash
+python3 tools/prelaunch_check.py
+```
+
+Prüft Platzhalter in den Rechtstexten, tote interne Links, fehlende Assets und
+fehlende Meta-Tags. Solange das Skript rot ist, **nicht** live gehen.
+
+Aktuell rot aus genau einem Grund: **Impressum, Datenschutz und AGB enthalten
+noch Platzhalter** (Firmenname, Anschrift, HRB-Nummer, USt-IdNr., Datum). Die
+kann niemand erfinden — sie müssen eingetragen und von Jennifer bzw. einem
+Anwalt freigegeben werden. Danach ist der Check grün.
+
+Optional zusätzlich:
+
+```bash
+python3 tools/browser_check.py     # jede Seite im echten Browser laden
+python3 tools/finalize_site.py     # Meta-Tags/sitemap nach Inhaltsänderungen neu erzeugen
+```
+
 ## Website online stellen (Netlify)
 
-1. Auf netlify.com einloggen → "Add new site" → "Deploy manually"
-2. Den **ganzen `website/`-Ordner** ins Feld ziehen
-3. Fertig — `index.html` ist automatisch die Startseite
+Empfohlen: **Repository verbinden** (Add new site → Import from Git). `netlify.toml`
+liegt im Repo-Root und setzt Publish-Verzeichnis, Security-Header und Caching
+automatisch. `404.html` wird von Netlify automatisch als Fehlerseite genutzt.
+
+Alternativ manuell: `website/`-Ordner auf netlify.com ziehen — dann greift die
+`netlify.toml` allerdings nicht.
+
+### Kontaktformular
+
+Das Demo-Formular auf `contact.html` läuft über **Netlify Forms** — kein Backend
+nötig. Netlify erkennt das Formular beim Deploy automatisch (`data-netlify="true"`).
+Eingehende Anfragen stehen im Netlify-Dashboard unter *Forms*; dort sollte eine
+E-Mail-Benachrichtigung eingerichtet werden, sonst merkt niemand, dass eine
+Anfrage da ist.
+
+Wird die Seite woanders gehostet, fällt das Formular automatisch auf eine
+vorausgefüllte E-Mail an `hello@neuroroute.ai` zurück — es geht also kein Lead verloren.
+
+### Domain
+
+Alle canonical-URLs und das Vorschaubild zeigen auf `https://neuroroute.ai`.
+Bei einer anderen Domain: `BASE_URL` in `tools/finalize_site.py` ändern und
+`python3 tools/finalize_site.py` laufen lassen.
 
 ## Nächste Schritte (echte Software bauen)
 

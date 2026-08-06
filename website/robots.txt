@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# The clickable prototype is a browser simulation, not public content.
+Disallow: /app.html
+Disallow: /login.html
+
+Sitemap: https://neuroroute.ai/sitemap.xml

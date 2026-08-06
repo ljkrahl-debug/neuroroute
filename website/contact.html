@@ -4,6 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Neuroroute — Contact & Demo</title>
+<!-- nr:meta:start -->
+<meta name="description" content="Request a demo, ask a question or explore a partnership. We reply within one business day.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://neuroroute.ai/contact.html">
+<meta name="theme-color" content="#03050a">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Neuroroute">
+<meta property="og:title" content="Neuroroute — Contact & Demo">
+<meta property="og:description" content="Request a demo, ask a question or explore a partnership. We reply within one business day.">
+<meta property="og:url" content="https://neuroroute.ai/contact.html">
+<meta property="og:image" content="https://neuroroute.ai/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Neuroroute — Plan. Connect. Move the World.">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="de_DE">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Neuroroute — Contact & Demo">
+<meta name="twitter:description" content="Request a demo, ask a question or explore a partnership. We reply within one business day.">
+<meta name="twitter:image" content="https://neuroroute.ai/assets/og-image.png">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- nr:meta:end -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ============================================
@@ -367,7 +399,9 @@ function setLang(lang) {
   document.documentElement.lang = lang;
   try { localStorage.setItem('nr-lang', lang); } catch(e) {}
   document.querySelectorAll('.lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.set === lang);
+    var on = b.dataset.set === lang;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
 }
 
@@ -384,8 +418,14 @@ function setLang(lang) {
     const burger = document.querySelector('.nav-burger');
     const links = document.querySelector('.nav-links');
     if (burger && links) {
-      burger.addEventListener('click', () => links.classList.toggle('open'));
-      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => links.classList.remove('open')));
+      burger.addEventListener('click', () => {
+        const open = links.classList.toggle('open');
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+        links.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+      }));
     }
     // reveal
     const obs = new IntersectionObserver(es => es.forEach(e => {
@@ -414,6 +454,25 @@ function setLang(lang) {
 .field textarea { resize: vertical; min-height: 110px; }
 .field select { cursor: pointer; }
 .form-note { font-size: 0.8rem; color: var(--muted); margin-top: 16px; text-align: center; }
+.field input[aria-invalid="true"], .field textarea[aria-invalid="true"] { border-color: #ff5c72; }
+.field .req { color: var(--cyan); margin-left: 3px; }
+.consent { display: flex; gap: 11px; align-items: flex-start; margin: 4px 0 22px; }
+.consent input { width: 17px; height: 17px; flex: none; margin-top: 3px; accent-color: var(--cyan); cursor: pointer; }
+.consent label { font-size: 0.82rem; color: var(--muted2); line-height: 1.5; cursor: pointer; }
+.consent a { color: var(--cyan); }
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.form-status { font-size: 0.87rem; margin-top: 14px; text-align: center; min-height: 1.2em; }
+.form-status.err { color: #ff5c72; }
+.form-status.busy { color: var(--muted2); }
+button.btn-main:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+.form-done { text-align: center; padding: 18px 0 4px; }
+.form-done .tick {
+  width: 62px; height: 62px; margin: 0 auto 20px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--green);
+  background: rgba(0,255,157,0.09); border: 1px solid rgba(0,255,157,0.35);
+}
+.form-done h3 { font-size: 1.5rem; margin-bottom: 10px; }
+.form-done p { color: var(--muted2); font-size: 0.93rem; }
 .contact-methods { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-top: 60px; }
 .contact-method { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px; text-align: center; }
 .contact-method .ic { font-size: 1.6rem; margin-bottom: 12px; }
@@ -421,12 +480,82 @@ function setLang(lang) {
 .contact-method a { color: var(--cyan); text-decoration: none; font-size: 0.9rem; }
 @media (max-width:700px){ .form-row, .contact-methods { grid-template-columns: 1fr; } }
 </style>
+<!-- nr:css:start -->
+<style>
+/* nr:a11y — keyboard and screen-reader affordances */
+.skip-link {
+  position: absolute; left: 8px; top: -60px; z-index: 999;
+  background: var(--cyan); color: #03050a; font-weight: 700;
+  padding: 10px 18px; border-radius: 0 0 8px 8px; text-decoration: none;
+  transition: top 0.18s ease;
+}
+.skip-link:focus { top: 0; }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; border-radius: 3px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* nr:stacking — a rule late in the FX block,
+     nav, section, footer, .modal-bg { position: relative; z-index: 1; }
+   overrides the nav's own position:fixed/z-index:200 and the prototype
+   modal's position:fixed/z-index:300. Consequences: the nav scrolled away
+   instead of sticking, the open burger menu rendered *under* the hero
+   (unreadable on phones), and app.html's dialogs stopped being overlays.
+   The rule exists to lift content above the particle canvas at z-index 0,
+   which only section and footer need. Restore the two it broke. */
+nav { position: fixed; z-index: 200; }
+.modal-bg { position: fixed; z-index: 300; }
+
+/* nr:nav — two viewport ranges where the top bar did not fit.
+
+   981-1180px (iPad landscape, small laptops): the original stylesheet only
+   collapsed the link row below 980px, so the full row plus language switch
+   plus CTA — about 1200px of content — pushed the CTA off the right edge.
+   nav is position:fixed, so body's overflow-x:hidden does not clip it and
+   the button was really unreachable. Collapse earlier.
+
+   Below 640px: even collapsed, logo + language switch + CTA + burger need
+   roughly 500px and overflowed a 390px phone by ~150px. Move the CTA into
+   the burger menu rather than drop it — it is the primary conversion. */
+@media (max-width: 1180px) {
+  .nav-links {
+    display: none; position: absolute; top: 68px; left: 0; right: 0;
+    flex-direction: column; padding: 24px;
+    gap: 20px; border-bottom: 1px solid var(--border);
+    /* opaque, not the original 97%: the 3% that showed through rendered the
+       hero headline as ghost text behind the links. On this near-black theme
+       the two are visually indistinguishable, minus the legibility problem. */
+    background: #05080f;
+    box-shadow: 0 20px 44px rgba(0,0,0,0.55);
+  }
+  .nav-links.open { display: flex; }
+  .nav-burger { display: flex; }
+}
+.nav-links .nav-cta-mobile { display: none; }
+.nav-links .nav-cta-mobile a {
+  display: block; text-align: center; background: var(--cyan); color: #000;
+  font-weight: 700; padding: 12px 18px; border-radius: 4px;
+}
+@media (max-width: 640px) {
+  nav { padding: 0 16px; }
+  .logo { font-size: 1.3rem; }
+  .nav-right { gap: 10px; }
+  .lang-btn { padding: 6px 9px; font-size: 0.72rem; }
+  .nav-right .nav-cta { display: none; }
+  .nav-links .nav-cta-mobile { display: block; }
+}
+</style>
+<!-- nr:css:end -->
 </head>
 <body class="lang-en">
+<!-- nr:a11y:start -->
+<a class="skip-link" href="#main"><span data-lang="en">Skip to content</span><span data-lang="de">Zum Inhalt springen</span></a>
+<!-- nr:a11y:end -->
 
 <nav>
   <a href="index.html" class="logo"><span class="logo-pulse"></span>NEUROROUTE</a>
-  <ul class="nav-links">
+  <ul class="nav-links" id="nav-links">
     <li><a href="index.html"><span data-lang="en">Home</span><span data-lang="de">Start</span></a></li>
     <li><a href="platform.html"><span data-lang="en">Platform</span><span data-lang="de">Plattform</span></a></li>
     <li><a href="marketplace.html" style="color:var(--green);"><span data-lang="en">Marketplace</span><span data-lang="de">Marktplatz</span></a></li>
@@ -436,13 +565,16 @@ function setLang(lang) {
     <li><a href="tracking.html"><span data-lang="en">Tracking</span><span data-lang="de">Tracking</span></a></li>
     <li><a href="login.html" style="color:var(--green);"><span data-lang="en">Login</span><span data-lang="de">Login</span></a></li>
     <li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li>
+    <li class="nav-cta-mobile"><a href="contact.html"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a></li>
   </ul>
   <div class="nav-right">
-    <div class="lang-switch"><button class="lang-btn active" data-set="en">EN</button><button class="lang-btn" data-set="de">DE</button></div>
+    <div class="lang-switch" role="group" aria-label="Language / Sprache"><button class="lang-btn active" type="button" data-set="en" aria-label="Switch to English" aria-pressed="true">EN</button><button class="lang-btn" type="button" data-set="de" aria-label="Auf Deutsch umschalten" aria-pressed="false">DE</button></div>
     <a href="contact.html" class="nav-cta"><span data-lang="en">Request Demo</span><span data-lang="de">Demo anfragen</span></a>
-    <button class="nav-burger"><span></span><span></span><span></span></button>
+    <button class="nav-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nav-links"><span></span><span></span><span></span></button>
   </div>
 </nav>
+
+<main id="main">
 
 <header class="page-header">
   <div class="page-header-orb"></div>
@@ -458,36 +590,73 @@ function setLang(lang) {
         <h2 style="font-size:2rem;margin-bottom:8px;"><span data-lang="en">Request a Demo</span><span data-lang="de">Demo anfragen</span></h2>
         <p style="color:var(--muted2);font-size:0.92rem;margin-bottom:28px;"><span data-lang="en">Tell us a bit about your company and we'll get back to you within one business day.</span><span data-lang="de">Erzählen Sie uns kurz von Ihrem Unternehmen — wir melden uns innerhalb eines Werktags.</span></p>
 
-        <div class="form-row">
-          <div class="field"><label><span data-lang="en">First Name</span><span data-lang="de">Vorname</span></label><input type="text"></div>
-          <div class="field"><label><span data-lang="en">Last Name</span><span data-lang="de">Nachname</span></label><input type="text"></div>
-        </div>
-        <div class="field"><label><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></label><input type="text"></div>
-        <div class="field"><label><span data-lang="en">Work Email</span><span data-lang="de">Geschäftliche E-Mail</span></label><input type="email"></div>
-        <div class="field">
-          <label><span data-lang="en">I am a...</span><span data-lang="de">Ich bin...</span></label>
-          <select>
-            <option><span data-lang="en">Multimodal Operator</span></option>
-            <option data-lang-text-en="Multimodal Operator" data-lang-text-de="Multimodaler Operator">Multimodal Operator / Operator</option>
-            <option>Shipper / Verlader</option>
-            <option>Logistics Provider / Logistikdienstleister</option>
-            <option>Terminal / Port / Hafen</option>
-            <option>Other / Sonstiges</option>
-          </select>
-        </div>
-        <div class="field"><label><span data-lang="en">Message</span><span data-lang="de">Nachricht</span></label><textarea placeholder=""></textarea></div>
-        <a href="mailto:hello@neuroroute.ai?subject=Demo%20Request" class="btn-main" style="width:100%;text-align:center;display:block;"><span data-lang="en">Send Request</span><span data-lang="de">Anfrage senden</span></a>
-        <p class="form-note"><span data-lang="en">By submitting, you agree to be contacted about Neuroroute. We respect your privacy.</span><span data-lang="de">Mit dem Absenden stimmen Sie zu, bezüglich Neuroroute kontaktiert zu werden. Wir respektieren Ihre Privatsphäre.</span></p>
+        <form id="demo-form" name="demo-request" method="POST" data-netlify="true" netlify-honeypot="bot-field">
+          <input type="hidden" name="form-name" value="demo-request">
+          <p class="hp"><label>Do not fill this out: <input name="bot-field" tabindex="-1" autocomplete="off"></label></p>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="f-first"><span data-lang="en">First Name</span><span data-lang="de">Vorname</span><span class="req" aria-hidden="true">*</span></label>
+              <input id="f-first" name="firstname" type="text" autocomplete="given-name" required>
+            </div>
+            <div class="field">
+              <label for="f-last"><span data-lang="en">Last Name</span><span data-lang="de">Nachname</span><span class="req" aria-hidden="true">*</span></label>
+              <input id="f-last" name="lastname" type="text" autocomplete="family-name" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="f-company"><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span><span class="req" aria-hidden="true">*</span></label>
+            <input id="f-company" name="company" type="text" autocomplete="organization" required>
+          </div>
+          <div class="field">
+            <label for="f-email"><span data-lang="en">Work Email</span><span data-lang="de">Geschäftliche E-Mail</span><span class="req" aria-hidden="true">*</span></label>
+            <input id="f-email" name="email" type="email" autocomplete="email" required>
+          </div>
+          <div class="field">
+            <label for="f-role"><span data-lang="en">I am a...</span><span data-lang="de">Ich bin...</span></label>
+            <select id="f-role" name="role">
+              <option value="shipper">Shipper / Verlader</option>
+              <option value="forwarder">Forwarder / Spedition</option>
+              <option value="operator">Multimodal Operator / Multimodaler Operator</option>
+              <option value="provider">Logistics Provider / Logistikdienstleister</option>
+              <option value="terminal">Terminal / Port / Hafen</option>
+              <option value="other">Other / Sonstiges</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-message"><span data-lang="en">Message</span><span data-lang="de">Nachricht</span></label>
+            <textarea id="f-message" name="message" rows="4"></textarea>
+          </div>
+
+          <div class="consent">
+            <input id="f-consent" name="consent" type="checkbox" value="yes" required>
+            <label for="f-consent">
+              <span data-lang="en">I agree that Neuroroute may store and use my data to contact me about this request. See the <a href="datenschutz.html">privacy policy</a>. You can withdraw this consent at any time.</span>
+              <span data-lang="de">Ich bin damit einverstanden, dass Neuroroute meine Daten speichert und verwendet, um mich zu dieser Anfrage zu kontaktieren. Siehe <a href="datenschutz.html">Datenschutzerklärung</a>. Die Einwilligung kann jederzeit widerrufen werden.</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn-main" style="width:100%;">
+            <span data-lang="en">Send Request</span><span data-lang="de">Anfrage senden</span>
+          </button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+          <p class="form-note">
+            <span data-lang="en">We reply within one business day. No newsletter, no sharing with third parties.</span>
+            <span data-lang="de">Wir antworten innerhalb eines Werktags. Kein Newsletter, keine Weitergabe an Dritte.</span>
+          </p>
+        </form>
       </div>
 
       <div class="contact-methods">
-        <div class="contact-method"><div class="ic"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span></div><h3><span data-lang="en">Email</span><span data-lang="de">E-Mail</span></h3><a href="mailto:hello@neuroroute.ai">hello@neuroroute.ai</a></div>
-        <div class="contact-method"><div class="ic"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div><h3><span data-lang="en">Partnerships</span><span data-lang="de">Partnerschaften</span></h3><a href="mailto:partners@neuroroute.ai">partners@neuroroute.ai</a></div>
-        <div class="contact-method"><div class="ic"><span class="ico"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 13h18"/></svg></span></div><h3><span data-lang="en">Investors</span><span data-lang="de">Investoren</span></h3><a href="mailto:investors@neuroroute.ai">investors@neuroroute.ai</a></div>
+        <div class="contact-method"><div class="ic"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg></span></div><h3><span data-lang="en">Email</span><span data-lang="de">E-Mail</span></h3><a href="mailto:hello@neuroroute.ai">hello@neuroroute.ai</a></div>
+        <div class="contact-method"><div class="ic"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l4-4 3 2 4-3 7 5M7 16l3 3 4-4M3 12v4h2M21 12v4h-2"/></svg></span></div><h3><span data-lang="en">Partnerships</span><span data-lang="de">Partnerschaften</span></h3><a href="mailto:partners@neuroroute.ai">partners@neuroroute.ai</a></div>
+        <div class="contact-method"><div class="ic"><span class="ico"><svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M3 13h18"/></svg></span></div><h3><span data-lang="en">Investors</span><span data-lang="de">Investoren</span></h3><a href="mailto:investors@neuroroute.ai">investors@neuroroute.ai</a></div>
       </div>
     </div>
   </div>
 </section>
+
+</main>
 
 <footer>
   <div class="footer-grid">
@@ -496,7 +665,7 @@ function setLang(lang) {
     <div class="footer-col"><h4><span data-lang="en">Company</span><span data-lang="de">Unternehmen</span></h4><ul><li><a href="about.html"><span data-lang="en">About</span><span data-lang="de">Über uns</span></a></li><li><a href="usecases.html"><span data-lang="en">Use Cases</span><span data-lang="de">Anwendungen</span></a></li><li><a href="profile.html"><span data-lang="en">Company Profiles</span><span data-lang="de">Firmenprofile</span></a></li><li><a href="news.html">News</a></li><li><a href="faq.html">FAQ</a></li><li><a href="contact.html"><span data-lang="en">Contact</span><span data-lang="de">Kontakt</span></a></li></ul></div>
     <div class="footer-col"><h4><span data-lang="en">Legal</span><span data-lang="de">Rechtliches</span></h4><ul><li><a href="impressum.html"><span data-lang="en">Imprint</span><span data-lang="de">Impressum</span></a></li><li><a href="datenschutz.html"><span data-lang="en">Privacy</span><span data-lang="de">Datenschutz</span></a></li><li><a href="agb.html">AGB</a></li></ul></div>
   </div>
-  <div class="footer-bottom"><p>© 2025 Neuroroute</p><p>neuroroute.ai</p></div>
+  <div class="footer-bottom"><p>© <span class="js-year">2026</span> Neuroroute</p><p>neuroroute.ai</p></div>
 </footer>
 
 <script>
@@ -589,5 +758,99 @@ function setLang(lang) {
   });
 })();
 </script>
+<script>
+/* ============================================
+   NEUROROUTE · Demo request form
+   Posts to Netlify Forms (the form is declared statically with
+   data-netlify, so Netlify picks it up at deploy time). If that POST is not
+   available — page opened from disk, or hosted somewhere without Netlify —
+   we fall back to a prefilled mailto so a lead is never silently dropped.
+   ============================================ */
+(function () {
+  var form = document.getElementById('demo-form');
+  if (!form) return;
+
+  var status = form.querySelector('.form-status');
+  var button = form.querySelector('button[type="submit"]');
+  var MAIL_TO = 'hello@neuroroute.ai';
+
+  var TEXT = {
+    en: {
+      busy: 'Sending…',
+      mail: 'Opening your email app so your request is not lost…',
+      error: 'Sending failed. Please write to ' + MAIL_TO + ' directly.',
+      doneTitle: 'Request received',
+      doneBody: 'Thank you — we will get back to you within one business day.'
+    },
+    de: {
+      busy: 'Wird gesendet…',
+      mail: 'E-Mail-Programm wird geöffnet, damit Ihre Anfrage nicht verloren geht…',
+      error: 'Senden fehlgeschlagen. Bitte schreiben Sie direkt an ' + MAIL_TO + '.',
+      doneTitle: 'Anfrage eingegangen',
+      doneBody: 'Vielen Dank — wir melden uns innerhalb eines Werktags bei Ihnen.'
+    }
+  };
+
+  function t() { return document.body.classList.contains('lang-de') ? TEXT.de : TEXT.en; }
+
+  function say(message, kind) {
+    status.textContent = message || '';
+    status.className = 'form-status' + (kind ? ' ' + kind : '');
+  }
+
+  function showDone() {
+    var d = document.createElement('div');
+    d.className = 'form-done';
+    d.setAttribute('role', 'status');
+    d.innerHTML =
+      '<div class="tick"><svg aria-hidden="true" focusable="false" width="30" height="30" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+      '<path d="M4 12.5l5.5 5.5L20 7"/></svg></div>' +
+      '<h3><span data-lang="en">' + TEXT.en.doneTitle + '</span>' +
+      '<span data-lang="de">' + TEXT.de.doneTitle + '</span></h3>' +
+      '<p><span data-lang="en">' + TEXT.en.doneBody + '</span>' +
+      '<span data-lang="de">' + TEXT.de.doneBody + '</span></p>';
+    form.replaceWith(d);
+    d.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function mailtoFallback(data) {
+    say(t().mail, 'busy');
+    var lines = [];
+    data.forEach(function (value, key) {
+      if (key === 'form-name' || key === 'bot-field' || !value) return;
+      lines.push(key + ': ' + value);
+    });
+    var href = 'mailto:' + MAIL_TO +
+      '?subject=' + encodeURIComponent('Demo request — ' + (data.get('company') || '')) +
+      '&body=' + encodeURIComponent(lines.join('\n'));
+    window.location.href = href;
+    window.setTimeout(showDone, 1200);
+  }
+
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (typeof form.reportValidity === 'function' && !form.reportValidity()) return;
+
+    var data = new FormData(form);
+    button.disabled = true;
+    say(t().busy, 'busy');
+
+    window.fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(data).toString()
+    }).then(function (response) {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      showDone();
+    }).catch(function () {
+      button.disabled = false;
+      mailtoFallback(data);
+    });
+  });
+})();
+</script>
+
+<script>/* nr:year */document.querySelectorAll(".js-year").forEach(function(e){e.textContent=new Date().getFullYear();});</script>
 </body>
 </html>
