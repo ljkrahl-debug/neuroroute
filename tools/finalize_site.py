@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "website"
-BASE_URL = "https://neuroroute.ai"
+BASE_URL = "https://neuroroute.com"
 
 # Per-page description + canonical slug. Descriptions are English because the
 # pages render in English by default (see setLang: localStorage fallback 'en').
@@ -140,7 +140,7 @@ ORG_JSONLD = """<script type="application/ld+json">
   "sameAs": [],
   "contactPoint": [{
     "@type": "ContactPoint",
-    "email": "hello@neuroroute.ai",
+    "email": "hello@neuroroute.com",
     "contactType": "sales",
     "availableLanguage": ["en", "de"]
   }]

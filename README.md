@@ -96,11 +96,11 @@ E-Mail-Benachrichtigung eingerichtet werden, sonst merkt niemand, dass eine
 Anfrage da ist.
 
 Wird die Seite woanders gehostet, fällt das Formular automatisch auf eine
-vorausgefüllte E-Mail an `hello@neuroroute.ai` zurück — es geht also kein Lead verloren.
+vorausgefüllte E-Mail an `hello@neuroroute.com` zurück — es geht also kein Lead verloren.
 
 ### Domain
 
-Alle canonical-URLs und das Vorschaubild zeigen auf `https://neuroroute.ai`.
+Alle canonical-URLs und das Vorschaubild zeigen auf `https://neuroroute.com`.
 Bei einer anderen Domain: `BASE_URL` in `tools/finalize_site.py` ändern und
 `python3 tools/finalize_site.py` laufen lassen.
 

@@ -5,4 +5,4 @@ Allow: /
 Disallow: /app.html
 Disallow: /login.html
 
-Sitemap: https://neuroroute.ai/sitemap.xml
+Sitemap: https://neuroroute.com/sitemap.xml
