@@ -51,7 +51,10 @@ describe('the core flow: request, offer, acceptance', () => {
     });
     assert.equal(addPartner.status, 201);
 
-    // 1. shipper posts the transport
+    // 1. shipper posts the transport.
+    // partnerExclusiveHours: 0 puts it on the open market straight away, so
+    // this test stays about the request → offer → acceptance flow. The
+    // partner-exclusive window has its own file, matching.test.js.
     const created = await shipper.client.post('/api/requests', {
       origin: 'Hamburg',
       destination: 'München',
@@ -60,6 +63,7 @@ describe('the core flow: request, offer, acceptance', () => {
       weightKg: 12400,
       pickupDate: futureDate(5),
       deliveryDate: futureDate(7),
+      partnerExclusiveHours: 0,
     });
     assert.equal(created.status, 201);
     const request = created.data.request;

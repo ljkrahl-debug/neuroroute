@@ -8,7 +8,9 @@ import { attachUser } from './auth/middleware.js';
 import { errorHandler, notFoundHandler } from './lib/errors.js';
 import { adminRouter } from './routes/admin.js';
 import { authRouter } from './routes/auth.js';
+import { capacityRouter } from './routes/capacity.js';
 import { companiesRouter } from './routes/companies.js';
+import { capacityPublishRouter, marketplaceRouter } from './routes/marketplace.js';
 import { offersRouter, requestOffersRouter } from './routes/offers.js';
 import { partnersRouter } from './routes/partners.js';
 import { requestsRouter } from './routes/requests.js';
@@ -61,6 +63,10 @@ export function createApp() {
   app.use('/api/requests/:requestId/offers', requestOffersRouter);
   app.use('/api/requests', requestsRouter);
   app.use('/api/offers', offersRouter);
+  // Mounted before /api/capacity so the nested publish route wins the match.
+  app.use('/api/capacity/:capacityId/publish', capacityPublishRouter);
+  app.use('/api/capacity', capacityRouter);
+  app.use('/api/marketplace', marketplaceRouter);
   app.use('/api/admin', adminRouter);
 
   app.use(notFoundHandler);

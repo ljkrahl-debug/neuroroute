@@ -86,16 +86,15 @@ Das Ziel ist NICHT, sofort die ganze Vision zu bauen. Ziel ist ein **schlanker K
 
 Details, API-Referenz und Demo-Zugänge: **`backend/README.md`**.
 
-### Phase 2 — Das Besondere ← HIER GEHT ES WEITER
-5. **Matching-Engine** — "Partner zuerst". Die *Sortierung* ist bereits drin
-   (`isPreferredPartner` im Anbieter-Feed, Partner-Angebote zuerst beim Abnehmer).
-   Offen ist das **Exklusivfenster**: eine Anfrage erst nur den bevorzugten Partnern
-   zeigen und erst nach Ablauf für den offenen Markt öffnen.
-6. **Empty Capacity Marketplace** — Kapazität eintragen, Leerfahrt-Erkennung, 1-Klick-Publish.
-   Die Tabellen `capacity` und `marketplace_listings` existieren schon und werden
-   vom Seed befüllt; es fehlen die Endpunkte.
+### Phase 2 — Das Besondere ✅ ERLEDIGT — liegt in `/backend/`
+5. ~~**Matching-Engine**~~ — Exklusivfenster (Standard 24 h, einstellbar, vorzeitig
+   zu öffnen) plus Partner-zuerst-Sortierung. Als Regel durchgesetzt, nicht nur
+   als Anzeigefilter.
+6. ~~**Empty Capacity Marketplace**~~ — Kapazität eintragen, Leerfahrt-Erkennung
+   (explizit markiert **und** hergeleitet aus fehlender Rückfahrt), 1-Klick-Publish,
+   Suche und Buchung.
 
-### Phase 3 — Reife
+### Phase 3 — Reife ← HIER GEHT ES WEITER
 7. **Tracking V1** — statusbasiert (keine GPS-Hardware nötig), Fahrer tippt Status.
 8. **Firmenprofile** — jede Firma bekommt eine öffentliche Profilseite (siehe profile.html).
 9. **Abrechnung** — Abo + Provision auf vermittelte Transporte.

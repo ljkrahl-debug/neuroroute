@@ -108,6 +108,15 @@ try {
       deliveryDate: daysFromNow(8),
     });
 
+    // Still inside its partner-exclusive window: only Spedition Nord can see
+    // it, Fremdfracht cannot. Makes the "own network first" rule visible in
+    // the demo without waiting for anything.
+    await client.query(
+      `UPDATE transport_requests SET partner_exclusive_until = now() + interval '20 hours'
+        WHERE id = $1`,
+      [openRequest.id]
+    );
+
     // 2. open, two offers waiting for a decision
     const contested = await addRequest({
       origin: 'Stuttgart',

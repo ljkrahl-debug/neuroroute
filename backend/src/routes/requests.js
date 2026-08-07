@@ -31,8 +31,35 @@ const REQUEST_FIELDS = [
   ['carrier_company_id', 'carrierCompanyId'],
   ['accepted_offer_id', 'acceptedOfferId'],
   ['accepted_price_cents', 'acceptedPriceCents'],
+  ['partner_exclusive_until', 'partnerExclusiveUntil'],
   ['created_at', 'createdAt'],
 ];
+
+/**
+ * "Use your own network first", as a SQL condition.
+ *
+ * While partner_exclusive_until is in the future, only the shipper's preferred
+ * partners may see the request. After it passes — or when it was never set,
+ * which is the case for shippers with no partners — it is on the open market.
+ *
+ * @param placeholder the bind parameter holding the carrier's company id
+ */
+export function carrierVisibilitySql(placeholder, alias = 'r') {
+  return `(
+    ${alias}.partner_exclusive_until IS NULL
+    OR ${alias}.partner_exclusive_until <= now()
+    OR EXISTS (
+      SELECT 1 FROM partners p
+       WHERE p.shipper_company_id = ${alias}.shipper_company_id
+         AND p.carrier_company_id = ${placeholder}
+    )
+  )`;
+}
+
+// A shipper can hold a request back for at most a week; longer is not a
+// preference any more, it is just a stalled transport.
+const MAX_EXCLUSIVE_HOURS = 168;
+const DEFAULT_EXCLUSIVE_HOURS = 24;
 
 function requestColumns(prefix = '') {
   return REQUEST_FIELDS.map(
@@ -52,6 +79,8 @@ const createSchema = z
     pickupDate: isoDate,
     deliveryDate: isoDate.optional(),
     notes: z.string().trim().max(2000).optional(),
+    // 0 sends the request straight to the open market.
+    partnerExclusiveHours: z.number().int().min(0).max(MAX_EXCLUSIVE_HOURS).optional(),
   })
   .refine((v) => !v.deliveryDate || v.deliveryDate >= v.pickupDate, {
     message: 'Delivery date cannot be before the pickup date',
@@ -66,11 +95,23 @@ requestsRouter.post(
   asyncRoute(async (req, res) => {
     const input = body(createSchema, req);
 
+    // Holding a request back only means something if there are partners to hold
+    // it back for. With an empty partner list the window would just delay the
+    // transport for nobody's benefit, so it is skipped.
+    const { rows: partnerRows } = await query(
+      'SELECT count(*)::int AS count FROM partners WHERE shipper_company_id = $1',
+      [req.user.companyId]
+    );
+    const partnerCount = partnerRows[0].count;
+    const hours = input.partnerExclusiveHours ?? DEFAULT_EXCLUSIVE_HOURS;
+    const exclusiveHours = partnerCount > 0 ? hours : 0;
+
     const { rows } = await query(
       `INSERT INTO transport_requests
          (shipper_company_id, created_by, origin, destination, mode, cargo,
-          weight_kg, pickup_date, delivery_date, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          weight_kg, pickup_date, delivery_date, notes, partner_exclusive_until)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+               CASE WHEN $11::int > 0 THEN now() + ($11 || ' hours')::interval ELSE NULL END)
        RETURNING ${requestColumns()}`,
       [
         req.user.companyId,
@@ -83,10 +124,18 @@ requestsRouter.post(
         input.pickupDate,
         input.deliveryDate ?? null,
         input.notes ?? null,
+        exclusiveHours,
       ]
     );
 
-    res.status(201).json({ request: rows[0] });
+    res.status(201).json({
+      request: rows[0],
+      matching: {
+        partnerCount,
+        // Say plainly who can see it, so the UI does not have to infer it.
+        visibility: rows[0].partnerExclusiveUntil ? 'partners_only' : 'open_market',
+      },
+    });
   })
 );
 
@@ -156,6 +205,7 @@ requestsRouter.get(
             AND mine.status IN ('pending', 'accepted')
           WHERE r.status = 'open'
             AND r.shipper_company_id <> $1
+            AND ${carrierVisibilitySql('$1')}
           ORDER BY "isPreferredPartner" DESC, r.pickup_date, r.created_at DESC
           LIMIT 200`,
         [req.user.companyId]
@@ -201,10 +251,21 @@ export async function loadVisibleRequest(requestId, user) {
 
   const isOwner = request.shipperCompanyId === user.companyId;
   const isAssignedCarrier = request.carrierCompanyId === user.companyId;
-  // An open request is on the market, so any carrier may look at it. Once it
-  // is assigned, only the two companies involved can.
-  const isOpenToCarriers =
-    request.status === 'open' && (user.role === 'carrier' || user.role === 'driver');
+
+  // An open request is on the market, so any carrier may look at it — unless it
+  // is still inside its partner-exclusive window, in which case only the
+  // shipper's preferred partners can. Checking this here and not only in the
+  // list query matters: otherwise a carrier could read, and bid on, a request
+  // it is not meant to see yet simply by knowing its id.
+  let isOpenToCarriers = false;
+  if (request.status === 'open' && (user.role === 'carrier' || user.role === 'driver')) {
+    const { rows: visibleRows } = await query(
+      `SELECT ${carrierVisibilitySql('$2')} AS visible
+         FROM transport_requests r WHERE r.id = $1`,
+      [requestId, user.companyId]
+    );
+    isOpenToCarriers = visibleRows[0].visible;
+  }
 
   if (!isOwner && !isAssignedCarrier && !isOpenToCarriers) {
     throw ApiError.forbidden('You do not have access to this request');
@@ -217,6 +278,39 @@ requestsRouter.get(
   asyncRoute(async (req, res) => {
     const request = await loadVisibleRequest(req.params.id, req.user);
     res.json({ request });
+  })
+);
+
+/**
+ * Ends the partner-exclusive window early. A shipper whose partners have not
+ * responded should not have to wait out the clock to reach the open market.
+ */
+requestsRouter.post(
+  '/:id/open-to-market',
+  requireRole('shipper'),
+  asyncRoute(async (req, res) => {
+    const { rows } = await query(
+      'SELECT id, status, shipper_company_id, partner_exclusive_until FROM transport_requests WHERE id = $1',
+      [req.params.id]
+    );
+    const request = rows[0];
+    if (!request) throw ApiError.notFound('Request not found');
+    if (request.shipper_company_id !== req.user.companyId) {
+      throw ApiError.forbidden('You can only change your own requests');
+    }
+    if (request.status !== 'open') {
+      throw ApiError.conflict(`This request is ${request.status}`);
+    }
+    if (!request.partner_exclusive_until) {
+      throw ApiError.conflict('This request is already on the open market');
+    }
+
+    const { rows: updated } = await query(
+      `UPDATE transport_requests SET partner_exclusive_until = NULL WHERE id = $1
+       RETURNING ${requestColumns()}`,
+      [req.params.id]
+    );
+    res.json({ request: updated[0] });
   })
 );
 

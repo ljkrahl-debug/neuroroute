@@ -1,9 +1,13 @@
-# Neuroroute Backend — Phase 1
+# Neuroroute Backend — Phase 1 + 2
 
-Node.js + Express + PostgreSQL. Enthält das, was CLAUDE.md als Phase 1 definiert:
-Grundgerüst, Datenbank, Auth mit 4 Rollen und den Kern-Flow
-**Anfrage → Angebot → Annahme**, genau so wie `website/app.html` ihn simuliert —
-nur mit echter Datenbank statt `window.storage`.
+Node.js + Express + PostgreSQL.
+
+**Phase 1:** Grundgerüst, Datenbank, Auth mit 4 Rollen, Kern-Flow
+**Anfrage → Angebot → Annahme** — so wie `website/app.html` ihn simuliert, nur
+mit echter Datenbank statt `window.storage`.
+
+**Phase 2:** Matching-Engine mit **Partner-Exklusivfenster** und der
+**Empty Capacity Marketplace** mit Leerfahrt-Erkennung.
 
 ---
 
@@ -49,7 +53,7 @@ npm run test:setup            # Testdatenbank migrieren (einmalig)
 npm test
 ```
 
-39 Integrationstests gegen eine echte PostgreSQL-Datenbank — keine Mocks.
+61 Integrationstests gegen eine echte PostgreSQL-Datenbank — keine Mocks.
 
 ---
 
@@ -68,14 +72,47 @@ Was PROTOTYPE.md als Ablauf beschreibt, in Endpunkten:
 7. Admin sieht alles                 GET  /api/admin/stats
 ```
 
-**„Nutze zuerst dein eigenes Netzwerk"** steckt in Schritt 2 und 4: Ein Abnehmer
-pflegt unter `/api/partners` seine bevorzugten Anbieter. Deren Anfragen stehen im
-Anbieter-Feed oben (`isPreferredPartner: true`), und in der Angebotsliste des
-Abnehmers werden Partner-Angebote vor externen einsortiert.
+## „Nutze zuerst dein eigenes Netzwerk" — wie es technisch funktioniert
 
-> Die vollständige Matching-Engine aus Phase 2 — Anfragen für ein Zeitfenster
-> **exklusiv** nur an Partner zu zeigen und erst danach für den offenen Markt zu
-> öffnen — ist bewusst noch nicht drin. Phase 1 sortiert, Phase 2 filtert.
+Ein Abnehmer pflegt unter `/api/partners` seine bevorzugten Anbieter. Daraus
+folgen zwei Dinge:
+
+**1. Exklusivfenster.** Eine neue Anfrage ist zunächst **nur** für die
+bevorzugten Partner sichtbar — standardmäßig 24 Stunden, einstellbar über
+`partnerExclusiveHours` (`0` = sofort offener Markt, Maximum 168 Stunden).
+Erst danach sieht sie das gesamte Netzwerk.
+
+Das ist eine echte Regel, keine Anzeigefilterung: Ein externer Anbieter, der die
+ID der Anfrage kennt, bekommt sowohl beim Abruf als auch beim Angebot ein `403`.
+Wer keine Partner hat, bekommt kein Fenster — sonst würde die Anfrage für
+niemanden verzögert. Der Abnehmer kann jederzeit vorzeitig öffnen:
+`POST /api/requests/:id/open-to-market`.
+
+**2. Reihenfolge.** Auch nach Ablauf des Fensters stehen Partner-Anfragen im
+Anbieter-Feed oben (`isPreferredPartner: true`), und in der Angebotsliste des
+Abnehmers kommen Partner-Angebote vor externen — **auch wenn sie teurer sind**.
+Der Preis steht daneben, die Entscheidung bleibt beim Abnehmer.
+
+## Empty Capacity Marketplace
+
+```
+1. Anbieter trägt geplante Touren ein      POST /api/capacity
+2. System erkennt Leerfahrten              GET  /api/capacity/suggestions
+3. 1 Klick veröffentlicht sie              POST /api/capacity/:id/publish
+4. Andere Firmen finden & buchen           GET  /api/marketplace, POST /:id/book
+```
+
+Die Erkennung in Schritt 2 kennt zwei Fälle:
+
+- **`flagged_empty`** — der Anbieter hat beim Planen „Rückfahrt leer" angehakt,
+  und die Tour steht noch nicht am Markt.
+- **`uncovered_return`** — eine beladene Tour A→B, zu der in den folgenden Tagen
+  keine Tour ab B geplant ist. Der LKW muss zurück, also fährt er den Rückweg
+  mit hoher Wahrscheinlichkeit leer, ohne dass jemand es eingetragen hat. Genau
+  der Fall aus CLAUDE.md: Hamburg→München voll, München→Hamburg leer.
+
+Beide Vorschläge kommen mit fertigem Payload zurück (`publish` bzw.
+`createCapacity`), damit „1 Klick" im Frontend wirklich ein Klick ist.
 
 ---
 
@@ -118,15 +155,31 @@ Authentifizierung über ein httpOnly-Session-Cookie. Alle Requests brauchen
 
 | Methode | Pfad | Wer | Zweck |
 |---|---|---|---|
-| POST | `/api/requests` | Abnehmer | Transportanfrage anlegen |
+| POST | `/api/requests` | Abnehmer | Transportanfrage anlegen (`partnerExclusiveHours`) |
 | GET | `/api/requests` | alle | Rollenabhängiger Feed (`?status=`, `?view=assigned`) |
 | GET | `/api/requests/:id` | Beteiligte | Einzelne Anfrage |
+| POST | `/api/requests/:id/open-to-market` | Abnehmer | Exklusivfenster vorzeitig beenden |
 | POST | `/api/requests/:id/cancel` | Abnehmer | Stornieren (nur solange offen) |
 | POST | `/api/requests/:id/offers` | Anbieter | Angebot abgeben |
 | GET | `/api/requests/:id/offers` | Abnehmer sieht alle, Anbieter nur eigene | Angebote |
 | GET | `/api/offers` | Anbieter | Eigene Angebote |
 | POST | `/api/offers/:id/accept` | Abnehmer | Angebot annehmen |
 | POST | `/api/offers/:id/withdraw` | Anbieter | Angebot zurückziehen |
+
+### Kapazität & Marktplatz
+
+| Methode | Pfad | Wer | Zweck |
+|---|---|---|---|
+| POST | `/api/capacity` | Anbieter | Geplante Tour eintragen |
+| GET | `/api/capacity` | Anbieter | Eigene Tourenplanung (`?from=`) |
+| GET | `/api/capacity/suggestions` | Anbieter | **Leerfahrt-Erkennung** (`?windowDays=`) |
+| PATCH/DELETE | `/api/capacity/:id` | Anbieter | Ändern / löschen |
+| POST | `/api/capacity/:id/publish` | Anbieter | **1-Klick auf den Marktplatz** |
+| GET | `/api/marketplace` | alle verifizierten | Suchen (`?origin=&destination=&mode=&from=&to=&mine=`) |
+| POST | `/api/marketplace` | Anbieter | Angebot ohne Tourbezug |
+| GET | `/api/marketplace/:id` | alle verifizierten | Einzelnes Angebot |
+| POST | `/api/marketplace/:id/book` | alle verifizierten | Buchen |
+| DELETE | `/api/marketplace/:id` | Eigentümer | Zurückziehen (nicht wenn gebucht) |
 
 ### Admin
 
@@ -206,6 +259,14 @@ ein Bug in einem Handler kann sie dann nicht umgehen:
   aktives Angebot, kann aber zurückziehen und neu bieten.
 - `requests_assignment_consistent` — eine Anfrage ist entweder unvergeben oder
   vollständig vergeben. Kein Zustand mit Anbieter, aber ohne Preis.
+- `listings_one_active_per_capacity` — eine Tour steht höchstens einmal am
+  Markt; nach Ablauf oder Rückzug ist erneutes Veröffentlichen möglich.
+- `listings_booking_consistent` — ein gebuchtes Angebot weiß immer, wer es
+  gebucht hat und wann.
+
+Gebucht wird mit einem bedingten `UPDATE ... WHERE status = 'active'`. Zwei
+gleichzeitige Käufer können dieselbe Leerfahrt daher nicht beide bekommen — der
+zweite ändert keine Zeile und erhält `409`. Auch dafür gibt es einen Test.
 
 Beträge liegen als **ganze Cent** in `bigint`-Spalten. Nie als Fließkommazahl:
 `0.1 + 0.2` ist nicht `0.3`, und Frachtpreise landen in Rechnungen.
@@ -236,11 +297,16 @@ Nicht vergessen, sonst geht es beim ersten echten Kunden schief:
   muss es nach Redis oder Postgres wandern, sonst multipliziert es sich.
 - Backups der Datenbank. Angebote und Vergaben sind Geschäftsunterlagen.
 
-## Was als Nächstes kommt (Phase 2)
+## Was als Nächstes kommt (Phase 3)
 
-Die Tabellen `capacity` und `marketplace_listings` sind bereits angelegt und
-werden vom Seed gefüllt — die Endpunkte dazu sind der nächste Schritt:
+Laut CLAUDE.md:
 
-1. Matching-Engine: Exklusivfenster für bevorzugte Partner, danach offener Markt.
-2. Empty Capacity Marketplace: Kapazität eintragen, Leerfahrt erkennen,
-   mit einem Klick veröffentlichen.
+1. **Tracking V1** — statusbasiert, ohne GPS-Hardware. Der Fahrer meldet
+   Status, alle Beteiligten sehen den Fortschritt. Die Statuswerte
+   `in_transit` und `delivered` stehen im Schema schon bereit, es fehlen die
+   Übergänge und die Fahrer-Endpunkte.
+2. **Firmenprofile** — öffentliche Profilseite je Firma (`profile.html`).
+   `GET /api/companies/:id` liefert bereits die Basis.
+3. **Abrechnung** — Abo + Provision auf vermittelte Transporte.
+   `brokeredVolumeCents` und `marketplaceVolumeCents` in den Admin-Kennzahlen
+   sind die Grundlage dafür.

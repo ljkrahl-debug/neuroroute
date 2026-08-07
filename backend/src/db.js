@@ -6,6 +6,13 @@ import { config } from './config.js';
 // integer range, so parse those back to numbers.
 pg.types.setTypeParser(pg.types.builtins.INT8, (value) => Number(value));
 
+// A pickup date is a calendar day, not a moment in time. By default the driver
+// turns `date` columns into JS Date objects, which then serialise as
+// "2026-09-15T00:00:00.000Z" — an instant that shifts across time zones and
+// reads as the previous day west of UTC. Postgres already sends these as
+// YYYY-MM-DD, so keep them exactly as they are.
+pg.types.setTypeParser(pg.types.builtins.DATE, (value) => value);
+
 export const pool = new pg.Pool({
   connectionString: config.databaseUrl,
   max: config.isTest ? 4 : 10,

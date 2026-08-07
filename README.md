@@ -12,7 +12,7 @@ Fahrer und Admins über Straße, Schiene, See und Luft — mit dem Prinzip
 neuroroute/
 ├── CLAUDE.md          ← WICHTIG: Kontext & Bauanleitung (zuerst lesen!)
 ├── README.md          ← diese Datei
-├── backend/           ← die echte Software (Phase 1: Auth + Kern-Flow)
+├── backend/           ← die echte Software (Phase 1 + 2)
 │   └── README.md          Setup, API-Referenz, Demo-Zugänge
 ├── netlify.toml       Hosting-Konfiguration (Security-Header, Caching)
 ├── tools/             Wartungs-Skripte (siehe unten)
@@ -108,10 +108,15 @@ Bei einer anderen Domain: `BASE_URL` in `tools/finalize_site.py` ändern und
 
 ## Das Backend (echte Software)
 
-Phase 1 aus CLAUDE.md ist gebaut und liegt in `backend/`: Node.js + Express +
-PostgreSQL, echtes Login mit den 4 Rollen und der Kern-Flow
-**Anfrage → Angebot → Annahme** — dasselbe Verhalten wie im Prototyp `app.html`,
-nur mit echter Datenbank statt `window.storage`.
+Phase 1 und 2 aus CLAUDE.md sind gebaut und liegen in `backend/`
+(Node.js + Express + PostgreSQL):
+
+- echtes Login mit den 4 Rollen
+- Kern-Flow **Anfrage → Angebot → Annahme** — dasselbe Verhalten wie im
+  Prototyp `app.html`, nur mit echter Datenbank statt `window.storage`
+- **Partner-Exklusivfenster**: eine neue Anfrage geht erst nur an die
+  bevorzugten Partner, danach an das ganze Netzwerk
+- **Empty Capacity Marketplace** mit Leerfahrt-Erkennung und 1-Klick-Publish
 
 ```bash
 cd backend
@@ -119,15 +124,15 @@ cp .env.example .env
 docker compose up -d
 npm install && npm run migrate && npm run seed
 npm run dev            # http://localhost:3000
-npm test               # 39 Integrationstests gegen echte PostgreSQL
+npm test               # 61 Integrationstests gegen echte PostgreSQL
 ```
 
 Setup, vollständige API-Referenz und Demo-Zugänge: **`backend/README.md`**.
 
 ## Nächste Schritte
 
-Phase 2 aus **CLAUDE.md**: Matching-Engine (Exklusivfenster für bevorzugte
-Partner) und der Empty Capacity Marketplace.
+Phase 3 aus **CLAUDE.md**: Tracking V1 (statusbasiert, ohne GPS), öffentliche
+Firmenprofile und die Abrechnung.
 
 ## Rollen im Projekt
 

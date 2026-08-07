@@ -4,7 +4,7 @@ import { query, transaction } from '../db.js';
 import { ApiError, asyncRoute } from '../lib/errors.js';
 import { body, isoDate, priceToCents, z } from '../lib/validate.js';
 import { requireAuth, requireRole, requireVerifiedCompany } from '../auth/middleware.js';
-import { loadVisibleRequest } from './requests.js';
+import { carrierVisibilitySql, loadVisibleRequest } from './requests.js';
 
 const OFFER_COLUMNS = `
   o.id                 AS "id",
@@ -42,11 +42,21 @@ requestOffersRouter.post(
     const input = body(createOfferSchema, req);
 
     const { rows } = await query(
-      'SELECT id, status, shipper_company_id FROM transport_requests WHERE id = $1',
-      [req.params.requestId]
+      `SELECT r.id, r.status, r.shipper_company_id, r.partner_exclusive_until,
+              ${carrierVisibilitySql('$2')} AS visible
+         FROM transport_requests r WHERE r.id = $1`,
+      [req.params.requestId, req.user.companyId]
     );
     const request = rows[0];
     if (!request) throw ApiError.notFound('Request not found');
+
+    // The exclusivity window is a rule, not a display filter: a carrier that
+    // guessed the id must not be able to bid its way past it either.
+    if (!request.visible) {
+      throw ApiError.forbidden(
+        'This request is currently reserved for the shipper’s preferred partners'
+      );
+    }
 
     // A forwarder can be both shipper and carrier, so this is a real case:
     // bidding on your own company's request is not allowed.

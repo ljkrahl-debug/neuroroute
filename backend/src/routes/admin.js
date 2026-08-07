@@ -88,6 +88,13 @@ adminRouter.get(
         (SELECT count(*) FROM transport_requests WHERE status = 'open')     AS "requestsOpen",
         (SELECT count(*) FROM transport_requests WHERE status = 'assigned') AS "requestsAssigned",
         (SELECT count(*) FROM offers WHERE status = 'pending')        AS "offersPending",
+        (SELECT count(*) FROM transport_requests
+          WHERE status = 'open' AND partner_exclusive_until > now())  AS "requestsPartnerExclusive",
+        (SELECT count(*) FROM marketplace_listings WHERE status = 'active') AS "listingsActive",
+        (SELECT count(*) FROM marketplace_listings WHERE status = 'booked') AS "listingsBooked",
+        -- what the empty-run marketplace actually turned into revenue
+        (SELECT coalesce(sum(price_cents), 0)::bigint FROM marketplace_listings
+          WHERE status = 'booked')                                    AS "marketplaceVolumeCents",
         -- sum() over bigint returns numeric, which the driver hands back as a
         -- string; cast it so the API stays consistently numeric
         (SELECT coalesce(sum(accepted_price_cents), 0)::bigint
