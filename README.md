@@ -12,6 +12,8 @@ Fahrer und Admins über Straße, Schiene, See und Luft — mit dem Prinzip
 neuroroute/
 ├── CLAUDE.md          ← WICHTIG: Kontext & Bauanleitung (zuerst lesen!)
 ├── README.md          ← diese Datei
+├── backend/           ← die echte Software (Phase 1: Auth + Kern-Flow)
+│   └── README.md          Setup, API-Referenz, Demo-Zugänge
 ├── netlify.toml       Hosting-Konfiguration (Security-Header, Caching)
 ├── tools/             Wartungs-Skripte (siehe unten)
 │   ├── finalize_site.py    Meta-Tags, Barrierefreiheit, sitemap.xml, robots.txt
@@ -104,10 +106,28 @@ Alle canonical-URLs und das Vorschaubild zeigen auf `https://neuroroute.com`.
 Bei einer anderen Domain: `BASE_URL` in `tools/finalize_site.py` ändern und
 `python3 tools/finalize_site.py` laufen lassen.
 
-## Nächste Schritte (echte Software bauen)
+## Das Backend (echte Software)
 
-Siehe **CLAUDE.md** — dort steht der komplette Fahrplan, von Backend über Auth
-bis zur Matching-Engine, in sinnvoller Reihenfolge.
+Phase 1 aus CLAUDE.md ist gebaut und liegt in `backend/`: Node.js + Express +
+PostgreSQL, echtes Login mit den 4 Rollen und der Kern-Flow
+**Anfrage → Angebot → Annahme** — dasselbe Verhalten wie im Prototyp `app.html`,
+nur mit echter Datenbank statt `window.storage`.
+
+```bash
+cd backend
+cp .env.example .env
+docker compose up -d
+npm install && npm run migrate && npm run seed
+npm run dev            # http://localhost:3000
+npm test               # 39 Integrationstests gegen echte PostgreSQL
+```
+
+Setup, vollständige API-Referenz und Demo-Zugänge: **`backend/README.md`**.
+
+## Nächste Schritte
+
+Phase 2 aus **CLAUDE.md**: Matching-Engine (Exklusivfenster für bevorzugte
+Partner) und der Empty Capacity Marketplace.
 
 ## Rollen im Projekt
 

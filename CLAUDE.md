@@ -75,19 +75,25 @@ verhalten, aber mit echtem Backend statt `window.storage`.
 Das Ziel ist NICHT, sofort die ganze Vision zu bauen. Ziel ist ein **schlanker Kern
 (MVP)**, den 5–10 echte Speditionen benutzen können. Reihenfolge:
 
-### Phase 1 — Fundament (MVP-Kern)
-1. **Backend-Grundgerüst** — Node.js (Luis kennt das). Empfehlung: Express oder Fastify.
-2. **Datenbank** — PostgreSQL oder MongoDB. Schema für: users, companies, requests,
-   offers, capacity, marketplace_listings.
-3. **Auth & Rollen** — echtes Login (E-Mail + Passwort), 4 Rollen, sichere Sessions/JWT.
-   Empfehlung: fertige Lösung wie Auth0, Clerk oder Lucia statt selbst bauen.
-4. **Kern-Flow** (aus app.html übernehmen):
-   Abnehmer erstellt Anfrage → Anbieter sieht sie → gibt Angebot ab → Abnehmer nimmt an.
+### Phase 1 — Fundament (MVP-Kern) ✅ ERLEDIGT — liegt in `/backend/`
+1. ~~**Backend-Grundgerüst**~~ — Node.js + Express.
+2. ~~**Datenbank**~~ — PostgreSQL. Schema für users, companies, requests, offers,
+   capacity, marketplace_listings (+ sessions, partners).
+3. ~~**Auth & Rollen**~~ — E-Mail + Passwort, 4 Rollen, serverseitige Sessions.
+   Abweichung von der Empfehlung (Auth0/Clerk/Lucia) samt Begründung steht in
+   `backend/README.md`.
+4. ~~**Kern-Flow**~~ — Anfrage → Angebot → Annahme, mit 39 Integrationstests.
 
-### Phase 2 — Das Besondere
-5. **Matching-Engine** — "Partner zuerst": bevorzugte Partner eines Abnehmers werden
-   vor externen Anbietern angezeigt. (Logik ist in app.html als Simulation angedeutet.)
+Details, API-Referenz und Demo-Zugänge: **`backend/README.md`**.
+
+### Phase 2 — Das Besondere ← HIER GEHT ES WEITER
+5. **Matching-Engine** — "Partner zuerst". Die *Sortierung* ist bereits drin
+   (`isPreferredPartner` im Anbieter-Feed, Partner-Angebote zuerst beim Abnehmer).
+   Offen ist das **Exklusivfenster**: eine Anfrage erst nur den bevorzugten Partnern
+   zeigen und erst nach Ablauf für den offenen Markt öffnen.
 6. **Empty Capacity Marketplace** — Kapazität eintragen, Leerfahrt-Erkennung, 1-Klick-Publish.
+   Die Tabellen `capacity` und `marketplace_listings` existieren schon und werden
+   vom Seed befüllt; es fehlen die Endpunkte.
 
 ### Phase 3 — Reife
 7. **Tracking V1** — statusbasiert (keine GPS-Hardware nötig), Fahrer tippt Status.

@@ -1,7 +1,10 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
+# package-lock.json is deliberately NOT ignored. It pins the exact dependency
+# versions, so a deploy installs what was tested rather than whatever is newest
+# that day — which is also the main defence against a compromised package
+# release reaching production.
 
 # Environment / Secrets
 .env

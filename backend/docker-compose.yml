@@ -1,0 +1,30 @@
+# Postgres for local development and for running the test suite.
+#
+#   docker compose up -d
+#   npm run migrate && npm run seed
+#
+# Data lives in a named volume, so `docker compose down` keeps it and
+# `docker compose down -v` throws it away.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: neuroroute-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: neuroroute
+      POSTGRES_PASSWORD: neuroroute
+      POSTGRES_DB: neuroroute_dev
+    ports:
+      - '5432:5432'
+    volumes:
+      - neuroroute-pgdata:/var/lib/postgresql/data
+      - ./db/docker-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U neuroroute -d neuroroute_dev']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  neuroroute-pgdata:
