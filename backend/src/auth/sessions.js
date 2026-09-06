@@ -105,14 +105,29 @@ export async function deleteExpiredSessions() {
   return rowCount;
 }
 
-export function sessionCookieOptions(expiresAt) {
+/**
+ * Cookie attributes. Everything except `expires` has to be identical between
+ * setting and clearing a cookie — a clearCookie that omits the domain leaves
+ * the original one in place and the user stays logged in after logging out.
+ */
+function baseCookieOptions() {
   return {
     httpOnly: true,
     // Lax still sends the cookie on top-level navigation from the marketing
     // site, and blocks it on cross-site POSTs, which is the CSRF case here.
-    sameSite: 'lax',
+    // COOKIE_SAMESITE=none is for the case where the API genuinely cannot live
+    // on a subdomain of the app; it needs Secure, which production sets.
+    sameSite: config.session.cookieSameSite,
     secure: config.isProduction,
     path: '/',
-    expires: expiresAt,
+    ...(config.session.cookieDomain ? { domain: config.session.cookieDomain } : {}),
   };
+}
+
+export function sessionCookieOptions(expiresAt) {
+  return { ...baseCookieOptions(), expires: expiresAt };
+}
+
+export function clearSessionCookieOptions() {
+  return baseCookieOptions();
 }

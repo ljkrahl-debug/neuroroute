@@ -119,7 +119,12 @@ Details, API-Referenz und Demo-Zugänge: **`backend/README.md`**.
 ## 5. Wichtige Rahmenbedingungen
 
 - Neuroroute ist ein **reiner Vermittler** — das steht so in den AGB. Kein eigener Transport.
-- **DSGVO:** Daten in der EU hosten (Frankfurt). Verschlüsselung, rollenbasierter Zugriff.
+- **DSGVO:** Daten in der EU hosten. Verschlüsselung, rollenbasierter Zugriff.
+  ⚠️ Hier stand ursprünglich „Frankfurt". Railway (siehe `backend/DEPLOY-RAILWAY.md`)
+  hat als EU-Region **Amsterdam** — DSGVO-konform, aber nicht Frankfurt. Falls
+  „Frankfurt" gegenüber Kunden zugesagt wurde, muss das angepasst werden. Und:
+  Railway ist ein US-Anbieter, also Auftragsverarbeiter nach Art. 28 DSGVO —
+  **AVV von Jennifer prüfen lassen, bevor echte Kundendaten drauf liegen.**
 - **Rechtstexte** (impressum/datenschutz/agb) sind nur Vorlagen mit Platzhaltern —
   ein Anwalt muss sie finalisieren, bevor die Seite live geht.
 

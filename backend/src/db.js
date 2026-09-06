@@ -15,6 +15,7 @@ pg.types.setTypeParser(pg.types.builtins.DATE, (value) => value);
 
 export const pool = new pg.Pool({
   connectionString: config.databaseUrl,
+  ssl: config.databaseSsl,
   max: config.isTest ? 4 : 10,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,

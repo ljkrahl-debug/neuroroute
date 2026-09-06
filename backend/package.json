@@ -12,6 +12,7 @@
     "dev": "node --watch src/index.js",
     "migrate": "node db/migrate.js",
     "seed": "node scripts/seed.js",
+    "check:deploy": "node scripts/check-deploy.js",
     "test": "node --test --test-concurrency=1 \"tests/*.test.js\"",
     "test:setup": "node db/migrate.js --reset"
   },

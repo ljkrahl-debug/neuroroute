@@ -285,17 +285,38 @@ Ohne `ADMIN_PASSWORD` wird ein Passwort erzeugt und einmalig ausgegeben.
 
 ---
 
-## Vor dem Produktivbetrieb
+## Deployment
 
-Nicht vergessen, sonst geht es beim ersten echten Kunden schief:
+Schritt-für-Schritt-Anleitung für Railway: **[DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md)**
+— inklusive der DSGVO-Frage (Railways EU-Region ist Amsterdam, nicht Frankfurt),
+der Kosten und der Cookie-Falle bei getrennten Domains.
 
-- `NODE_ENV=production` setzen — schaltet `secure`-Cookies und knappe
-  Fehlermeldungen ein und sperrt `migrate --reset` sowie den Seed.
-- `DATABASE_URL` auf eine EU-Datenbank mit TLS (Frankfurt, siehe CLAUDE.md).
-- `CORS_ORIGINS` auf die echte Domain, ohne `localhost`.
+Vor jedem Deploy:
+
+```bash
+npm run check:deploy
+```
+
+Prüft Konfiguration, Datenbank, Migrationen, ob ein Admin existiert und ob
+versehentlich Demo-Daten in der Produktivdatenbank liegen.
+
+### Was in Produktion gesetzt sein muss
+
+- `NODE_ENV=production` — schaltet `Secure`-Cookies und knappe Fehlermeldungen
+  ein und sperrt `migrate --reset` sowie den Seed.
+- `CORS_ORIGINS` auf die echte Domain, `https`, ohne `localhost`.
+- `COOKIE_DOMAIN` **wenn API und App auf verschiedenen Subdomains liegen.**
+  Sonst wird das Session-Cookie nie mitgeschickt und jeder Login verpufft
+  wortlos. Der Startup-Check erkennt das und startet dann gar nicht erst.
+- `DATABASE_URL` auf eine EU-Datenbank. Über ein privates Netz ist TLS unnötig,
+  sonst `DATABASE_SSL` passend setzen.
+
+### Was noch offen ist
+
 - Das Login-Rate-Limit liegt im Arbeitsspeicher. Bei mehr als einer Instanz
   muss es nach Redis oder Postgres wandern, sonst multipliziert es sich.
-- Backups der Datenbank. Angebote und Vergaben sind Geschäftsunterlagen.
+- Backups der Datenbank — und einmal einen Restore testen. Angebote und
+  Vergaben sind Geschäftsunterlagen.
 
 ## Was als Nächstes kommt (Phase 3)
 

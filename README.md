@@ -128,6 +128,7 @@ npm test               # 61 Integrationstests gegen echte PostgreSQL
 ```
 
 Setup, vollständige API-Referenz und Demo-Zugänge: **`backend/README.md`**.
+Deployment auf Railway: **`backend/DEPLOY-RAILWAY.md`**.
 
 ## Nächste Schritte
 

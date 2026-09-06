@@ -6,6 +6,7 @@ import { ApiError, asyncRoute } from '../lib/errors.js';
 import { body, companyType, email, shortText, z } from '../lib/validate.js';
 import { MIN_PASSWORD_LENGTH, fakeVerify, hashPassword, verifyPassword } from '../auth/password.js';
 import {
+  clearSessionCookieOptions,
   createSession,
   destroyAllSessionsForUser,
   destroySession,
@@ -164,7 +165,7 @@ authRouter.post(
   '/logout',
   asyncRoute(async (req, res) => {
     await destroySession(req.sessionToken);
-    res.clearCookie(config.session.cookieName, { path: '/' });
+    res.clearCookie(config.session.cookieName, clearSessionCookieOptions());
     res.status(204).end();
   })
 );

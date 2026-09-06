@@ -1,7 +1,17 @@
 import { createApp } from './app.js';
-import { config } from './config.js';
+import { config, validateProductionConfig } from './config.js';
 import { closePool, pool } from './db.js';
 import { deleteExpiredSessions } from './auth/sessions.js';
+
+// Refuse to start on a configuration that would break in ways nobody notices
+// until a customer cannot log in.
+const { problems, warnings } = validateProductionConfig();
+for (const warning of warnings) console.warn(`[config] ${warning}`);
+if (problems.length > 0) {
+  console.error('[startup] refusing to start, the configuration is not safe:');
+  for (const problem of problems) console.error(`  - ${problem}`);
+  process.exit(1);
+}
 
 const app = createApp();
 
