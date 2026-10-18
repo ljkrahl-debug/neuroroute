@@ -1,0 +1,14 @@
+{
+  "name": "neuroroute-launch-video",
+  "private": true,
+  "type": "module",
+  "description": "Neuroroute launch film, rendered from code: index.html paints any frame via window.seek(t).",
+  "scripts": {
+    "capture": "node capture.mjs",
+    "audio": "node audio.mjs",
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

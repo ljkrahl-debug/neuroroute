@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Neuroroute — Launch Film</title>
+<style>
+  html, body { margin: 0; background: #03050a; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  // render.mjs waits on this before the first seek()
+  window.ready = new Promise((resolve) => { window.__resolveReady = resolve; });
+</script>
+<script type="module">
+// Neuroroute launch film. A pure function of time: window.seek(t) paints frame t.
+// No timers, no transitions, no carried state, no randomness (see CLAUDE.md).
+import { spring, track, clamp } from './lib/motion.js';
+import { SHOTS } from './cues.mjs';
+// JSON as modules: fetch() refuses file:// outright, module imports do not
+import LAYOUT from './assets/layout.json' with { type: 'json' };
+import BEATS from './beats.json' with { type: 'json' };
+
+// ------------------------------------------------------------------ setup
+
+const params = new URLSearchParams(location.search);
+const W = Number(params.get('w') || 1080);
+const H = Number(params.get('h') || 1920);
+const canvas = document.getElementById('c');
+canvas.width = W; canvas.height = H;
+const ctx = canvas.getContext('2d');
+
+const LANDSCAPE = W / H > 1.3;
+const SQUARE = !LANDSCAPE && H / W < 1.3;
+// The phone captures in every format. In 16:9 the product column is nearly
+// square, and the desktop captures squeezed into it were unreadable — a
+// 2560 px wide screen in a ~900 px column (16:9 contact sheet, round 1).
+const SET = 'm';
+const u = Math.min(W, H) / 1080;
+const PAD = 72 * u;
+
+const C = {
+  bg: '#03050a', card: '#0b1120', text: '#dde6f5', muted: '#8a9dbf',
+  cyan: '#00d4ff', green: '#00ff9d', amber: '#ffb340', white: '#ffffff',
+};
+const DISPLAY = '"Bebas Neue"';
+const UI_FONT = 'Outfit';
+
+// Layout: where headlines go and where the product is shown.
+const TEXT = LANDSCAPE
+  ? { x: PAD * 1.3, y: H * 0.22, w: W * 0.40, h: H * 0.56 }
+  : SQUARE
+    ? { x: PAD, y: H * 0.075, w: W - 2 * PAD, h: H * 0.24 }
+    : { x: PAD, y: H * 0.07, w: W - 2 * PAD, h: H * 0.25 };
+const UI = LANDSCAPE
+  ? { x: W * 0.49, y: H * 0.07, w: W * 0.51 - PAD, h: H * 0.86 }
+  : SQUARE
+    ? { x: PAD, y: H * 0.335, w: W - 2 * PAD, h: H * 0.62 }
+    : { x: PAD, y: H * 0.335, w: W - 2 * PAD, h: H * 0.625 };
+
+// ----------------------------------------------------------------- assets
+
+// Beat grid from the measured beats (Step 8): a least-squares line through the
+// detected beats gives phase and period, so every cut lands on the music.
+const GRID = (() => {
+  const p0 = 60 / BEATS.bpm;
+  const pts = BEATS.beats.map((b) => [Math.round(b / p0), b]);
+  const n = pts.length;
+  const sx = pts.reduce((s, [x]) => s + x, 0), sy = pts.reduce((s, [, y]) => s + y, 0);
+  const sxx = pts.reduce((s, [x]) => s + x * x, 0), sxy = pts.reduce((s, [x, y]) => s + x * y, 0);
+  const period = (n * sxy - sx * sy) / (n * sxx - sx * sx);
+  const offset = (sy - period * sx) / n;
+  return { offset, period };
+})();
+const B = (beat) => GRID.offset + beat * GRID.period;
+
+const IMG = {};
+// One at a time: decoding all eleven 1720×4400 captures in parallel exceeded
+// what headless Chromium would decode at once and failed outright.
+for (const key of Object.keys(LAYOUT).filter((k) => k.startsWith(SET + '-'))) {
+  const img = new Image();
+  img.src = `assets/${key}.png`;
+  try {
+    await img.decode();
+    // keep the decoded pixels in a bitmap so drawImage never re-decodes
+    IMG[key.slice(2)] = await createImageBitmap(img);
+  } catch (err) {
+    throw new Error(`could not decode assets/${key}.png: ${err.message}`);
+  }
+}
+
+await Promise.all([
+  new FontFace('Bebas Neue', 'url(fonts/BebasNeue.woff2)').load(),
+  new FontFace('Outfit', 'url(fonts/Outfit.woff2)', { weight: '100 900' }).load(),
+].map(async (p) => document.fonts.add(await p)));
+
+// ----------------------------------------------------- layout lookups
+
+const L = (shot) => LAYOUT[`${SET}-${shot}`];
+
+/** First element of `kind` in a capture whose text matches. Returns [x, y, w, h]. */
+function el(shot, kind, match, index = 0) {
+  const items = L(shot)[kind].filter((i) => !match || match.test(i.text));
+  if (!items[index]) throw new Error(`no ${kind} ${match} in ${shot}`);
+  return items[index].box;
+}
+const grow = ([x, y, w, h], gx, gy = gx) => [x - gx, y - gy, w + 2 * gx, h + 2 * gy];
+const union = (...rs) => {
+  const x0 = Math.min(...rs.map((r) => r[0])), y0 = Math.min(...rs.map((r) => r[1]));
+  const x1 = Math.max(...rs.map((r) => r[0] + r[2])), y1 = Math.max(...rs.map((r) => r[1] + r[3]));
+  return [x0, y0, x1 - x0, y1 - y0];
+};
+const center = ([x, y, w, h]) => [x + w / 2, y + h / 2];
+
+/**
+ * The part of a row that matters for an action: from the row's left edge (or
+ * `from` of the way across) to just past the button. Framing this instead of
+ * the whole row is what makes the UI readable at phone size — a full row fit to
+ * the card always lands at the same small text size.
+ */
+const actionArea = (row, button, from = 0) => {
+  const x0 = row[0] + row[2] * from;
+  return [x0, row[1], button[0] + button[2] + 48 - x0, row[3]];
+};
+
+// --------------------------------------------------------- motion presets
+
+// Type: no overshoot. UI: a hair of overshoot. Camera: heavy and calm.
+// Round 1 caught headlines still half-risen 0.2 s after their beat: type was
+// too soft. k=420/d=41 is critically damped and lands in ~0.2 s.
+const TYPE = [600, 49], POP = [300, 26], CAM = [110, 21], SNAP = [480, 36];
+const sp = (t, beat, [k, d] = POP) => spring(t - B(beat), k, d);
+
+// --------------------------------------------------------------- drawing
+
+function rrect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+function background(t) {
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, W, H);
+  // the website's grid, drifting slowly so the frame is never dead
+  const step = 90 * u, drift = (t * 14 * u) % step;
+  ctx.strokeStyle = 'rgba(0,212,255,0.045)';
+  ctx.lineWidth = Math.max(1, u);
+  ctx.beginPath();
+  for (let x = -step + drift; x < W + step; x += step) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = -step + drift * 0.6; y < H + step; y += step) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+}
+
+function font(size, family = DISPLAY, weight = '') {
+  return `${weight} ${size}px ${family}`.trim();
+}
+
+/** Largest size up to `max` at which every line fits `width`. */
+function fitSize(lines, width, max, family = DISPLAY, weight = '') {
+  let size = max;
+  ctx.font = font(size, family, weight);
+  const widest = Math.max(...lines.map((l) => ctx.measureText(l.text ?? l).width));
+  if (widest > width) size = Math.floor(max * width / widest);
+  return size;
+}
+
+/**
+ * A stack of headline lines that rise into place out of a mask, one after the
+ * other. lines: [{ text, color }], `inBeat` the beat they start on, `outBeat`
+ * optional beat they leave upwards on.
+ */
+function headline(t, lines, { x, y, width, max, inBeat, outBeat, stagger = 0.06, align = 'left', height = Infinity }) {
+  // fit the height too: in 1:1 two lines fitted only to width ran down behind
+  // the product card and the second line was cut in half
+  const size = Math.min(fitSize(lines, width, max), height / (lines.length * 0.94 + 0.08));
+  const lh = size * 0.94;
+  ctx.font = font(size);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = align;
+  lines.forEach((line, i) => {
+    const pIn = spring(t - B(inBeat) - i * stagger, ...TYPE);
+    if (pIn <= 0) return;
+    const pOut = outBeat === undefined ? 0 : spring(t - B(outBeat) - i * 0.05, ...SNAP);
+    const base = y + (i + 1) * lh;
+    ctx.save();
+    // mask: the line's own slot, so it rises out of nothing instead of fading
+    ctx.beginPath();
+    ctx.rect(x - size, base - lh * 1.02, width + 2 * size, lh * 1.12);
+    ctx.clip();
+    ctx.fillStyle = line.color ?? C.white;
+    ctx.fillText(line.text, align === 'left' ? x : x + width, base + (1 - pIn) * lh - pOut * lh * 1.1);
+    ctx.restore();
+  });
+  return y + lines.length * lh;
+}
+
+function subline(t, text, { x, y, size = 44 * u, beat, color = C.muted, weight = 400 }) {
+  const p = spring(t - B(beat), ...TYPE);
+  if (p <= 0) return;
+  ctx.save();
+  ctx.font = font(size, UI_FONT, weight);
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  ctx.beginPath();
+  ctx.rect(x - 10, y - 4, W, size * 1.5);
+  ctx.clip();
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y + (1 - p) * size * 1.3);
+  ctx.restore();
+}
+
+// ------------------------------------------------------- camera on the UI
+
+/**
+ * Fit a screenshot rectangle into the UI box. Never above 1.0: the captures
+ * are 2-3x density, so 1.0 is already crisp — scaling text up past that is
+ * exactly the blur the guide warns about.
+ */
+function frameRect(rect, maxScale = 1) {
+  const [cx, cy] = center(rect);
+  const s = Math.min(UI.w / rect[2], UI.h / rect[3], maxScale);
+  return { cx, cy, s };
+}
+
+/** Camera from keyframes [[beat, rect], ...], every axis its own spring track. */
+function camera(t, keys, maxScale = 1) {
+  const frames = keys.map(([beat, rect]) => [B(beat), frameRect(rect, maxScale)]);
+  const pick = (axis) => frames.map(([time, f]) => [time, f[axis]]);
+  return {
+    cx: track(t, pick('cx'), ...CAM),
+    cy: track(t, pick('cy'), ...CAM),
+    s: track(t, pick('s'), ...CAM),
+  };
+}
+
+const toScreen = (cam, [x, y]) => [UI.x + UI.w / 2 + (x - cam.cx) * cam.s, UI.y + UI.h / 2 + (y - cam.cy) * cam.s];
+
+function uiCard(fn) {
+  // the product sits on a card; the card is the only frame in the film
+  ctx.save();
+  rrect(UI.x, UI.y, UI.w, UI.h, 34 * u);
+  ctx.fillStyle = '#060a12';
+  ctx.fill();
+  ctx.clip();
+  fn();
+  ctx.restore();
+  rrect(UI.x, UI.y, UI.w, UI.h, 34 * u);
+  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+  ctx.lineWidth = 2 * u;
+  ctx.stroke();
+}
+
+/** Draw a whole capture, or one rectangle of it, under the camera. */
+function shot(cam, key, rect = null, { dy = 0, scale = 1, alpha = 1 } = {}) {
+  const img = IMG[key];
+  let [sx, sy, sw, sh] = rect ?? [0, 0, img.width, img.height];
+  if (!rect && scale === 1 && dy === 0) {
+    // Only resample the part of the capture the card can show. Scaling the
+    // whole 1720×4400 phone capture every frame made each frame cost seconds.
+    const vx0 = cam.cx - (UI.w / 2) / cam.s, vy0 = cam.cy - (UI.h / 2) / cam.s;
+    const vx1 = vx0 + UI.w / cam.s, vy1 = vy0 + UI.h / cam.s;
+    const x0 = Math.max(0, Math.floor(vx0) - 2), y0 = Math.max(0, Math.floor(vy0) - 2);
+    const x1 = Math.min(img.width, Math.ceil(vx1) + 2), y1 = Math.min(img.height, Math.ceil(vy1) + 2);
+    if (x1 <= x0 || y1 <= y0) return;
+    [sx, sy, sw, sh] = [x0, y0, x1 - x0, y1 - y0];
+  }
+  const [x, y] = toScreen(cam, [sx, sy]);
+  const w = sw * cam.s, h = sh * cam.s;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (scale !== 1) {
+    const cx = x + w / 2, cy = y + h / 2 + dy;
+    ctx.translate(cx, cy); ctx.scale(scale, scale); ctx.translate(-cx, -cy);
+  }
+  if (rect) { rrect(x, y + dy, w, h, 22 * u); ctx.clip(); }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y + dy, w, h);
+  ctx.restore();
+}
+
+/**
+ * A real modal opening: the capture's own dimmed backdrop everywhere except
+ * where the modal sits, and the modal itself springing up into that hole.
+ * Round 3 drew the whole capture as the backdrop, so the modal showed twice —
+ * once static underneath, once springing on top.
+ */
+function modalPop(t, cam, key, modal, beat, backdropAlpha = null) {
+  const p = sp(t, beat, POP);
+  if (p <= 0) return;
+  const [mx, my] = toScreen(cam, [modal[0], modal[1]]);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(UI.x, UI.y, UI.w, UI.h);
+  ctx.rect(mx, my, modal[2] * cam.s, modal[3] * cam.s);
+  ctx.clip('evenodd');
+  ctx.globalAlpha = backdropAlpha ?? Math.min(1, p * 1.4);
+  shot(cam, key);
+  ctx.restore();
+  shot(cam, key, modal, { dy: (1 - p) * 160 * u, scale: 0.92 + 0.08 * p });
+}
+
+/** A UI piece that springs into place: rises, settles, with a hair of overshoot. */
+function piece(t, cam, key, rect, beat) {
+  const p = sp(t, beat);
+  if (p <= 0) return;
+  shot(cam, key, rect, { dy: (1 - p) * 140 * u, scale: 0.94 + 0.06 * p });
+}
+
+/**
+ * Toast from a capture, springing up into the bottom-right of the card. In the
+ * app the toast is fixed to the viewport, not the page, so it is anchored to
+ * the card rather than placed under the camera — round 1 had all three toasts
+ * far below the framed area, where nobody could see them.
+ */
+function toast(t, key, beat) {
+  const p = sp(t, beat, POP);
+  if (p <= 0) return;
+  const rect = el(key, 'toast');
+  const s = Math.min(1, (UI.w - 56 * u) / rect[2]);
+  const w = rect[2] * s, h = rect[3] * s;
+  const x = UI.x + UI.w - 28 * u - w;
+  const y = UI.y + UI.h - 34 * u - h + (1 - p) * 260 * u;
+  ctx.save();
+  const cx = x + w / 2, cy = y + h / 2, k = 0.9 + 0.1 * p;
+  ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy);
+  rrect(x, y, w, h, 18 * u);
+  ctx.clip();
+  ctx.drawImage(IMG[key], rect[0], rect[1], rect[2], rect[3], x, y, w, h);
+  ctx.restore();
+}
+
+/** An outline that draws itself around a rectangle and then stays. */
+function outline(t, cam, rect, beat, color = C.cyan) {
+  const p = clamp(spring(t - B(beat), 160, 24));
+  if (p <= 0) return;
+  const [x, y] = toScreen(cam, [rect[0], rect[1]]);
+  const w = rect[2] * cam.s, h = rect[3] * cam.s, perim = 2 * (w + h);
+  ctx.save();
+  rrect(x - 4 * u, y - 4 * u, w + 8 * u, h + 8 * u, 20 * u);
+  ctx.setLineDash([perim * p, perim]);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4 * u;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ cursor
+
+function cursor(t, cam, keys, clicks) {
+  const pts = keys.map(([beat, pt]) => [B(beat), pt]);
+  const x = track(t, pts.map(([time, p]) => [time, p[0]]), 140, 22);
+  const y = track(t, pts.map(([time, p]) => [time, p[1]]), 140, 22);
+  const [px, py] = toScreen(cam, [x, y]);
+  if (t < pts[0][0]) return;
+
+  let press = 1;
+  for (const c of clicks) {
+    const dt = t - B(c);
+    if (dt >= 0 && dt < 0.6) {
+      press = Math.min(press, 1 - 0.18 * Math.sin(Math.PI * clamp(dt / 0.14)) * (dt < 0.14 ? 1 : 0));
+      // a ring that opens out from the click point and thins away
+      const r = (20 + 90 * (1 - Math.exp(-dt * 9))) * u;
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0,212,255,${Math.max(0, 0.9 - dt * 1.6)})`;
+      ctx.lineWidth = 5 * u;
+      ctx.stroke();
+    }
+  }
+
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.scale(press * 1.35 * u, press * 1.35 * u);
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(0, 46); ctx.lineTo(12, 35); ctx.lineTo(21, 54);
+  ctx.lineTo(29, 50); ctx.lineTo(20, 32); ctx.lineTo(36, 32); ctx.closePath();
+  ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#03050a';
+  ctx.lineWidth = 3;
+  ctx.lineJoin = 'round';
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+/** Outline that tightens around a button as it is pressed. */
+function pressRing(t, cam, rect, beat) {
+  const dt = t - B(beat);
+  if (dt < 0 || dt > 0.5) return;
+  const [x, y] = toScreen(cam, [rect[0], rect[1]]);
+  const g = (1 - spring(dt, 300, 26)) * 18 * u;
+  rrect(x - g - 6 * u, y - g - 6 * u, rect[2] * cam.s + 2 * g + 12 * u, rect[3] * cam.s + 2 * g + 12 * u, 18 * u);
+  ctx.strokeStyle = `rgba(0,212,255,${0.9 * (1 - dt / 0.5)})`;
+  ctx.lineWidth = 4 * u;
+  ctx.stroke();
+}
+
+// --------------------------------------------------------------- the route
+
+function bezier(a, c, b, p) {
+  const q = 1 - p;
+  return [q * q * a[0] + 2 * q * p * c[0] + p * p * b[0], q * q * a[1] + 2 * q * p * c[1] + p * p * b[1]];
+}
+
+function routePoints(box = LANDSCAPE
+  ? { x: W * 0.47, y: H * 0.1, w: W * 0.46, h: H * 0.8 }
+  : { x: PAD, y: H * 0.1, w: W - 2 * PAD, h: H * 0.78 }) {
+  const A = [box.x + box.w * 0.22, box.y + box.h * 0.12];   // Hamburg, north
+  const Bm = [box.x + box.w * 0.74, box.y + box.h * 0.88];  // München, south
+  const mid = [(A[0] + Bm[0]) / 2, (A[1] + Bm[1]) / 2];
+  const dx = Bm[0] - A[0], dy = Bm[1] - A[1], len = Math.hypot(dx, dy);
+  const nx = -dy / len, ny = dx / len;
+  const out = [mid[0] + nx * len * 0.16, mid[1] + ny * len * 0.16];
+  const back = [mid[0] - nx * len * 0.16, mid[1] - ny * len * 0.16];
+  return { A, B: Bm, out, back };
+}
+
+function strokePath(a, c, b, from, to, { color, width, dash = null, alpha = 1 }) {
+  if (to <= from) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.beginPath();
+  const steps = 80;
+  for (let i = 0; i <= steps; i++) {
+    const p = from + (to - from) * (i / steps);
+    const [x, y] = bezier(a, c, b, p);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  if (dash) ctx.setLineDash(dash);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function node(t, [x, y], beat, label, side) {
+  const p = sp(t, beat, POP);
+  if (p <= 0) return;
+  ctx.beginPath();
+  ctx.arc(x, y, 18 * u * p, 0, Math.PI * 2);
+  ctx.fillStyle = C.white;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x, y, 34 * u * p, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 3 * u;
+  ctx.stroke();
+  const size = 96 * u;
+  ctx.font = font(size);
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = side === 'right' ? 'left' : 'right';
+  ctx.save();
+  const tx = side === 'right' ? x + 58 * u : x - 58 * u;
+  ctx.beginPath();
+  ctx.rect(side === 'right' ? tx : tx - 700 * u, y - size * 0.62, 700 * u, size * 1.24);
+  ctx.clip();
+  ctx.fillStyle = C.white;
+  ctx.fillText(label, tx, y + (1 - spring(t - B(beat) - 0.06, ...TYPE)) * size);
+  ctx.restore();
+}
+
+function pill([x, y], text, color, filled, scale = 1) {
+  const size = 34 * u;
+  ctx.font = font(size, UI_FONT, 700);
+  const w = ctx.measureText(text).width + 44 * u, h = 62 * u;
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(scale, scale);
+  rrect(-w / 2, -h / 2, w, h, h / 2);
+  if (filled) { ctx.fillStyle = color; ctx.fill(); }
+  else { ctx.fillStyle = C.bg; ctx.fill(); ctx.strokeStyle = color; ctx.lineWidth = 4 * u; ctx.stroke(); }
+  ctx.fillStyle = filled ? C.bg : color;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 0, 2 * u);
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ shots
+
+const SCENES = {
+  hook(t) {
+    // Huge kinetic type that fills the frame (round 1 used a fifth of it).
+    // Vertical: one word per line. Square and 16:9: two words per line.
+    const width = LANDSCAPE ? W * 0.8 : W - 2 * PAD;
+    const words = (LANDSCAPE || SQUARE)
+      ? [['VOLL HIN.', C.white, 0], ['LEER ZURÜCK.', C.amber, 2]]
+      : [['VOLL', C.white, 0], ['HIN.', C.white, 0.5], ['LEER', C.amber, 2], ['ZURÜCK.', C.amber, 2.5]];
+    const size = fitSize(words.map((w) => w[0]), width, 520 * u);
+    const lh = size * 0.94;
+    const top = (H - lh * words.length) / 2 - lh * 0.12;
+    words.forEach(([text, color, beat], i) => {
+      headline(t, [{ text, color }], { x: PAD, y: top + i * lh, width, max: size, inBeat: beat, outBeat: 3.5 });
+    });
+
+    // a solid stroke for the full leg, a dashed one for the empty leg — drawn
+    // only once they start, so no stray round cap sits there beforehand
+    const fullLine = top + (words.length / 2) * lh + 18 * u;
+    const emptyLine = top + words.length * lh + 18 * u;
+    const out = sp(t, 3.5, SNAP);
+    const lines = [[0.6, fullLine, C.cyan, null], [2.6, emptyLine, C.amber, [30 * u, 24 * u]]];
+    for (const [beat, y, color, dash] of lines) {
+      const p = clamp(spring(t - B(beat), ...CAM));
+      if (p < 0.01) continue;
+      ctx.save();
+      ctx.globalAlpha = 1 - out;
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 12 * u;
+      ctx.strokeStyle = color;
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(PAD + width * p, y); ctx.stroke();
+      ctx.restore();
+    }
+  },
+
+  route(t) {
+    const { A, B: M, out, back } = routePoints();
+    const pOut = clamp(track(t, [[0, 0], [B(4.5), 1]], 60, 16));
+    const pBack = clamp(track(t, [[0, 0], [B(6.5), 1]], 60, 16));
+    strokePath(A, out, M, 0, pOut, { color: C.cyan, width: 12 * u });
+    // the way back is drawn from München, so sample the curve in reverse
+    strokePath(M, back, A, 0, pBack, { color: C.amber, width: 10 * u, dash: [26 * u, 22 * u] });
+    node(t, A, 4, 'HAMBURG', 'right');
+    node(t, M, 5, 'MÜNCHEN', 'left');
+    // the full truck is unloaded into the München node on arrival (the tick),
+    // instead of parking on top of the city name as it did in round 1
+    const unload = 1 - clamp(spring(t - B(6), ...SNAP));
+    if (pOut > 0.02 && unload > 0.01) pill(bezier(A, out, M, pOut), 'VOLL', C.cyan, true, sp(t, 4.5, POP) * unload);
+    if (pBack > 0.02) pill(bezier(M, back, A, pBack), 'LEER', C.amber, false, sp(t, 6.5, POP));
+  },
+
+  product(t) {
+    // The wordmark slams in big in the middle of the frame, then springs up to
+    // become the header as the product arrives on the next beat. Round 2 had it
+    // small at the top with an empty frame below for a whole beat.
+    const small = fitSize(['NEUROROUTE'], TEXT.w - 58 * u, 190 * u);
+    const big = fitSize(['NEUROROUTE'], (LANDSCAPE ? W * 0.8 : W - 2 * PAD) - 70 * u, 400 * u);
+    const MOVE = [260, 32];
+    const size = track(t, [[0, big], [B(9), small]], ...MOVE);
+    const top = track(t, [[0, (H - big) / 2 - big * 0.2], [B(9), TEXT.y]], ...MOVE);
+    const pIn = spring(t - B(8), ...TYPE);
+    const dot = size * 0.105;
+    const base = top + size * 0.94;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, base - size * 1.02, W, size * 1.12);
+    ctx.clip();
+    ctx.font = font(size);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = C.white;
+    ctx.fillText('NEUROROUTE', PAD + dot * 2.9, base + (1 - pIn) * size);
+    ctx.restore();
+    // the brand dot, as on the website
+    ctx.beginPath();
+    ctx.arc(PAD + dot, base - size * 0.36, dot * sp(t, 8.1, POP), 0, Math.PI * 2);
+    ctx.fillStyle = C.cyan;
+    ctx.fill();
+    // hangs off the wordmark's current baseline, so it rides up with it
+    // instead of being written across it mid-move (round 3, frame 9)
+    subline(t, 'erkennt Leerfahrten. Automatisch.', { x: PAD, y: base + 24 * u, beat: 9.3, size: (LANDSCAPE ? 40 : 52) * u, color: C.text });
+
+    const key = 'capacity';
+    const stats = el(key, 'stats', null, 0);
+    const statsAll = union(...L(key).stats.map((s) => s.box));
+    const header = [0, 0, IMG[key].width, stats[1] - 10];
+    const planned = el(key, 'panels', /Geplante Transporte/);
+    const banner = el(key, 'panels', /Leerfahrt erkannt/);
+    const cam = camera(t, [
+      [8, grow(union(header, statsAll), 20)],
+      [10.2, grow(union(planned, banner), 30)],
+    ]);
+    // the card itself arrives with the first piece, so there is never an
+    // empty card on screen (round 1, frame 8)
+    const pc = sp(t, 9, POP);
+    if (pc <= 0) return;
+    ctx.save();
+    const ccx = UI.x + UI.w / 2, ccy = UI.y + UI.h / 2, k = 0.94 + 0.06 * pc;
+    ctx.translate(ccx, ccy + (1 - pc) * 120 * u); ctx.scale(k, k); ctx.translate(-ccx, -ccy);
+    uiCard(() => {
+      piece(t, cam, key, union(header, statsAll), 9);
+      piece(t, cam, key, grow(planned, 4), 10);
+      piece(t, cam, key, grow(banner, 4), 11);
+    });
+    ctx.restore();
+  },
+
+  detect(t) {
+    headline(t, [{ text: 'LEERFAHRT', color: C.amber }, { text: 'ERKANNT.', color: C.white }],
+      { x: TEXT.x, y: TEXT.y, width: TEXT.w, height: TEXT.h, max: 200 * u, inBeat: 12 });
+
+    const key = 'capacity';
+    const banner = el(key, 'panels', /Leerfahrt erkannt/);
+    const row = el(key, 'rows', /Hamburg → München/);
+    const button = el(key, 'buttons', /Rückfahrt anbieten/);
+    const modalKey = 'modal-filled';
+    const modal = el(modalKey, 'modal');
+    const publish = el(modalKey, 'buttons', /Auf Marktplatz/);
+
+    const cam = camera(t, [
+      [12, grow(union(el(key, 'panels', /Geplante Transporte/), banner), 30)],
+      [12, grow(banner, 40)],
+      // tight on the leg and its button, so it reads at phone size
+      [13, grow(actionArea(row, button), 30, 40)],
+      [14.6, grow(modal, 30)],
+      // then onto price, discount and the publish button
+      [15.1, grow(union(el(modalKey, 'inputs', null, 1), publish), 40, 50)],
+    ]);
+    uiCard(() => {
+      shot(cam, key);
+      pressRing(t, cam, button, 14);
+      modalPop(t, cam, modalKey, modal, 14.5);
+      const [bx, by] = center(button), [px, py] = center(publish);
+      cursor(t, cam, [
+        [12.8, [bx + 260, by + 700]],
+        [13.2, [bx + 10, by + 6]],
+        [15, [px + 120, py + 10]],
+      ], [14, 16]);
+    });
+  },
+
+  market(t) {
+    // headline 1 while it is published, headline 2 once someone else books it
+    headline(t, [{ text: '1 KLICK.', color: C.white }, { text: 'AUF DEN MARKTPLATZ.', color: C.white }],
+      { x: TEXT.x, y: TEXT.y, width: TEXT.w, height: TEXT.h, max: 200 * u, inBeat: 16.5, outBeat: 19.6 });
+    headline(t, [{ text: 'ANDERE FIRMEN', color: C.white }, { text: 'BUCHEN SIE.', color: C.green }],
+      { x: TEXT.x, y: TEXT.y, width: TEXT.w, height: TEXT.h, max: 200 * u, inBeat: 20 });
+
+    if (t < B(16.5)) {
+      // the click on "veröffentlichen" still happens in the modal
+      const modalKey = 'modal-filled';
+      const modal = el(modalKey, 'modal');
+      const publish = el(modalKey, 'buttons', /Auf Marktplatz/);
+      // same framing the previous shot ended on, so the cut is invisible
+      const cam = camera(t, [[14.6, grow(modal, 30)], [15.1, grow(union(el(modalKey, 'inputs', null, 1), publish), 40, 50)]]);
+      const [px, py] = center(publish);
+      uiCard(() => {
+        shot(cam, modalKey);
+        pressRing(t, cam, publish, 16);
+        cursor(t, cam, [[15, [px + 120, py + 10]]], [16]);
+      });
+      return;
+    }
+
+    if (t < B(20)) {
+      const key = 'published-clean';
+      const mine = el(key, 'panels', /Meine Angebote/);
+      const row = el(key, 'rows', /München → Hamburg/);
+      const cam = camera(t, [
+        [16.5, grow(mine, 30, 60)],
+        // in on the listing, discount and price — the "−30 %" hit. Starts
+        // just after the row icon; round 3 started mid-row and cut words in half.
+        [18, grow([row[0] + row[2] * 0.11, row[1], row[2] * 0.89, row[3]], 24, 40)],
+      ]);
+      uiCard(() => {
+        shot(cam, key);
+        // the new listing, outlined as it lands
+        outline(t, cam, row, 17);
+        toast(t, 'published', 17);
+      });
+      return;
+    }
+
+    const key = 'market';
+    const listings = el(key, 'panels', /Verfügbare Kapazitäten/);
+    const row = el(key, 'rows', /München → Hamburg/);
+    const book = el(key, 'buttons', /Buchen/);
+    const cam = camera(t, [
+      [20, grow(union(el(key, 'panels', /Angebote verfügbar/), row), 30)],
+      [21.2, grow(actionArea(row, book), 30, 40)],
+    ]);
+    const [bx, by] = center(book);
+    uiCard(() => {
+      shot(cam, key);
+      pressRing(t, cam, book, 22);
+      toast(t, 'booked', 22.5);
+      cursor(t, cam, [[20.6, [bx + 300, by + 520]], [21, [bx + 8, by + 6]]], [22]);
+    });
+  },
+
+  partners(t) {
+    headline(t, [{ text: 'ERST DEIN', color: C.white }, { text: 'NETZWERK.', color: C.cyan }],
+      { x: TEXT.x, y: TEXT.y, width: TEXT.w, height: TEXT.h, max: 200 * u, inBeat: 24 });
+
+    if (t < B(25)) {
+      const key = 'partners';
+      const panel = el(key, 'panels', /Bevorzugte Partner/);
+      const main = L(key).main[0].box;
+      // include the page title above the panel instead of slicing through it
+      const cam = camera(t, [[24, grow(union(panel, [main[0], main[1] + 60, main[2], 10]), 30)]]);
+      uiCard(() => {
+        shot(cam, key);
+        // the two priority partners get drawn around, one on each eighth
+        L(key).rows.filter((r) => /PRIORITÄT/.test(r.text))
+          .forEach((r, i) => outline(t, cam, r.box, 24.15 + i * 0.5));
+      });
+      return;
+    }
+
+    const key = 'offers';
+    const modal = el(key, 'modal');
+    const best = el(key, 'offers', /INTERNER PARTNER/);
+    const accept = el(key, 'buttons', /Annehmen/);
+    const cam = camera(t, [[25, grow(modal, 30)], [25.6, grow(best, 30, 40)]]);
+    const [ax, ay] = center(accept);
+    uiCard(() => {
+      if (t < B(26.5)) {
+        // a hard cut onto the offers, so the backdrop is simply there
+        modalPop(t, cam, key, modal, 25, 1);
+        pressRing(t, cam, accept, 26);
+      } else {
+        // after "Annehmen": the modal is gone, the order is placed
+        const done = 'accepted-clean';
+        const cam2 = camera(t, [[26.5, grow(el(done, 'rows', /Rotterdam → Wien/), 40, 200)]]);
+        shot(cam2, done);
+        outline(t, cam2, el(done, 'rows', /Rotterdam → Wien/), 26.6, C.green);
+        toast(t, 'accepted', 26.5);
+        return;
+      }
+      cursor(t, cam, [[25.3, [ax + 260, ay + 420]], [25.6, [ax + 8, ay + 6]]], [26]);
+    });
+  },
+
+  number(t) {
+    // the number as big as the frame allows, the whole block centred vertically
+    // (round 1 left the lower half empty)
+    const x = PAD;
+    const width = LANDSCAPE ? W * 0.62 : W - 2 * PAD;
+    const size = fitSize(['24 H'], width, (LANDSCAPE ? 640 : 900) * u);
+    const blockH = size * 0.94 + 420 * u;
+    const y = (H - blockH) / 2 - size * 0.1;
+    headline(t, [{ text: '24 H', color: C.cyan }], { x, y, width, max: size, inBeat: 28 });
+    const base = y + size * 0.94;
+    subline(t, 'nur für deine Partner.', { x, y: base + 40 * u, beat: 28.5, size: 64 * u, color: C.white, weight: 600 });
+    subline(t, 'Danach für alle.', { x, y: base + 130 * u, beat: 30, size: 64 * u, color: C.muted, weight: 400 });
+
+    // the window as a bar: partners first, then the open market
+    const barY = base + 260 * u, barW = width, barH = 22 * u;
+    const pa = clamp(track(t, [[0, 0], [B(28.4), 0.62]], 80, 18));
+    const pb = clamp(track(t, [[0, 0], [B(30), 0.38]], 120, 22), 0, 0.38);
+    rrect(x, barY, barW, barH, barH / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fill();
+    if (pa > 0) { rrect(x, barY, barW * pa, barH, barH / 2); ctx.fillStyle = C.cyan; ctx.fill(); }
+    if (pb > 0) { rrect(x + barW * 0.62 + 8 * u, barY, Math.max(0, barW * pb - 8 * u), barH, barH / 2); ctx.fillStyle = C.white; ctx.fill(); }
+    subline(t, 'PARTNER', { x, y: barY + 44 * u, beat: 28.6, size: 32 * u, color: C.cyan, weight: 700 });
+    subline(t, 'ALLE', { x: x + barW * 0.62 + 8 * u, y: barY + 44 * u, beat: 30.1, size: 32 * u, color: C.white, weight: 700 });
+  },
+
+  logo(t) {
+    // payoff: the empty way back from the opening, now carrying a load. The
+    // route has its own zone above the lockup — round 1 ran it straight
+    // through the wordmark.
+    const zone = LANDSCAPE
+      ? { x: W * 0.56, y: H * 0.12, w: W * 0.36, h: H * 0.76 }
+      : { x: PAD, y: H * 0.06, w: W - 2 * PAD, h: H * (SQUARE ? 0.34 : 0.4) };
+    const { A, B: M, out, back } = routePoints(zone);
+    // Round 2 drew this too faint to register. Now the same route as the
+    // opening, and the way back — amber and empty then — carries a green
+    // "VOLL": the empty run, sold.
+    const g = clamp(track(t, [[0, 0], [B(32.3), 1]], 34, 12));
+    strokePath(A, out, M, 0, 1, { color: C.cyan, width: 10 * u, alpha: 0.5 });
+    strokePath(M, back, A, 0, g, { color: C.green, width: 10 * u });
+    // labels above and below the nodes, clear of both legs — beside the node
+    // they sat exactly where the returning pill passes (round 3, frames 32-34)
+    for (const [pt, label, dy] of [[A, 'HAMBURG', -54], [M, 'MÜNCHEN', 58]]) {
+      const p = sp(t, 32, POP);
+      ctx.beginPath(); ctx.arc(pt[0], pt[1], 14 * u * p, 0, Math.PI * 2);
+      ctx.fillStyle = C.white; ctx.fill();
+      ctx.font = font(64 * u);
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = `rgba(221,230,245,${0.75 * p})`;
+      ctx.fillText(label, pt[0], pt[1] + dy * u);
+    }
+    // the pill grows out of München and is absorbed into Hamburg
+    const ends = clamp(Math.min(g / 0.1, (1 - g) / 0.1));
+    if (ends > 0.01) pill(bezier(M, back, A, g), 'VOLL', C.green, true, sp(t, 32.2, POP) * ends);
+
+    const width = LANDSCAPE ? W * 0.44 : W - 2 * PAD - 70 * u;
+    const top = LANDSCAPE ? H * 0.3 : SQUARE ? H * 0.44 : H * 0.52;
+    const size = fitSize(['NEUROROUTE'], width, 230 * u);
+    const end = headline(t, [{ text: 'NEUROROUTE', color: C.white }], { x: PAD + 70 * u, y: top, width, max: size, inBeat: 32 });
+    const pd = sp(t, 32, POP);
+    ctx.beginPath();
+    ctx.arc(PAD + 24 * u, top + size * 0.94 - size * 0.36, 24 * u * pd, 0, Math.PI * 2);
+    ctx.fillStyle = C.cyan; ctx.fill();
+
+    subline(t, 'Plan. Connect. Move the World.', { x: PAD, y: end + 30 * u, beat: 34, size: 56 * u, color: C.text, weight: 500 });
+
+    // call to action
+    const p = sp(t, 36, POP);
+    if (p > 0) {
+      const cy = end + 170 * u;
+      const label = 'Demo anfragen';
+      ctx.font = font(44 * u, UI_FONT, 700);
+      const bw = ctx.measureText(label).width + 80 * u, bh = 104 * u;
+      ctx.save();
+      ctx.translate(PAD, cy + (1 - p) * 60 * u);
+      ctx.scale(0.9 + 0.1 * p, 0.9 + 0.1 * p);
+      rrect(0, 0, bw, bh, 12 * u);
+      ctx.fillStyle = C.cyan; ctx.fill();
+      ctx.fillStyle = C.bg; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+      ctx.fillText(label, 40 * u, bh / 2 + 2 * u);
+      ctx.restore();
+      subline(t, 'neuroroute.com', { x: PAD + bw + 36 * u, y: cy + 28 * u, beat: 36.3, size: 46 * u, color: C.white, weight: 600 });
+    }
+  },
+};
+
+// -------------------------------------------------------------------- seek
+
+window.seek = (t) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  background(t);
+  const beat = (t - GRID.offset) / GRID.period;
+  const current = SHOTS.find((s) => beat >= s.from && beat < s.to) ?? SHOTS[SHOTS.length - 1];
+  SCENES[current.id](t);
+};
+
+window.GRID = GRID;
+window.seek(0);
+window.__resolveReady();
+</script>
+</body>
+</html>

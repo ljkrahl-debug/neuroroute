@@ -1,0 +1,1573 @@
+{
+ "m-capacity": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     4186
+    ],
+    "text": "Kapazitätsplanung Zukünftige Transporte planen — Wochen und Monate im Voraus Geplante Tran"
+   }
+  ],
+  "stats": [
+   {
+    "box": [
+     72,
+     853,
+     760,
+     395
+    ],
+    "text": "Geplante Transporte3"
+   },
+   {
+    "box": [
+     888,
+     853,
+     760,
+     395
+    ],
+    "text": "Wiederkehrend2"
+   },
+   {
+    "box": [
+     72,
+     1304,
+     760,
+     491
+    ],
+    "text": "Mögl. Leerfahrten2erkannt"
+   },
+   {
+    "box": [
+     888,
+     1304,
+     760,
+     491
+    ],
+    "text": "Ø Auslastung80%"
+   }
+  ],
+  "panels": [
+   {
+    "box": [
+     72,
+     1908,
+     1576,
+     1774
+    ],
+    "text": "Geplante Transporte Transport planen Hamburg → München in 12 Tagen · 6 Container · Straße "
+   },
+   {
+    "box": [
+     72,
+     3761,
+     1576,
+     489
+    ],
+    "text": "Leerfahrt erkannt: Hamburg → München (in 12 Tagen) hat keine Rückladung. Jetzt auf dem Mar"
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     2204,
+     1376,
+     478
+    ],
+    "text": "Hamburg → München in 12 Tagen · 6 Container · Straße WIEDERKEHREND Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     172,
+     2713,
+     1376,
+     358
+    ],
+    "text": "Stuttgart → Berlin in 18 Tagen · 24t · Straße EINMALIG 80% ausgelastet"
+   },
+   {
+    "box": [
+     172,
+     3103,
+     1376,
+     478
+    ],
+    "text": "Köln → Wien in 25 Tagen · 12 Paletten · Multimodal WIEDERKEHREND Rückfahrt anbieten"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     987,
+     2008,
+     561,
+     124
+    ],
+    "text": "Transport planen"
+   },
+   {
+    "box": [
+     835,
+     2513,
+     535,
+     108
+    ],
+    "text": "Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     835,
+     3413,
+     535,
+     108
+    ],
+    "text": "Rückfahrt anbieten"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": []
+ },
+ "m-modal-empty": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     4186
+    ],
+    "text": "Kapazitätsplanung Zukünftige Transporte planen — Wochen und Monate im Voraus Geplante Tran"
+   }
+  ],
+  "stats": [
+   {
+    "box": [
+     72,
+     853,
+     760,
+     395
+    ],
+    "text": "Geplante Transporte3"
+   },
+   {
+    "box": [
+     888,
+     853,
+     760,
+     395
+    ],
+    "text": "Wiederkehrend2"
+   },
+   {
+    "box": [
+     72,
+     1304,
+     760,
+     491
+    ],
+    "text": "Mögl. Leerfahrten2erkannt"
+   },
+   {
+    "box": [
+     888,
+     1304,
+     760,
+     491
+    ],
+    "text": "Ø Auslastung80%"
+   }
+  ],
+  "panels": [
+   {
+    "box": [
+     72,
+     1908,
+     1576,
+     1774
+    ],
+    "text": "Geplante Transporte Transport planen Hamburg → München in 12 Tagen · 6 Container · Straße "
+   },
+   {
+    "box": [
+     72,
+     3761,
+     1576,
+     489
+    ],
+    "text": "Leerfahrt erkannt: Hamburg → München (in 12 Tagen) hat keine Rückladung. Jetzt auf dem Mar"
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     2204,
+     1376,
+     478
+    ],
+    "text": "Hamburg → München in 12 Tagen · 6 Container · Straße WIEDERKEHREND Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     172,
+     2713,
+     1376,
+     358
+    ],
+    "text": "Stuttgart → Berlin in 18 Tagen · 24t · Straße EINMALIG 80% ausgelastet"
+   },
+   {
+    "box": [
+     172,
+     3103,
+     1376,
+     478
+    ],
+    "text": "Köln → Wien in 25 Tagen · 12 Paletten · Multimodal WIEDERKEHREND Rückfahrt anbieten"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     987,
+     2008,
+     561,
+     124
+    ],
+    "text": "Transport planen"
+   },
+   {
+    "box": [
+     835,
+     2513,
+     535,
+     108
+    ],
+    "text": "Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     835,
+     3413,
+     535,
+     108
+    ],
+    "text": "Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     1456,
+     1374,
+     52,
+     104
+    ],
+    "text": "×"
+   },
+   {
+    "box": [
+     212,
+     2890,
+     1296,
+     136
+    ],
+    "text": "Auf Marktplatz veröffentlichen →"
+   }
+  ],
+  "inputs": [
+   {
+    "box": [
+     212,
+     1922,
+     1296,
+     168
+    ],
+    "text": ""
+   },
+   {
+    "box": [
+     212,
+     2322,
+     1296,
+     168
+    ],
+    "text": ""
+   },
+   {
+    "box": [
+     212,
+     2658,
+     1296,
+     168
+    ],
+    "text": ""
+   }
+  ],
+  "modal": [
+   {
+    "box": [
+     80,
+     1242,
+     1560,
+     1916
+    ],
+    "text": "× Rückfahrt anbieten München → Hamburg auf dem Marktplatz veröffentlichen Normalpreis (€) "
+   }
+  ],
+  "offers": [],
+  "toast": []
+ },
+ "m-modal-filled": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     4186
+    ],
+    "text": "Kapazitätsplanung Zukünftige Transporte planen — Wochen und Monate im Voraus Geplante Tran"
+   }
+  ],
+  "stats": [
+   {
+    "box": [
+     72,
+     853,
+     760,
+     395
+    ],
+    "text": "Geplante Transporte3"
+   },
+   {
+    "box": [
+     888,
+     853,
+     760,
+     395
+    ],
+    "text": "Wiederkehrend2"
+   },
+   {
+    "box": [
+     72,
+     1304,
+     760,
+     491
+    ],
+    "text": "Mögl. Leerfahrten2erkannt"
+   },
+   {
+    "box": [
+     888,
+     1304,
+     760,
+     491
+    ],
+    "text": "Ø Auslastung80%"
+   }
+  ],
+  "panels": [
+   {
+    "box": [
+     72,
+     1908,
+     1576,
+     1774
+    ],
+    "text": "Geplante Transporte Transport planen Hamburg → München in 12 Tagen · 6 Container · Straße "
+   },
+   {
+    "box": [
+     72,
+     3761,
+     1576,
+     489
+    ],
+    "text": "Leerfahrt erkannt: Hamburg → München (in 12 Tagen) hat keine Rückladung. Jetzt auf dem Mar"
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     2204,
+     1376,
+     478
+    ],
+    "text": "Hamburg → München in 12 Tagen · 6 Container · Straße WIEDERKEHREND Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     172,
+     2713,
+     1376,
+     358
+    ],
+    "text": "Stuttgart → Berlin in 18 Tagen · 24t · Straße EINMALIG 80% ausgelastet"
+   },
+   {
+    "box": [
+     172,
+     3103,
+     1376,
+     478
+    ],
+    "text": "Köln → Wien in 25 Tagen · 12 Paletten · Multimodal WIEDERKEHREND Rückfahrt anbieten"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     987,
+     2008,
+     561,
+     124
+    ],
+    "text": "Transport planen"
+   },
+   {
+    "box": [
+     835,
+     2513,
+     535,
+     108
+    ],
+    "text": "Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     835,
+     3413,
+     535,
+     108
+    ],
+    "text": "Rückfahrt anbieten"
+   },
+   {
+    "box": [
+     1456,
+     1374,
+     52,
+     104
+    ],
+    "text": "×"
+   },
+   {
+    "box": [
+     212,
+     2890,
+     1296,
+     136
+    ],
+    "text": "Auf Marktplatz veröffentlichen →"
+   }
+  ],
+  "inputs": [
+   {
+    "box": [
+     212,
+     1922,
+     1296,
+     168
+    ],
+    "text": ""
+   },
+   {
+    "box": [
+     212,
+     2322,
+     1296,
+     168
+    ],
+    "text": ""
+   },
+   {
+    "box": [
+     212,
+     2658,
+     1296,
+     168
+    ],
+    "text": ""
+   }
+  ],
+  "modal": [
+   {
+    "box": [
+     80,
+     1242,
+     1560,
+     1916
+    ],
+    "text": "× Rückfahrt anbieten München → Hamburg auf dem Marktplatz veröffentlichen Normalpreis (€) "
+   }
+  ],
+  "offers": [],
+  "toast": []
+ },
+ "m-published": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     5306
+    ],
+    "text": "Marktplatz Freie Kapazitäten anbieten und durchsuchen Meine Angebote Kapazität anbieten Mü"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     1175
+    ],
+    "text": "Meine Angebote Kapazität anbieten München → Hamburg6 Container · Rückfahrt −30% €1190 Münc"
+   },
+   {
+    "box": [
+     72,
+     2016,
+     1576,
+     3354
+    ],
+    "text": "Alle verfügbaren Kapazitäten München → Hamburg6 Container · Rückfahrt · Müller Spedition G"
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     1057,
+     1376,
+     296
+    ],
+    "text": "München → Hamburg6 Container · Rückfahrt −30% €1190"
+   },
+   {
+    "box": [
+     172,
+     1385,
+     1376,
+     451
+    ],
+    "text": "München → HamburgRückfahrt · 6 Container · in 3 Tagen −30% €1190"
+   },
+   {
+    "box": [
+     172,
+     2303,
+     1376,
+     451
+    ],
+    "text": "München → Hamburg6 Container · Rückfahrt · Müller Spedition GmbH −30% €1190 Buchen"
+   },
+   {
+    "box": [
+     172,
+     2786,
+     1376,
+     675
+    ],
+    "text": "München → HamburgRückfahrt · 6 Container · in 3 Tagen · Müller Spedition GmbH −30% €1190 B"
+   },
+   {
+    "box": [
+     172,
+     3493,
+     1376,
+     675
+    ],
+    "text": "Rotterdam → DuisburgFreie Kapazität · 2 Waggons · morgen · Nordic Rail Logistics −22% €880"
+   },
+   {
+    "box": [
+     172,
+     4200,
+     1376,
+     451
+    ],
+    "text": "Wien → MünchenRückfahrt · 18t · in 5 Tagen · Alpenfracht AG −18% €720 Buchen"
+   },
+   {
+    "box": [
+     172,
+     4683,
+     1376,
+     587
+    ],
+    "text": "Hamburg → AntwerpenFreier Slot · 4 Container · in 8 Tagen · Maritime Express −25% €2100 Bu"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     941,
+     861,
+     607,
+     124
+    ],
+    "text": "Kapazität anbieten"
+   },
+   {
+    "box": [
+     700,
+     2575,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     700,
+     3282,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     663,
+     3989,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     655,
+     4472,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     695,
+     5091,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": [
+   {
+    "box": [
+     499,
+     4084,
+     1125,
+     220
+    ],
+    "text": "Auf Marktplatz veröffentlicht ✓"
+   }
+  ]
+ },
+ "m-published-clean": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     5306
+    ],
+    "text": "Marktplatz Freie Kapazitäten anbieten und durchsuchen Meine Angebote Kapazität anbieten Mü"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     1175
+    ],
+    "text": "Meine Angebote Kapazität anbieten München → Hamburg6 Container · Rückfahrt −30% €1190 Münc"
+   },
+   {
+    "box": [
+     72,
+     2016,
+     1576,
+     3354
+    ],
+    "text": "Alle verfügbaren Kapazitäten München → Hamburg6 Container · Rückfahrt · Müller Spedition G"
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     1057,
+     1376,
+     296
+    ],
+    "text": "München → Hamburg6 Container · Rückfahrt −30% €1190"
+   },
+   {
+    "box": [
+     172,
+     1385,
+     1376,
+     451
+    ],
+    "text": "München → HamburgRückfahrt · 6 Container · in 3 Tagen −30% €1190"
+   },
+   {
+    "box": [
+     172,
+     2303,
+     1376,
+     451
+    ],
+    "text": "München → Hamburg6 Container · Rückfahrt · Müller Spedition GmbH −30% €1190 Buchen"
+   },
+   {
+    "box": [
+     172,
+     2786,
+     1376,
+     675
+    ],
+    "text": "München → HamburgRückfahrt · 6 Container · in 3 Tagen · Müller Spedition GmbH −30% €1190 B"
+   },
+   {
+    "box": [
+     172,
+     3493,
+     1376,
+     675
+    ],
+    "text": "Rotterdam → DuisburgFreie Kapazität · 2 Waggons · morgen · Nordic Rail Logistics −22% €880"
+   },
+   {
+    "box": [
+     172,
+     4200,
+     1376,
+     451
+    ],
+    "text": "Wien → MünchenRückfahrt · 18t · in 5 Tagen · Alpenfracht AG −18% €720 Buchen"
+   },
+   {
+    "box": [
+     172,
+     4683,
+     1376,
+     587
+    ],
+    "text": "Hamburg → AntwerpenFreier Slot · 4 Container · in 8 Tagen · Maritime Express −25% €2100 Bu"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     941,
+     861,
+     607,
+     124
+    ],
+    "text": "Kapazität anbieten"
+   },
+   {
+    "box": [
+     700,
+     2575,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     700,
+     3282,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     663,
+     3989,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     655,
+     4472,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     695,
+     5091,
+     276,
+     116
+    ],
+    "text": "Buchen"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": []
+ },
+ "m-market": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     5029
+    ],
+    "text": "Marktplatz Vergünstigte Rückfahrten und freie Kapazitäten finden 5 Angebote verfügbar — of"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     489
+    ],
+    "text": "5 Angebote verfügbar — oft 18–30% günstiger als Standardpreise, weil es Rückfahrten und fr"
+   },
+   {
+    "box": [
+     72,
+     1330,
+     1576,
+     3764
+    ],
+    "text": "Verfügbare Kapazitäten München → Hamburg6 Container · Rückfahrt · Müller Spedition GmbH −3"
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     1616,
+     1376,
+     533
+    ],
+    "text": "München → Hamburg6 Container · Rückfahrt · Müller Spedition GmbH −30% €1190€1700 Buchen"
+   },
+   {
+    "box": [
+     172,
+     2181,
+     1376,
+     757
+    ],
+    "text": "München → HamburgRückfahrt · 6 Container · in 3 Tagen · Müller Spedition GmbH −30% €1190€1"
+   },
+   {
+    "box": [
+     172,
+     2970,
+     1376,
+     757
+    ],
+    "text": "Rotterdam → DuisburgFreie Kapazität · 2 Waggons · morgen · Nordic Rail Logistics −22% €880"
+   },
+   {
+    "box": [
+     172,
+     3759,
+     1376,
+     533
+    ],
+    "text": "Wien → MünchenRückfahrt · 18t · in 5 Tagen · Alpenfracht AG −18% €720€880 Buchen"
+   },
+   {
+    "box": [
+     172,
+     4324,
+     1376,
+     669
+    ],
+    "text": "Hamburg → AntwerpenFreier Slot · 4 Container · in 8 Tagen · Maritime Express −25% €2100€28"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     700,
+     1933,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     700,
+     2722,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     668,
+     3511,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     655,
+     4076,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     695,
+     4777,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": []
+ },
+ "m-booked": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     5029
+    ],
+    "text": "Marktplatz Vergünstigte Rückfahrten und freie Kapazitäten finden 5 Angebote verfügbar — of"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     489
+    ],
+    "text": "5 Angebote verfügbar — oft 18–30% günstiger als Standardpreise, weil es Rückfahrten und fr"
+   },
+   {
+    "box": [
+     72,
+     1330,
+     1576,
+     3764
+    ],
+    "text": "Verfügbare Kapazitäten München → Hamburg6 Container · Rückfahrt · Müller Spedition GmbH −3"
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     1616,
+     1376,
+     533
+    ],
+    "text": "München → Hamburg6 Container · Rückfahrt · Müller Spedition GmbH −30% €1190€1700 Buchen"
+   },
+   {
+    "box": [
+     172,
+     2181,
+     1376,
+     757
+    ],
+    "text": "München → HamburgRückfahrt · 6 Container · in 3 Tagen · Müller Spedition GmbH −30% €1190€1"
+   },
+   {
+    "box": [
+     172,
+     2970,
+     1376,
+     757
+    ],
+    "text": "Rotterdam → DuisburgFreie Kapazität · 2 Waggons · morgen · Nordic Rail Logistics −22% €880"
+   },
+   {
+    "box": [
+     172,
+     3759,
+     1376,
+     533
+    ],
+    "text": "Wien → MünchenRückfahrt · 18t · in 5 Tagen · Alpenfracht AG −18% €720€880 Buchen"
+   },
+   {
+    "box": [
+     172,
+     4324,
+     1376,
+     669
+    ],
+    "text": "Hamburg → AntwerpenFreier Slot · 4 Container · in 8 Tagen · Maritime Express −25% €2100€28"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     700,
+     1929,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     700,
+     2722,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     668,
+     3511,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     655,
+     4076,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   },
+   {
+    "box": [
+     695,
+     4777,
+     268,
+     108
+    ],
+    "text": "Buchen"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": [
+   {
+    "box": [
+     609,
+     4084,
+     1015,
+     220
+    ],
+    "text": "Kapazität #M-5 gebucht ✓"
+   }
+  ]
+ },
+ "m-partners": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     4160
+    ],
+    "text": "Meine Partner Ihr bevorzugtes Partnernetzwerk — wird zuerst gematcht Bevorzugte Partner+ P"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     1484
+    ],
+    "text": "Bevorzugte Partner+ Partner hinzufügen Müller Spedition GmbH4.9★ · StraßePRIORITÄT Nordic "
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     1056,
+     1376,
+     342
+    ],
+    "text": "Müller Spedition GmbH4.9★ · StraßePRIORITÄT"
+   },
+   {
+    "box": [
+     172,
+     1429,
+     1376,
+     342
+    ],
+    "text": "Nordic Rail Logistics4.7★ · SchienePRIORITÄT"
+   },
+   {
+    "box": [
+     172,
+     1803,
+     1376,
+     342
+    ],
+    "text": "Hansa Transport KG4.7★ · StraßeSTANDARD"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     975,
+     868,
+     573,
+     108
+    ],
+    "text": "+ Partner hinzufügen"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": []
+ },
+ "m-offers": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     4160
+    ],
+    "text": "Meine Aufträge Alle eingestellten Transportaufträge #NR-4271Hamburg → Mailand24t · StraßeU"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     1450
+    ],
+    "text": "#NR-4271Hamburg → Mailand24t · StraßeUNTERWEGS Tracking #NR-4272Rotterdam → WienContainer "
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     861,
+     1376,
+     356
+    ],
+    "text": "#NR-4271Hamburg → Mailand24t · StraßeUNTERWEGS Tracking"
+   },
+   {
+    "box": [
+     172,
+     1249,
+     1376,
+     482
+    ],
+    "text": "#NR-4272Rotterdam → WienContainer · MultimodalOFFEN Angebote ansehen"
+   },
+   {
+    "box": [
+     172,
+     1763,
+     1376,
+     348
+    ],
+    "text": "#NR-4273Frankfurt → Madrid12t · StraßeMATCHING Angebote ansehen"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     665,
+     1041,
+     306,
+     116
+    ],
+    "text": "Tracking"
+   },
+   {
+    "box": [
+     240,
+     1563,
+     522,
+     108
+    ],
+    "text": "Angebote ansehen"
+   },
+   {
+    "box": [
+     622,
+     1943,
+     522,
+     108
+    ],
+    "text": "Angebote ansehen"
+   },
+   {
+    "box": [
+     1456,
+     1325,
+     52,
+     104
+    ],
+    "text": "×"
+   },
+   {
+    "box": [
+     1094,
+     1918,
+     347,
+     108
+    ],
+    "text": "Annehmen"
+   },
+   {
+    "box": [
+     1094,
+     2420,
+     347,
+     108
+    ],
+    "text": "Annehmen"
+   },
+   {
+    "box": [
+     1094,
+     2810,
+     347,
+     108
+    ],
+    "text": "Annehmen"
+   }
+  ],
+  "inputs": [],
+  "modal": [
+   {
+    "box": [
+     80,
+     1193,
+     1560,
+     2014
+    ],
+    "text": "× Angebote Rotterdam → Wien · #NR-4272 ★ BESTES ANGEBOT · INTERNER PARTNER Müller Speditio"
+   }
+  ],
+  "offers": [
+   {
+    "box": [
+     212,
+     1681,
+     1296,
+     583
+    ],
+    "text": "★ BESTES ANGEBOT · INTERNER PARTNER Müller Spedition GmbH4.9★ · 1240 Aufträge · ETA 118h €"
+   },
+   {
+    "box": [
+     212,
+     2296,
+     1296,
+     358
+    ],
+    "text": "Hansa Transport KG4.7★ · 890 Aufträge · ETA 124h €2280 Annehmen"
+   },
+   {
+    "box": [
+     212,
+     2685,
+     1296,
+     358
+    ],
+    "text": "Alpenfracht AG4.8★ · 540 Aufträge · ETA 109h €2350 Annehmen"
+   }
+  ],
+  "toast": []
+ },
+ "m-accepted": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     4160
+    ],
+    "text": "Meine Aufträge Alle eingestellten Transportaufträge #NR-4271Hamburg → Mailand24t · StraßeU"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     1458
+    ],
+    "text": "#NR-4271Hamburg → Mailand24t · StraßeUNTERWEGS Tracking #NR-4272Rotterdam → WienContainer "
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     861,
+     1376,
+     356
+    ],
+    "text": "#NR-4271Hamburg → Mailand24t · StraßeUNTERWEGS Tracking"
+   },
+   {
+    "box": [
+     172,
+     1249,
+     1376,
+     490
+    ],
+    "text": "#NR-4272Rotterdam → WienContainer · MultimodalUNTERWEGS Tracking"
+   },
+   {
+    "box": [
+     172,
+     1771,
+     1376,
+     348
+    ],
+    "text": "#NR-4273Frankfurt → Madrid12t · StraßeMATCHING Angebote ansehen"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     665,
+     1041,
+     306,
+     116
+    ],
+    "text": "Tracking"
+   },
+   {
+    "box": [
+     240,
+     1563,
+     306,
+     116
+    ],
+    "text": "Tracking"
+   },
+   {
+    "box": [
+     622,
+     1951,
+     522,
+     108
+    ],
+    "text": "Angebote ansehen"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": [
+   {
+    "box": [
+     99,
+     4084,
+     1525,
+     220
+    ],
+    "text": "Auftrag vergeben an Müller Spedition GmbH ✓"
+   }
+  ]
+ },
+ "m-accepted-clean": {
+  "size": [
+   1720,
+   4400
+  ],
+  "main": [
+   {
+    "box": [
+     0,
+     240,
+     1720,
+     4160
+    ],
+    "text": "Meine Aufträge Alle eingestellten Transportaufträge #NR-4271Hamburg → Mailand24t · StraßeU"
+   }
+  ],
+  "stats": [],
+  "panels": [
+   {
+    "box": [
+     72,
+     761,
+     1576,
+     1458
+    ],
+    "text": "#NR-4271Hamburg → Mailand24t · StraßeUNTERWEGS Tracking #NR-4272Rotterdam → WienContainer "
+   }
+  ],
+  "rows": [
+   {
+    "box": [
+     172,
+     861,
+     1376,
+     356
+    ],
+    "text": "#NR-4271Hamburg → Mailand24t · StraßeUNTERWEGS Tracking"
+   },
+   {
+    "box": [
+     172,
+     1249,
+     1376,
+     490
+    ],
+    "text": "#NR-4272Rotterdam → WienContainer · MultimodalUNTERWEGS Tracking"
+   },
+   {
+    "box": [
+     172,
+     1771,
+     1376,
+     348
+    ],
+    "text": "#NR-4273Frankfurt → Madrid12t · StraßeMATCHING Angebote ansehen"
+   }
+  ],
+  "buttons": [
+   {
+    "box": [
+     665,
+     1041,
+     306,
+     116
+    ],
+    "text": "Tracking"
+   },
+   {
+    "box": [
+     240,
+     1563,
+     306,
+     116
+    ],
+    "text": "Tracking"
+   },
+   {
+    "box": [
+     622,
+     1951,
+     522,
+     108
+    ],
+    "text": "Angebote ansehen"
+   }
+  ],
+  "inputs": [],
+  "modal": [],
+  "offers": [],
+  "toast": []
+ }
+}
