@@ -149,7 +149,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .nav-item:hover{background:var(--card);color:var(--text);}
 .nav-item.active{background:rgba(0,212,255,0.1);color:var(--role);}
 .nav-item .ic{font-size:1.1rem;width:20px;text-align:center;}
-.main{margin-left:230px;flex:1;padding:32px 36px;animation:fadeIn 0.3s;}
+/* min-width:0 lets this flex item shrink below its widest child; without it the
+   whole app was ~546px wide on every phone and scrolled sideways */
+.main{margin-left:230px;flex:1;min-width:0;padding:32px 36px;animation:fadeIn 0.3s;}
 
 /* ===== PAGE HEADER ===== */
 .page-title{font-family:var(--display);font-size:2rem;letter-spacing:0.02em;color:#fff;margin-bottom:4px;}
@@ -251,6 +253,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   .main{margin-left:0;padding:24px 18px;}
   .stats{grid-template-columns:1fr 1fr;}
   .form-grid{grid-template-columns:1fr;}
+  /* rows set fixed grid columns inline; on a phone let them wrap instead */
+  .row{display:flex !important;flex-wrap:wrap;column-gap:12px;row-gap:8px;}
+  .row > *{min-width:0;}
+  .panel-head{flex-wrap:wrap;gap:10px;}
   .role-indicator span.rtext{display:none;}
 }
 
@@ -478,6 +484,18 @@ function ic(name, size){
 }
 
 // ---- Storage helpers (persist across sessions) ----
+// window.storage only exists inside the claude.ai preview. Everywhere else —
+// Netlify, a local file — the seed write silently failed and every screen of
+// the prototype came up empty. Fall back to localStorage, and to memory when
+// even that is blocked (private windows, strict cookie settings).
+if (!window.storage) {
+  const mem = {};
+  const ls = (() => { try { localStorage.setItem('nr_probe', '1'); localStorage.removeItem('nr_probe'); return localStorage; } catch (e) { return null; } })();
+  window.storage = {
+    async get(key) { const v = ls ? ls.getItem(key) : mem[key]; return v == null ? null : { value: v }; },
+    async set(key, value) { if (ls) ls.setItem(key, value); else mem[key] = value; },
+  };
+}
 async function dbGet(key, fallback) {
   try { const r = await window.storage.get(key); return r ? JSON.parse(r.value) : fallback; }
   catch(e) { return fallback; }
