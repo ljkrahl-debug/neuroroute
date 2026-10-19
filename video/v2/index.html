@@ -453,7 +453,7 @@ function burst(t, x, y, beat, color = C.ink, r0 = 26, r1 = 120) {
   worldT();
   g.beginPath(); g.arc(x, y, mix(r0, r1, p), 0, Math.PI * 2);
   g.strokeStyle = hexA(color, 0.9 * (1 - dt / 0.4));
-  g.lineWidth = mix(14, 2, p);
+  g.lineWidth = mix(14, 2, p) * Math.min(1, dt * 30);
   g.stroke();
   g.restore();
 }
@@ -545,14 +545,17 @@ function rollWord(t, from, to, x, y, size, rolled, level, out = null) {
     const lx = x + mix(xa[i], xb[i], p);
     g.save();
     g.beginPath(); g.rect(lx - 10, y - asc - size * 0.18, size, asc + size * 0.26); g.clip();
-    const yo = y - p * (asc + size * 0.2) - lift;
-    g.save();
-    g.beginPath(); g.rect(lx - 10, level, size, size * 2); g.clip();
-    g.fillStyle = C.green; g.fillText(from[i], lx, yo);
-    g.restore();
-    g.lineWidth = 4; g.strokeStyle = level < y ? C.green : C.amber; g.strokeText(from[i], lx, yo);
+    const travel = asc + size * 0.45;
+    if (p < 0.97) {
+      const yo = y - p * travel - lift;
+      g.save();
+      g.beginPath(); g.rect(lx - 10, level, size, size * 2); g.clip();
+      g.fillStyle = C.green; g.fillText(from[i], lx, yo);
+      g.restore();
+      g.lineWidth = 4; g.strokeStyle = level < y ? C.green : C.amber; g.strokeText(from[i], lx, yo);
+    }
     g.fillStyle = C.green;
-    g.fillText(to[i], lx, y + (1 - p) * (asc + size * 0.2) - lift);
+    g.fillText(to[i], lx, y + Math.max(0, 1 - p) * travel - lift);
     g.restore();
   }
   g.restore();
@@ -1146,14 +1149,15 @@ const LOCK = (() => {
 })();
 
 function wordmark(t) {
-  const out = spring(t - B(EV.retract), 260, 28);
+  const out = E.inCubic(ramp(t, EV.retract, EV.retract + 0.7));
   const p = spring(t - B(EV.wordmark), 200, 26) * (1 - out);
   const dotX = mix(540, LOCK.dotX, p);
   // the word is pulled out of the dot in one piece: it is clipped at the
   // dot's right edge and slides out from behind it, blurred by its own speed
   const textW = LOCK.adv[9] + 120;
   const x = mix(dotX + 34 - textW, LOCK.textX, p);
-  const v = (spring(t - B(EV.wordmark) + 1 / 60, 200, 26) - spring(t - B(EV.wordmark), 200, 26)) * (LOCK.textX - (540 + 34 - textW)) * (1 - out);
+  const pNext = spring(t - B(EV.wordmark) + 1 / 60, 200, 26) * (1 - E.inCubic(ramp(t + 1 / 60, EV.retract, EV.retract + 0.7)));
+  const v = (pNext - p) * (LOCK.textX - (540 + 34 - textW));
   if (p > 0.002) {
     g.save(); worldT();
     g.beginPath(); g.rect(dotX + 22, 600, 1200, 600); g.clip();
