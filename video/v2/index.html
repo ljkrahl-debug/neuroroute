@@ -90,7 +90,7 @@ function camAt(t) {
     + 0.04 * a(26.5, 34.3) - 0.04 * a(34.3, 35.2) + 0.05 * a(37, 44) - 0.05 * a(44, 46.5);
   // the drop punches in
   const dd = t - B(EV.drop);
-  if (dd > 0) s *= 1 + 0.05 * (1 - Math.exp(-dd * 70)) * Math.exp(-dd * 5);
+  if (dd > 0) s *= 1 + 0.05 * (1 - Math.exp(-dd * 22)) * Math.exp(-dd * 5);
   // the line's head pulls the frame along a little, and lets go after beat 8
   const follow = (loopHeadY(Math.min(t, B(8))) - 950) * 0.05 * (1 - spring(t - B(EV.morph), 120, 22));
   // impact when the truck arrives in München
@@ -742,7 +742,7 @@ function drawCard(t, { press = 1, showButton = true } = {}) {
   uiText(t, 'Hamburg → München', 132, 926, EV.cardTitle, 54, C.ink, 600);
   uiText(t, 'in 12 Tagen · 6 Container · Straße', 132, 982, EV.cardSub, 34, C.muted, 400);
   const pb = sp(t, EV.cardBtn, POP);
-  if (pb > 0 && showButton) button(BTN.x, BTN.y + (1 - pb) * 40, BTN.w, BTN.h, 'Rückfahrt anbieten', { scale: (0.85 + 0.15 * pb) * press });
+  if (pb > 0 && showButton) button(BTN.x, BTN.y + (1 - pb) * 40, BTN.w, BTN.h, 'Rückfahrt anbieten', { scale: (0.25 + 0.75 * pb) * press });
   const pt = sp(t, EV.tag, [420, 22]);
   if (pt > 0) pill(612, 1260, 56, 'LEERFAHRT ERKANNT', { size: 22, icon: 'warn', scale: pt });
 }
@@ -827,7 +827,7 @@ function offerContent(t, rect, dy = 0) {
   const pb = sp(t, 13.65, POP);
   if (pb > 0) {
     button(PUBLISH.x, PUBLISH.y + (1 - pb) * 40, PUBLISH.w, PUBLISH.h, 'Auf Marktplatz veröffentlichen',
-      { scale: (0.9 + 0.1 * pb) * (1 - 0.06 * pulse(t, EV.click2)), size: 36 });
+      { scale: (0.25 + 0.75 * pb) * (1 - 0.06 * pulse(t, EV.click2)), size: 36 });
   }
   cam = prev;
   g.restore();
@@ -1019,7 +1019,7 @@ function networkGraph(t, c = 0) {
     if (pin <= 0) return;
     const [x, y] = polar(pt.a, NET.r1);
     g.save(); worldT(); g.font = font(30, UI, 600); const tw = g.measureText(pt.name).width; g.restore();
-    const cw = tw + 52, ch = 66;
+    const cw = (tw + 52) * (0.3 + 0.7 * pin), ch = 66 * (0.5 + 0.5 * pin);
     const below = pt.a === 90;
     const cx = x - cw / 2, cy = below ? y + 52 : y - 52 - ch;
     glass(cx, cy + (1 - pin) * 24, cw, ch, ch / 2, { blur: 18, tint: 0.08, shadow: 0.4 });
@@ -1117,7 +1117,7 @@ function offerCard(t, c = 0) {
   const pb = sp(t, 34.8, POP);
   if (pb > 0) {
     if (booked > 0.5) button(ACCEPT.x, ACCEPT.y, ACCEPT.w, ACCEPT.h, 'Angenommen ✓', { size: 36, scale: 0.94 + 0.06 * booked });
-    else button(ACCEPT.x, ACCEPT.y + (1 - pb) * 40, ACCEPT.w, ACCEPT.h, 'Annehmen', { size: 36, scale: (0.9 + 0.1 * pb) * (1 - 0.06 * pulse(t, EV.click4)) });
+    else button(ACCEPT.x, ACCEPT.y + (1 - pb) * 40, ACCEPT.w, ACCEPT.h, 'Annehmen', { size: 36, scale: (0.25 + 0.75 * pb) * (1 - 0.06 * pulse(t, EV.click4)) });
   }
   const pd = sp(t, 34.86, POP);
   if (pd > 0) {
@@ -1291,7 +1291,7 @@ const SCENES = {
     const pc = sp(t, EV.cta, POP) * (1 - spring(t - B(EV.outro), 300, 30));
     if (pc > 0.001) {
       const bw = 470, bh = 108, bx = 540 - bw / 2, by = 1210;
-      button(bx, by + (1 - pc) * 50, bw, bh, 'Demo anfragen  →', { color: C.cyan, size: 40, scale: (0.9 + 0.1 * pc) * (1 - 0.06 * pulse(t, EV.click5)) });
+      button(bx, by + (1 - pc) * 50, bw, bh, 'Demo anfragen  →', { color: C.cyan, size: 40, scale: (0.2 + 0.8 * pc) * (1 - 0.06 * pulse(t, EV.click5)) });
     }
     rise(t, 'neuroroute.com', 540, 1420, { beat: EV.cta + 0.2, size: 36, fam: UI, weight: 600, color: C.muted, align: 'center', out: EV.outro + 0.1, spacing: 2 });
     cursor(t, DU);
