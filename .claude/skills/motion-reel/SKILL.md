@@ -197,7 +197,7 @@ node deliver.mjs --name <film-name>
 Sound, picture (≈ 1 min of rendering per second of film with 3 workers), mix
 to −14 LUFS, review files in `dist/` (contact sheet, phone sheet, whip strip,
 poster), then the checks: **pops** (single-frame jumps), **seam** (first vs
-last frame, ~0.01 for a clean loop), **loudness** (integrated, true peak, the
+last frame, below ~0.3 for a clean loop), **loudness** (integrated, true peak, the
 loudest moment — it must be the payoff — and momentary loudness every 0.5 s).
 Fix what the checks flag and re-run (`--skip-render` when only sound changed;
 `render.mjs --frames a:b` re-renders a range for inspection).

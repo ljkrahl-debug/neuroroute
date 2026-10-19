@@ -63,10 +63,12 @@ fast with the error instead of hanging.
   by frame number / beat, strip around it, and make it ramp over 2+ frames.
   Exception: a fast counter or a hard cut on a beat can be fine — decide by
   looking, and say so if you leave one.
-- **seam**: mean absolute difference between the first and last frame (0–255).
-  ~0.01 is a clean loop. Above ~1, the end state differs from the start
-  (camera, a leftover element, a size mismatch). If the film is not meant to
-  loop, ignore it.
+- **seam**: mean absolute RGB difference (0–255) between frame 0 and the
+  last frame, measured on the canvas (the encoded video adds codec noise on
+  the grain, ~0.4, which says nothing about the loop). Below ~0.3 is a clean
+  loop. Above ~1, the end state differs from the start: a spring that has not
+  settled by the last frame (make it stiffer or start it earlier), a leftover
+  element, a size mismatch. If the film is not meant to loop, ignore it.
 - **loudness**: integrated LUFS (−14 target), true peak (≤ −1 dB), the loudest
   momentary moment (must be the payoff), and momentary values every 0.5 s.
   If a cluster of UI sounds or a build is the loudest, thin or lower it.
