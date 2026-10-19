@@ -1,0 +1,3 @@
+# renders, stems, review frames and the downloaded sound effects — all regenerable
+out/
+node_modules/

@@ -4,6 +4,11 @@
 > animierte Oberfläche statt Screenshots, aufwendiges Sounddesign. Siehe
 > [`v2/README.md`](v2/README.md), Film: `dist/neuroroute-fuellstand-9x16.mp4`.
 > Dieses Dokument beschreibt V1.
+>
+> **Neue Filme** entstehen mit dem Skill `motion-reel`
+> (`.claude/skills/motion-reel/`): Vorlage mit allen Effekten und dem
+> Sound-Setup von „Füllstand“, Ablauf, Qualitätsmaßstab und Prüf-Skripte.
+> Start: `node .claude/skills/motion-reel/scripts/new-film.mjs video/<name>`.
 
 20 Sekunden, komplett im Code gebaut — nach der Anleitung „How to Build a Motion
 Design Studio". Kein After Effects: `index.html` zeichnet jeden Frame über
