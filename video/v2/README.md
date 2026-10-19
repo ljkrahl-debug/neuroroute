@@ -1,6 +1,6 @@
 # Neuroroute — „Füllstand“ (Launch-Film V2)
 
-24 Sekunden, 9:16, komplett im Code: `index.html` zeichnet jeden Frame über
+34 Sekunden, 9:16, komplett im Code: `index.html` zeichnet jeden Frame über
 `window.seek(t)`, Musik und Sounds sind synthetisiert. Gebaut nach dem
 Mega-Prompt (Referenzen: zwei TikTok-Motion-Design-Videos) — deren Prinzipien,
 nicht deren Inhalte.
@@ -23,8 +23,9 @@ vorherigen, es gibt keinen einzigen Schnitt und keine Überblendung.
 | 13–15,6 | 6,5–7,8 s | Cursor „Spedition“ klickt, Button wird zum Angebots-Panel; Rabatt-Regler auf 30 %, Preis rollt 1.700 → 1.190 | Button → Panel |
 | 15,6–19,6 | 7,8–9,8 s | Panel faltet sich zum Inserat, Kamera-Whip nach oben in den Marktplatz, Cursor „Verlader“ bucht | Panel → Inserat, Whip |
 | 19,6–25 | 9,8–12,5 s | Whip zurück: die Mini-Route des Inserats wächst zur großen Schleife, die Rückfahrt läuft grün voll, LEER rollt zu **VOLL** — Drop auf Takt 24 | Inserat → Schleife |
-| 25–36 | 12,5–18 s | Die Schleife rollt sich in Hamburg ein, Hamburg wird zu „DU“: **ERST DEIN NETZWERK.** 24 Stunden nur Partner, dann der Markt; Partner-Angebot wird angenommen | Station → Hub, Hub → Karte |
-| 36–48 | 18–24 s | Alles fließt in den cyanen Punkt, NEUROROUTE wird aus ihm herausgezogen, Claim, „Demo anfragen“; der Punkt fährt heim nach Hamburg | Karte → Punkt → Station |
+| 25–45 | 12,5–22,5 s | **Kapazitätsplanung (V2.2):** die Schleife wird zu „KW 44“ in einer Reihe von Wochen, **NÄCHSTE WOCHEN?** Die KI-Prognose läuft als Scan darüber, jede Woche füllt sich auf ihre Prognose: voll, hohl (freie Kapazität) oder über den Rand (mehr Fracht als LKW). **AUTOMATISCH AUSGESCHRIEBEN.** — die Ausschreibung schwingt hoch; ein Verlader tippt seine Menge ein (20 Ladungen) und füllt die freien Wochen, eine andere Spedition übernimmt den Überschuss. **ALLES VOLL GEPLANT.** — die Wochen gleiten zurück in die eine große Schleife | Schleife → Wochen → Ausschreibung → Schleife |
+| 45–56 | 22,5–28 s | Die Schleife rollt sich in Hamburg ein, Hamburg wird zu „DU“: **ERST DEIN NETZWERK.** 24 Stunden nur Partner, dann der Markt; Partner-Angebot wird angenommen | Station → Hub, Hub → Karte |
+| 56–68 | 28–34 s | Alles fließt in den cyanen Punkt, NEUROROUTE wird aus ihm herausgezogen, Claim, „Demo anfragen“; der Punkt fährt heim nach Hamburg | Karte → Punkt → Station |
 
 ### V2.1 — Effekte
 
@@ -46,6 +47,24 @@ Karten und im Kreis) liegt eine Effekt-Ebene über dem Film:
 - **Kreis:** das Netzwerk kommt schräg und gedreht herein und schwenkt nach
   vorn; die 24 h laufen als Radar mit Lichtkeil, Sonar-Pings pro Takt; beim
   Öffnen läuft die Schockwelle nach außen und jeder Knoten blitzt auf.
+
+### V2.2 — Kapazitätsplanung
+
+Auf Wunsch des Gründers: ein eigenes Kapitel (+10 s) dafür, dass Über- und
+Unterkapazitäten per KI Wochen im Voraus berechnet und über Ausschreibungen
+angeboten werden — Verlader tragen ihre Mengen ein, Speditionen übernehmen,
+was zu viel ist. Die Kapazitätsplanung selbst (künftige Transporte,
+Auslastung, Leerfahrt-Erkennung) gibt es im Produkt; **KI-Prognose und
+Ausschreibungen stehen noch auf der Roadmap** (Website: „Künftige KI“). Der
+Film markiert die Prognose deshalb mit „BALD“ — ein Schalter (`SOON` in
+`index.html`) nimmt den Hinweis heraus, sobald es live ist. Die Mengen (20
+Ladungen, 12 / 8 frei, +8 zu viel) sind Beispielwerte, keine Statistik.
+
+Musik: nach dem Drop ein ruhigerer Halftime-Teil (F – C – G), dessen
+Arpeggio sich mit dem Scan öffnet, Aufbau auf E mit Snare-Roll und 1/16
+Stille, Mini-Drop auf „ALLES VOLL GEPLANT“ (bewusst leiser als der Drop auf
+Takt 24). Jede Woche „singt“ ihren Füllstand, wenn der Scan sie erreicht;
+Tastatur-Ticks beim Eintippen; Einschenken beim Befüllen.
 
 Wahr bleiben: Die 24 h Partner-Vorrang gelten im Backend nur für
 Transportanfragen (`backend/src/routes/requests.js`), nicht für
@@ -85,7 +104,7 @@ True Peak unter −1 dB.
 cd video
 npm install
 node v2/fetch-sfx.mjs        # aufgenommene Effekte laden (einmalig, nicht im Repo)
-node v2/deliver.mjs          # Ton, Bild (≈ 20 min), Mux, Review-Bilder, Pop-Scan
+node v2/deliver.mjs          # Ton, Bild (≈ 30 min), Mux, Review-Bilder, Pop-Scan
 node v2/stills.mjs --contact --tag r4          # ein Bild pro Takt
 node v2/stills.mjs --strip 15.6,16.8 --tag r4  # 10 Bilder über einen Übergang
 node v2/render.mjs --bench                     # Kosten pro Frame

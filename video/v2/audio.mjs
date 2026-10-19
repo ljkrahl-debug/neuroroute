@@ -97,10 +97,16 @@ function chordAt(b) {
   if (b < 22) return 'Esus';
   if (b < 24) return 'E';
   if (b < 28) return 'Am';
+  // 6 — weeks ahead: away from the tonic, a build on E into "all planned" on 40
   if (b < 32) return 'F';
-  if (b < 34) return 'C';
-  if (b < 36) return 'G';
-  if (b < 44) return 'Am9';
+  if (b < 36) return 'C';
+  if (b < 38) return 'G';
+  if (b < 40) return 'E';
+  if (b < 48) return 'Am';
+  if (b < 52) return 'F';
+  if (b < 54) return 'C';
+  if (b < 56) return 'G';
+  if (b < 64) return 'Am9';
   return 'Fmaj7';
 }
 
@@ -298,8 +304,9 @@ for (let b = 21.5; b < 23.75; b += 0.5) bassNote(b, 0.4, ROOT.E, 0.7, 0.6);
 for (let b = 22; b < 23.75; b += b < 23 ? 0.25 : 0.125) snare(b, 0.25 + 0.35 * (b - 22) / 1.75);
 crash(24, 0.9, true, 1.6);  // reverse cymbal into the drop
 
-// 6 — drop and network (24–36): everything, with the chords pumping
-for (let b = 24; b < 36; b++) {
+// the full groove: everything, with the chords pumping. It carries the drop
+// (24–28), "all planned" (40–44) and the network (44–56).
+function fullGroove(b) {
   const c = chordAt(b);
   kick(b, 1);
   if (b % 2 === 1) clap(b, 1);
@@ -308,21 +315,48 @@ for (let b = 24; b < 36; b++) {
   for (let k = 0; k < 4; k++) bassNote(b + k / 4, 0.2, k === 0 ? ROOT[c] : ROOT[c] + (k === 2 ? 12 : 0), k === 0 ? 0.95 : 0.6, 0.9);
   for (let k = 0; k < 4; k++) pluck(b + k / 4, CH[c][(b * 4 + k) % 3] + 24, k % 2 ? 0.45 : -0.45, 0.55, 0.09);
 }
+// 5 — the drop (24–28)
+for (let b = 24; b < 28; b++) fullGroove(b);
 chord(24, 4, CH.Am, 1, { pump: true, cutoff: 2600 });
-chord(28, 4, CH.F, 1, { pump: true, cutoff: 2400 });
-chord(32, 2, CH.C, 1, { pump: true, cutoff: 3000 });
-chord(34, 2, CH.G, 1, { pump: true, cutoff: 3000 });
 crash(24, 1.0);
+
+// 6 — weeks ahead (28–40): half-time, lighter, the arpeggio "thinking" while
+// the forecast runs; a build on E with a 1/16 rest before "all planned"
+for (let b = 28; b < 40; b++) {
+  const c = chordAt(b);
+  if (b % 2 === 0) kick(b, b % 4 === 0 ? 0.9 : 0.75);
+  if (b % 4 === 2) clap(b, 0.8);
+  hat(b + 0.5, false, 0.7);
+  if (b >= 32) { hat(b + 0.25, false, 0.35, -0.3); if (b !== 39) hat(b + 0.75, false, 0.35, -0.3); }
+  bassNote(b, b === 39 ? 0.7 : 0.9, ROOT[c], 0.75, 0.5);
+  // the forecast's arpeggio: sixteenths, its filter opening with the scan
+  const bright = b < 28 ? 0 : clamp((b - 28) / 4);
+  for (let k = 0; k < (b === 39 ? 3 : 4); k++) pluck(b + k / 4, CH[c][(b * 4 + k) % 3] + 12 + (k === 3 ? 12 : 0), k % 2 ? 0.4 : -0.4, 0.35 + 0.2 * bright, 0.07 + 0.05 * bright);
+}
+pad(28, 4, CH.F, 0.9); pad(32, 4, CH.C, 0.9); pad(36, 2, CH.G, 1); pad(38, 1.75, CH.E, 1.1);
+chord(28, 4, CH.F, 0.45, { cutoff: 1300, attack: 0.3 });
+chord(32, 4, CH.C, 0.5, { cutoff: 1600, attack: 0.2 });
+chord(37.5, 2.25, CH.E, 0.55, { cutoff: 900, attack: 0.8 });
+for (let b = 38; b < 39.75; b += b < 39 ? 0.25 : 0.125) snare(b, 0.2 + 0.3 * (b - 38) / 1.75);
+crash(EV.allFull, 0.8, true, 1.4);   // reverse cymbal into "all planned"
+
+// "all planned" (40) and the network (44–56): the full groove again
+for (let b = 40; b < 56; b++) fullGroove(b);
+chord(40, 8, CH.Am, 0.9, { pump: true, cutoff: 2500 });
+chord(48, 4, CH.F, 1, { pump: true, cutoff: 2400 });
+chord(52, 2, CH.C, 1, { pump: true, cutoff: 3000 });
+chord(54, 2, CH.G, 1, { pump: true, cutoff: 3000 });
+crash(EV.allFull, 0.8);
 crash(EV.headMarkt, 0.5);   // the window opens
 
-// 7 — the brand (36–48): the groove stops, Am(add9) rings, the dot breathes
+// 8 — the brand (56–68): the groove stops, Am(add9) rings, the dot breathes
 crash(EV.wordmark, 0.8, true, 1.2);
-pad(36.2, 7.8, CH.Am9, 1.2);
+pad(EV.converge, 7.8, CH.Am9, 1.2);
 chord(EV.wordmark, 6.5, CH.Am9, 0.55, { cutoff: 1400, attack: 0.01 });
 bassNote(EV.wordmark, 6.5, 33, 0.7, 0.2);
-for (let b = 38; b < 44; b += 0.5) pluck(b, CH.Am9[(b * 2) % 4] + 12, ((b * 2) % 2 ? 0.4 : -0.4), 0.45, 0.2);
-pad(44, 4, CH.Fmaj7, 0.9);
-for (const b of [44, 45, 46]) pluck(b, [69, 72, 76][b - 44], 0, 0.5, 0.3);
+for (let b = 58; b < 64; b += 0.5) pluck(b, CH.Am9[(b * 2) % 4] + 12, ((b * 2) % 2 ? 0.4 : -0.4), 0.45, 0.2);
+pad(64, 4, CH.Fmaj7, 0.9);
+for (const b of [64, 65, 66]) pluck(b, [69, 72, 76][b - 64], 0, 0.5, 0.3);
 
 // ---- bolder layers: a braam on the big hits, an 808 under the drop, tension
 // in the opening so the first seconds already pull
@@ -379,7 +413,8 @@ for (let b = 0.5; b < 7.5; b += 0.5) bass808(b, 0.3, 33, 0.35 + 0.25 * (b / 7.5)
 braam(EV.drop, 2.4, [33, 45, 52], 1.25);
 braam(EV.headMarkt, 1.8, [36, 48, 55], 0.5);
 braam(EV.wordmark, 2.6, [33, 45, 52, 57], 0.6);
-for (let b = 24; b < 36; b += 1) bass808(b, b % 4 === 3 ? 0.9 : 0.45, ROOT[chordAt(b)] - 12, 0.75);
+braam(EV.allFull, 2.0, [33, 45, 52], 0.75);   // "all planned": big, but under the drop
+for (const [b0, b1] of [[24, 28], [40, 56]]) for (let b = b0; b < b1; b++) bass808(b, b % 4 === 3 ? 0.9 : 0.45, ROOT[chordAt(b)] - 12, 0.75);
 
 // ================================================================ the effects
 
@@ -734,7 +769,70 @@ for (let i = 0; i < 4; i++) S.flap(EV.roll + i * 0.25 + 0.03, 1, 0.1 + i * 0.08)
 S.impact(EV.drop, 1.45, 0);
 S.shimmer(EV.drop + 0.1, 0.8);
 
-// ---- 6: the network
+// ---- 6: weeks ahead
+// the row, as the picture lays it out (index.html: WEEK, WEEKS, revealBeat)
+const WEEK_X = (i) => 140 + i * 148;
+const WEEK_F = [1, 1, 0.32, 1.26, 1, 0.55];
+const revealBeat = (i) => {
+  const p = (WEEK_X(i) - 60) / 940;
+  return EV.scanFrom + (Math.acos(1 - 2 * p) / Math.PI) * (EV.scanTo - EV.scanFrom);
+};
+const pourAt = (i) => EV.pourFrom + (i === 5 ? 0.15 : 0);
+S.whoosh(sec(EV.planFrom) + 0.25, { pre: 0.25, post: 0.3, lo: 3200, hi: 600, gain: 0.55, panFrom: 0.2, panTo: -0.5 }); // the loop shrinks into this week
+for (let i = 1; i < 6; i++) {
+  const b = EV.weeksIn + i * 0.16;
+  S.blip(b, 700 + i * 90, 0.4, xpan(WEEK_X(i)), 1.6);       // each week draws itself
+  S.tick(b + 0.45, 2600, 0.3, xpan(WEEK_X(i)));             // and its terminal snaps on
+}
+S.word(EV.headWeeks, 'solid', -0.3, 0.32); S.word(EV.headWeeks + 0.25, 'solid', -0.3, 0.32);
+S.scan(EV.scanFrom, EV.scanTo, 1);                         // the forecast runs across the row
+S.word(EV.headKI, 'solid', -0.3, 0.32); S.word(EV.headKI + 0.25, 'solid', -0.3, 0.32);
+for (let i = 1; i < 6; i++) {
+  // each week answers as the light passes: a short pour up to its forecast
+  const rv = revealBeat(i), f = Math.min(1, WEEK_F[i]);
+  S.ping(rv, [76, 79, 72, 84, 79, 74][i], 0.45, xpan(WEEK_X(i)), 0.5);
+  S.pour(rv, rv + 0.7, E.outCubic, { from: 0, to: f, gain: 0.3, pan: xpan(WEEK_X(i)) });
+}
+[2, 3, 5].forEach((i, k) => S.blip(EV.tags + k * 0.12, 1300 + k * 160, 0.55, xpan(WEEK_X(i))));
+S.alert(EV.tags + 0.12, xpan(WEEK_X(3)));                  // more freight than trucks
+// the tender: the card swings up, the tags fly into it
+S.whoosh(sec(EV.tender) + 0.12, { pre: 0.15, post: 0.3, lo: 300, hi: 2600, gain: 0.7, panFrom: 0, panTo: 0 });
+S.glass(EV.tender + 0.2, 0.9, 0, 0.85);
+S.thunk(EV.tender + 0.45, 0.6, 0, 80);
+[2, 3, 5].forEach((i, k) => S.send(EV.tender + 0.3 + i * 0.05, 0.6, xpan(WEEK_X(i)) * 0.6));
+S.word(EV.headTender, 'solid', -0.3, 0.32); S.word(EV.headTender + 0.25, 'solid', -0.3, 0.32);
+[0.15, 0.2, 0.25, 0.3, 0.4, 0.5].forEach((o, i) => S.blip(EV.tender + 0.35 + o, 900 + i * 110, 0.35, -0.2 + i * 0.08));
+// the shipper: into the field, types the volume, sends it
+S.swish(EV.verlIn3 + 0.05, 0.45, 1, 0.9, -0.1);
+S.click(EV.field, 0.6, -0.2);
+for (let i = 0; i < 11; i++) S.tick(EV.typeFrom + (i / 11) * (EV.typeTo - EV.typeFrom), 2800 + 300 * Math.sin(i * 2.3), 0.45, -0.25);
+S.tick(EV.click6 - 0.35, 3400, 0.5, 0.2);
+S.click(EV.click6, 1, 0.2);
+S.chime(EV.click6 + 0.05, [84, 91], 0.9, 0.2);
+for (const i of [2, 5]) {
+  S.send(pourAt(i) - 0.45, 0.7, xpan(WEEK_X(i)) * 0.6);    // the volume flies up to its week
+  S.pour(pourAt(i), EV.pourTo, E.inOutCubic, { from: WEEK_F[i], to: 1, gain: 0.6, pan: xpan(WEEK_X(i)) });
+}
+S.blip(EV.pourTo + 0.06, 1760, 0.5, xpan(WEEK_X(2))); S.blip(EV.pourTo + 0.1, 1980, 0.45, xpan(WEEK_X(5)));
+// the carrier takes the excess
+S.swish(EV.spedIn2 + 0.05, 0.4, 1, 0.9, 0.3);
+S.tick(EV.click7 - 0.4, 3400, 0.5, 0.4);
+S.click(EV.click7, 1, 0.4);
+S.chime(EV.click7 + 0.05, [81, 88], 0.8, 0.4);
+S.whoosh(sec(EV.takeFrom) + 0.3, { pre: 0.2, post: 0.15, lo: 900, hi: 3400, gain: 0.4, panFrom: xpan(WEEK_X(3)), panTo: 0.4 });
+S.blip(EV.takeTo + 0.06, 1760, 0.5, xpan(WEEK_X(3)));
+S.whoosh(sec(EV.cardAway) + 0.2, { pre: 0.2, post: 0.2, lo: 2500, hi: 300, gain: 0.5, panFrom: 0, panTo: 0 });
+// all planned: a hit under the drop's, every week lighting up in turn
+S.impact(EV.allFull, 1.1, 0);
+S.shimmer(EV.allFull + 0.1, 0.7);
+for (let i = 0; i < 6; i++) S.ping(EV.allFull + i * 0.05, [81, 84, 88, 91, 93, 96][i], 0.45, xpan(WEEK_X(i)), 0.6);
+S.word(EV.allFull, 'solid', -0.3, 0.6); S.word(EV.allFull + 0.25, 'solid', -0.3, 0.5);
+// the row folds back into the one big loop
+S.swirl(EV.merge, 0.7, 0.6);
+S.whoosh(sec(EV.merge + 0.5) + 0.25, { pre: 0.25, post: 0.3, lo: 500, hi: 3000, gain: 0.5, panFrom: -0.5, panTo: -0.3 });
+S.blip(EV.labelsBack, 900, 0.35, -0.5); S.blip(EV.labelsBack + 0.1, 1100, 0.35, -0.5);
+
+// ---- 7: the network
 for (let i = 0; i < 4; i++) S.word(EV.collapse + i * 0.06, 'solid', 0.25, 0.25);
 S.whoosh(sec(EV.collapse + 0.15) + 0.3, { pre: 0.3, post: 0.2, lo: 3000, hi: 400, panFrom: 0, panTo: -0.6, gain: 0.8 }); // rolling up
 S.whoosh(sec(EV.hub) + 0.1, { pre: 0.15, post: 0.3, lo: 300, hi: 3000, panFrom: -0.6, panTo: 0, gain: 0.9 });     // flying in
@@ -756,7 +854,7 @@ for (let i = 0; i < 20; i++) {
     if (i % 6 === 0) S.thunk(tb, 0.25, Math.cos(a) * 0.4, 160);
   }
 }
-for (let b = 29; b <= 32; b++) S.ping(b, 93, 0.55, 0, 1.1);   // sonar: one ping a beat while the window runs
+for (let b = 49; b <= 52; b++) S.ping(b, 93, 0.55, 0, 1.1);   // sonar: one ping a beat while the window runs
 {
   // the radar hand: a breathy sweep that circles the stereo field once in 24 h
   const s0 = at(EV.sweepFrom), len = at(EV.sweepTo) - s0;
@@ -780,12 +878,12 @@ S.word(EV.headMarkt, 'solid', -0.3, 0.32); S.word(EV.headMarkt + 0.3, 'solid', -
 S.whoosh(sec(EV.offerCard) + 0.12, { pre: 0.12, post: 0.3, lo: 300, hi: 2600, gain: 0.8, panFrom: 0, panTo: 0 });
 S.glass(EV.offerCard + 0.2, 1, 0, 0.8);
 S.word(EV.headPartner, 'solid', -0.3, 0.32); S.word(EV.headPartner + 0.25, 'solid', -0.3, 0.32);
-[34.6, 34.66, 34.7, 34.74, 34.8, 34.9].forEach((b, i) => S.blip(b, 900 + i * 110, 0.4, -0.2 + i * 0.08));
+[54.6, 54.66, 54.7, 54.74, 54.8, 54.9].forEach((b, i) => S.blip(b, 900 + i * 110, 0.4, -0.2 + i * 0.08));
 S.swish(EV.verlIn2 + 0.05, 0.4, 1, 0.9, 0.2);
 S.click(EV.click4, 1, 0.2);
 S.chime(EV.click4 + 0.05, [81, 88, 93], 1, 0.1);
 
-// ---- 7: the brand
+// ---- 8: the brand
 S.implode(EV.converge + 0.75, 0.6, 1);
 S.impact(EV.wordmark, 0.8, 0);
 S.shimmer(EV.wordmark, 1.1);
@@ -925,12 +1023,40 @@ rec('liquidBubble', bt(EV.drop + 0.05), { gain: 0.55, rate: 0.7, pan: -0.4 });
 rec('soapBubble', bt(EV.drop + 0.15), { gain: 0.4, pan: -0.3 });
 rec('sparkleWhoosh', bt(EV.drop + 0.6), { gain: 0.35, pan: 0.3 });
 
-// ---- 6: the network
+// ---- 6: weeks ahead
+rec('zoomOut', bt(EV.planFrom), { gain: 0.5, align: 'start' });
+for (let i = 1; i < 6; i++) rec('clickTone', bt(EV.weeksIn + i * 0.16 + 0.45), { gain: 0.3, align: 'start', rate: 1 + i * 0.06, pan: xpan(WEEK_X(i)) });
+for (const b of [EV.headWeeks, EV.headWeeks + 0.25, EV.headKI, EV.headKI + 0.25, EV.headTender, EV.headTender + 0.25]) rec('fastBlow', bt(b), { gain: 0.4, pan: -0.3 });
+rec('gammaWhoosh', bt(EV.scanFrom + 1.0), { gain: 0.4 });
+rec('energyFlow', bt(EV.scanFrom + 0.9), { gain: 0.25 });
+rec('optionSelect', bt(EV.tags), { gain: 0.45, align: 'start', pan: 0.2 });
+rec('buzzGlitch', bt(EV.tags + 0.12) + 0.42, { gain: 0.35, pan: xpan(WEEK_X(3)) });
+rec('interfaceStart', bt(EV.tender), { gain: 0.4, align: 'start' });
+rec('metalSweep', bt(EV.tender + 0.15), { gain: 0.55 });
+rec('glassHit', bt(EV.tender + 0.2), { gain: 0.3, align: 'start' });
+rec('smallSwoosh', bt(EV.verlIn3 + 0.15), { gain: 0.4, pan: 0.6 });
+rec('selectClick', bt(EV.field), { gain: 0.5, align: 'start', pan: -0.2 });
+rec('selectClick', bt(EV.click6), { gain: 0.8, align: 'start', pan: 0.2 });
+rec('positiveAlert', bt(EV.click6 + 0.05), { gain: 0.5, pan: 0.2 });
+rec('deepBubbles', bt(EV.pourFrom), { gain: 0.4, align: 'start', pan: -0.3, len: bt(EV.pourTo) - bt(EV.pourFrom) });
+rec('liquidBubble', bt(EV.pourFrom + 0.1), { gain: 0.45, pan: -0.3 });
+rec('smallSwoosh', bt(EV.spedIn2 + 0.15), { gain: 0.35, pan: 0.7 });
+rec('selectClick', bt(EV.click7), { gain: 0.8, align: 'start', pan: 0.4 });
+rec('techAffirm', bt(EV.click7 + 0.05), { gain: 0.5, align: 'start', pan: 0.4 });
+rec('flyingSwoosh', bt(EV.takeFrom + 0.4), { gain: 0.4, pan: 0.3 });
+rec('windSwoosh', bt(EV.cardAway + 0.3), { gain: 0.4 });
+// all planned: big, but under the drop (tier 2)
+rec('epicImpact', bt(EV.allFull), { gain: 0.75, pre: 1.0 });
+rec('subHit', bt(EV.allFull), { gain: 0.6, align: 'start' });
+rec('sparkleWhoosh', bt(EV.allFull + 0.5), { gain: 0.3, pan: 0.3 });
+rec('inOutZoom', bt(EV.merge + 0.5), { gain: 0.4 });
+
+// ---- 7: the network
 rec('windSwoosh', bt(EV.collapse + 0.5), { gain: 0.55, pan: -0.3 });
 rec('zoomMove', bt(EV.hub + 0.15), { gain: 0.45, pan: -0.4 });
 rec('glassHit', bt(EV.hub + 0.25), { gain: 0.35, align: 'start' });
 rec('powerUp', bt(EV.hub + 0.2), { gain: 0.4, align: 'start' });
-rec('passBy', bt(26.7), { gain: 0.5 });                           // the network swinging round
+rec('passBy', bt(46.7), { gain: 0.5 });                           // the network swinging round
 for (const b of [EV.headNet, EV.headNet + 0.3]) rec('fastBlow', bt(b), { gain: 0.45, pan: -0.3 });
 EV.partners.forEach((b, i) => rec('clickTone', bt(b), { gain: 0.4, align: 'start', rate: [1, 1.12, 1.26][i], pan: [-0.5, 0.5, 0][i] }));
 rec('gammaWhoosh', bt(EV.request + 0.3), { gain: 0.5 });
@@ -944,7 +1070,7 @@ for (const b of [EV.headPartner, EV.headPartner + 0.25]) rec('fastBlow', bt(b), 
 rec('selectClick', bt(EV.click4), { gain: 0.8, align: 'start', pan: 0.2 });
 rec('techAffirm', bt(EV.click4 + 0.05), { gain: 0.5, align: 'start', pan: 0.1 });
 
-// ---- 7: the brand
+// ---- 8: the brand
 rec('spaceImpact', bt(EV.converge + 0.75), { gain: 0.7, reverse: true, pre: 1.6 });   // everything sucked into the dot
 rec('logoImpact', bt(EV.wordmark), { gain: 0.9, pre: 1.3 });
 rec('glitterShot', bt(EV.wordmark + 1.1), { gain: 0.35, pan: 0.2 });

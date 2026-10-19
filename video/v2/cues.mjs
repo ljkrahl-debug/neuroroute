@@ -7,7 +7,11 @@
 // every scene is made out of the previous one — no fades, no cuts.
 
 export const BPM = 120;
-export const BEATS = 48; // 24 s, and the last frame is the first: it loops
+export const BEATS = 68; // 34 s, and the last frame is the first: it loops
+
+// V2.2 put the capacity-planning chapter (6) in after the payoff; the network
+// and the brand (7, 8) moved PLAN beats later and are otherwise unchanged.
+export const PLAN = 20;
 
 // Every event the picture and the sound agree on.
 export const EV = {
@@ -23,13 +27,20 @@ export const EV = {
   headBooked: 19.3,
   // 5 — back down: the booking fills the empty leg; LEER rolls to VOLL on the drop
   whipDown: 19.65, outRedraw: 20.2, words2: 20.7, fillFrom: 21.5, roll: 23, drop: 24,
-  // 6 — your network first: 24 h for partners, then the market
-  collapse: 25.2, hub: 25.85, headNet: 26.1, partners: [26.6, 27.0, 27.4], marketDots: 26.3, request: 28.5,
-  sweepFrom: 28.75, sweepTo: 32.5, headMarkt: 32.5, offersBack: 33.4, offerCard: 34.4, headPartner: 34.5,
-  verlIn2: 34.7, click4: 35.5,
-  // 7 — everything becomes the brand dot; wordmark, claim, CTA; home to Hamburg
-  converge: 36.2, wordmark: 37, tagline: 38.5, cta: 40, duIn: 40.9, click5: 42, outro: 43.5, retract: 44,
-  home: 45, homeLabel: 46.5,
+  // 6 — weeks ahead: the full loop becomes this week in a row of weeks; the AI
+  // forecasts each one; free and excess capacity go out to tender; a shipper
+  // enters volumes and fills the free weeks, a carrier takes the excess
+  planFrom: 25.2, weeksIn: 25.5, headWeeks: 25.85, scanFrom: 28, scanTo: 30, headKI: 28.2, tags: 30.1,
+  tender: 31.4, headTender: 31.7, verlIn3: 33, field: 33.9, typeFrom: 34.1, typeTo: 35.1, click6: 35.6,
+  pourFrom: 36.1, pourTo: 37.3, spedIn2: 36.6, click7: 38.1, takeFrom: 38.2, takeTo: 39,
+  cardAway: 39.3, allFull: 40, merge: 42.6, labelsBack: 43.8,
+  // 7 — your network first: 24 h for partners, then the market
+  collapse: 45.2, hub: 45.85, headNet: 46.1, partners: [46.6, 47.0, 47.4], marketDots: 46.3, request: 48.5,
+  sweepFrom: 48.75, sweepTo: 52.5, headMarkt: 52.5, offersBack: 53.4, offerCard: 54.4, headPartner: 54.5,
+  verlIn2: 54.7, click4: 55.5,
+  // 8 — everything becomes the brand dot; wordmark, claim, CTA; home to Hamburg
+  converge: 56.2, wordmark: 57, tagline: 58.5, cta: 60, duIn: 60.9, click5: 62, outro: 63.5, retract: 64,
+  home: 65, homeLabel: 66.5,
 };
 
 export const SHOTS = [
@@ -37,7 +48,8 @@ export const SHOTS = [
   { id: 'card', from: EV.morph, to: EV.click1 },
   { id: 'offer', from: EV.click1, to: EV.fold },
   { id: 'market', from: EV.fold, to: EV.whipDown },
-  { id: 'payoff', from: EV.whipDown, to: EV.collapse },
+  { id: 'payoff', from: EV.whipDown, to: EV.planFrom },
+  { id: 'plan', from: EV.planFrom, to: EV.collapse },
   { id: 'network', from: EV.collapse, to: EV.converge },
   { id: 'logo', from: EV.converge, to: BEATS },
 ];

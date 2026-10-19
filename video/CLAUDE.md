@@ -34,6 +34,8 @@ Gilt für alles in `video/`. Die Projektregeln von Neuroroute stehen in `../CLAU
 - V2 (`v2/`): the founder asked for UI drawn in code instead of screenshots,
   so it can morph and move like the references. It keeps the product's design
   language, and every feature it shows must work the way the product does
-  (check backend/ before claiming one).
+  (check backend/ before claiming one). Exception: a roadmap feature the
+  founder explicitly asks for (V2.2: AI capacity forecast + tenders) — shown
+  tagged "BALD" (`SOON` in v2/index.html), never as live.
 - No invented statistics. Every number on screen comes from the product or
   its demo data.

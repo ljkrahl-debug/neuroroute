@@ -46,7 +46,7 @@ if (strip.length) {
 }
 if (contact) {
   for (let b = 0; b < BEATS; b++) await shoot(at(b + 0.45), `${FR}/b${String(b).padStart(2, '0')}.png`);
-  ff(['-framerate', '1', '-i', `${FR}/b%02d.png`, '-vf', `scale=200:-1,drawtext=text='%{eif\\:n\\:d}':x=6:y=6:fontsize=20:fontcolor=white:box=1:boxcolor=black@0.6,tile=13x4:padding=3`, '-frames:v', '1', `${OUT}/${TAG}-contact.png`]);
+  ff(['-framerate', '1', '-i', `${FR}/b%02d.png`, '-vf', `scale=200:-1,drawtext=text='%{eif\\:n\\:d}':x=6:y=6:fontsize=20:fontcolor=white:box=1:boxcolor=black@0.6,tile=12x${Math.ceil(BEATS / 12)}:padding=3`, '-frames:v', '1', `${OUT}/${TAG}-contact.png`]);
   console.log(`wrote ${OUT}/${TAG}-contact.png`);
 }
 if (errors.length) console.log('PAGE ERRORS:\n  ' + errors.join('\n  '));

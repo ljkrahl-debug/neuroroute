@@ -109,7 +109,8 @@ function camAt(t) {
   let baseS = 1 + 0.03 * a(9.5, 15.5) - 0.03 * a(15.9, 16.6)
     + 0.025 * a(16.6, 19.5) - 0.025 * a(19.65, 20.4)
     + 0.06 * E.inOutCubic(ramp(t, 21, 24)) - 0.06 * E.outCubic(ramp(t, 24, 26))
-    + 0.04 * a(26.5, 34.3) - 0.04 * a(34.3, 35.2) + 0.05 * a(37, 43);
+    + 0.03 * a(25.6, 31.3) - 0.03 * a(42.6, 44.8)
+    + 0.04 * a(46.5, 54.3) - 0.04 * a(54.3, 55.2) + 0.05 * a(57, 63);
   // the drop punches in
   const dd = t - B(EV.drop);
   if (dd > 0) baseS *= 1 + 0.05 * (1 - Math.exp(-dd * 22)) * Math.exp(-dd * 5);
@@ -117,12 +118,15 @@ function camAt(t) {
   const O = openingCam(Math.min(t, B(8)));
   const w = 1 - E.inOutSine(ramp(t, 7, 8));
   let cx = mix(540, O.cx, w), cy = mix(baseCy, O.cy, w), s = mix(baseS, O.s, w);
+  // weeks ahead: down to the tender card under the row, and back up for "all planned"
+  const cardView = E.inOutCubic(ramp(t, EV.tender - 0.1, EV.tender + 0.8)) - E.inOutCubic(ramp(t, EV.cardAway, EV.allFull - 0.05));
+  cy += 240 * cardView; s *= 1 - 0.1 * cardView;
   // home: the camera flies back into the terminal it started on
   const hz = E.inOutCubic(ramp(t, EV.home + 0.2, BEATS));
   cx = mix(cx, CAM_HOME.cx, hz); cy = mix(cy, CAM_HOME.cy, hz); s = mix(s, CAM_HOME.s, hz);
   // impacts: München, and a nudge on each slammed word
   let shake = 0;
-  for (const [b, amp] of [[EV.arriveM, 12], [EV.voll, 5], [EV.hin, 5], [EV.words2, 4], [EV.words2 + 0.2, 4]]) {
+  for (const [b, amp] of [[EV.arriveM, 12], [EV.voll, 5], [EV.hin, 5], [EV.words2, 4], [EV.words2 + 0.2, 4], [EV.allFull, 9], [EV.allFull + 0.25, 4]]) {
     const dt = t - B(b);
     if (dt > 0) shake += amp * Math.exp(-dt * 11) * Math.sin(dt * 55);
   }
@@ -1292,7 +1296,7 @@ function netProj(t) {
 function networkGraph(t, c = 0) {
   const P = netProj(t);
   const at = (pt) => { const [x, y, k] = P(pt); return [mix(x, 540, c), mix(y, 900, c), k]; };
-  const lit = (i) => sp(t, 28.6 + i * 0.12, POP);
+  const lit = (i) => sp(t, 48.6 + i * 0.12, POP);
   const open = (i) => sp(t, EV.headMarkt + i * 0.03, POP);
   const ring = (r, a0, a1) => {
     g.beginPath();
@@ -1307,7 +1311,7 @@ function networkGraph(t, c = 0) {
   g.save(); worldT();
   g.lineCap = 'round';
   // sonar: a ping leaves you on every beat while the window runs
-  for (let b = 29; b <= 32; b++) {
+  for (let b = 49; b <= 52; b++) {
     const dt = t - B(b);
     if (dt < 0 || dt > 0.9 || c > 0) continue;
     const p = dt / 0.9;
@@ -1360,7 +1364,7 @@ function networkGraph(t, c = 0) {
   // round with a fading wedge of light behind it, and the ring it leaves lit
   const sweep = ramp(t, EV.sweepFrom, EV.sweepTo);
   const R1 = NET.r1 * (1 - c);
-  const pr = sp(t, 28.4, POP);
+  const pr = sp(t, 48.4, POP);
   if (pr > 0) {
     g.strokeStyle = 'rgba(0,212,255,0.16)'; g.lineWidth = 8;
     g.beginPath(); g.arc(ctr[0], ctr[1], R1, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pr); g.stroke();
@@ -1376,7 +1380,7 @@ function networkGraph(t, c = 0) {
     g.beginPath(); g.moveTo(ctr[0] + Math.cos(a1) * 100, ctr[1] + Math.sin(a1) * 100); g.lineTo(ctr[0] + Math.cos(a1) * R1, ctr[1] + Math.sin(a1) * R1); g.stroke();
   }
   for (let i = 0; i < 24; i++) {
-    const pi = sp(t, 28.4 + i * 0.012, POP);
+    const pi = sp(t, 48.4 + i * 0.012, POP);
     if (pi <= 0) continue;
     const ang = -Math.PI / 2 + (i / 24) * Math.PI * 2;
     const passed = sweep * 24 - i;
@@ -1403,7 +1407,7 @@ function networkGraph(t, c = 0) {
     const pin = sp(t, EV.partners[i], [420, 22]);
     if (pin <= 0) return;
     const ph = (t / B(1)) % 1;
-    const beatPulse = t > B(29) && t < B(32.5) ? Math.exp(-ph * 6) * 0.18 : 0;
+    const beatPulse = t > B(49) && t < B(52.5) ? Math.exp(-ph * 6) * 0.18 : 0;
     const l = lit(i) > 0.5;
     if (l && c === 0) { g.shadowColor = C.cyan; g.shadowBlur = 24 + 30 * beatPulse; }
     g.beginPath(); g.arc(x, y, 32 * pin * (1 + beatPulse) * (1 - c) * k, 0, Math.PI * 2);
@@ -1461,28 +1465,28 @@ function hub(t, c = 0) {
   }
   g.restore();
   if (c > 0) return;
-  rise(t, 'DU', NET.x, NET.y + 30, { beat: 26.25, size: 92, color: C.ink, align: 'center', out: 28.6 });
-  rise(t, '24 H', NET.x, NET.y + 24, { beat: EV.sweepFrom, size: 96, color: C.ink, align: 'center', out: 32.4 });
-  rise(t, 'EXKLUSIV', NET.x, NET.y + 62, { beat: EV.sweepFrom + 0.1, size: 22, fam: UI, weight: 700, color: C.cyan, align: 'center', out: 32.4, spacing: 4 });
+  rise(t, 'DU', NET.x, NET.y + 30, { beat: 46.25, size: 92, color: C.ink, align: 'center', out: 48.6 });
+  rise(t, '24 H', NET.x, NET.y + 24, { beat: EV.sweepFrom, size: 96, color: C.ink, align: 'center', out: 52.4 });
+  rise(t, 'EXKLUSIV', NET.x, NET.y + 62, { beat: EV.sweepFrom + 0.1, size: 22, fam: UI, weight: 700, color: C.cyan, align: 'center', out: 52.4, spacing: 4 });
   rise(t, 'ALLE', NET.x, NET.y + 30, { beat: EV.headMarkt + 0.1, size: 92, color: C.ink, align: 'center', out: EV.offerCard - 0.1 });
 }
 
 function networkHeadlines(t) {
-  rise(t, 'ERST DEIN', 72, 400, { beat: EV.headNet, size: 190, color: C.ink, out: 32.3 });
-  rise(t, 'NETZWERK.', 72, 560, { beat: EV.headNet + 0.3, size: 190, color: C.cyan, out: 32.35 });
+  rise(t, 'ERST DEIN', 72, 400, { beat: EV.headNet, size: 190, color: C.ink, out: 52.3 });
+  rise(t, 'NETZWERK.', 72, 560, { beat: EV.headNet + 0.3, size: 190, color: C.cyan, out: 52.35 });
   rise(t, 'DANN DER', 72, 400, { beat: EV.headMarkt, size: 190, color: C.ink, out: EV.headPartner - 0.15 });
   rise(t, 'MARKT.', 72, 560, { beat: EV.headMarkt + 0.3, size: 190, color: C.ink, out: EV.headPartner - 0.1 });
   rise(t, 'PARTNER', 72, 400, { beat: EV.headPartner, size: 190, color: C.ink, out: EV.converge });
   rise(t, 'ZUERST.', 72, 560, { beat: EV.headPartner + 0.25, size: 190, color: C.cyan, out: EV.converge + 0.05 });
-  uiText(t, 'Deine Partner sehen die Anfrage zuerst.', 540, 1640, 29, 40, C.text, 500, 'center', 32.4);
-  uiText(t, 'Danach jeder Anbieter auf Neuroroute.', 540, 1640, 32.6, 40, C.text, 500, 'center', EV.offerCard);
+  uiText(t, 'Deine Partner sehen die Anfrage zuerst.', 540, 1640, 49, 40, C.text, 500, 'center', 52.4);
+  uiText(t, 'Danach jeder Anbieter auf Neuroroute.', 540, 1640, 52.6, 40, C.text, 500, 'center', EV.offerCard);
 }
 
 // ---- 6b: the partner's offer
 const OCARD = { x: 72, y: 720, w: 936, h: 780, r: 50 };
 const ACCEPT = { x: 132, y: 1130, w: 816, h: 92 };
-const VERL2_KEYS = [[EV.verlIn2, [1180, 1720]], [EV.verlIn2 + 0.05, [1180, 1720]], [35.1, [ACCEPT.x + 520, ACCEPT.y + 52]], [36.1, [1240, 1900]]];
-const VERL2 = { keys: VERL2_KEYS, clicks: [EV.click4], hover: [[35.15, EV.click4 + 0.3]], label: 'Verlader', color: C.cyan };
+const VERL2_KEYS = [[EV.verlIn2, [1180, 1720]], [EV.verlIn2 + 0.05, [1180, 1720]], [55.1, [ACCEPT.x + 520, ACCEPT.y + 52]], [56.1, [1240, 1900]]];
+const VERL2 = { keys: VERL2_KEYS, clicks: [EV.click4], hover: [[55.15, EV.click4 + 0.3]], label: 'Verlader', color: C.cyan };
 
 function offerCardRect(t, c = 0) {
   const e = spring(t - B(EV.offerCard), 160, 22), eh = spring(t - B(EV.offerCard + 0.05), 140, 21);
@@ -1515,26 +1519,26 @@ function offerCard(t, c = 0) {
     cam = { s: prev.s * k, cx: OCARD.x - (tx - W / 2) / (prev.s * k), cy: OCARD.y - (ty - H / 2) / (prev.s * k) };
   }
   const booked = sp(t, EV.click4 + 0.05, SNAP);
-  rise(t, '★ BESTES ANGEBOT · INTERNER PARTNER', 132, 806, { beat: 34.6, size: 24, fam: UI, weight: 700, color: C.cyan, spacing: 3 });
-  rise(t, 'Rotterdam → Wien', 948, 1060, { beat: 34.78, size: 32, fam: UI, weight: 500, color: C.muted, align: 'right' });
-  uiText(t, 'Müller Spedition GmbH', 132, 878, 34.66, 50, C.ink, 600);
-  uiText(t, '4.9 ★ · 1240 Aufträge · ETA 118 h', 132, 928, 34.7, 30, C.muted, 400);
-  rise(t, '€2.180', 132, 1090, { beat: 34.74, size: 150, color: booked > 0.5 ? C.green : C.ink });
-  const pb = sp(t, 34.8, POP);
+  rise(t, '★ BESTES ANGEBOT · INTERNER PARTNER', 132, 806, { beat: 54.6, size: 24, fam: UI, weight: 700, color: C.cyan, spacing: 3 });
+  rise(t, 'Rotterdam → Wien', 948, 1060, { beat: 54.78, size: 32, fam: UI, weight: 500, color: C.muted, align: 'right' });
+  uiText(t, 'Müller Spedition GmbH', 132, 878, 54.66, 50, C.ink, 600);
+  uiText(t, '4.9 ★ · 1240 Aufträge · ETA 118 h', 132, 928, 54.7, 30, C.muted, 400);
+  rise(t, '€2.180', 132, 1090, { beat: 54.74, size: 150, color: booked > 0.5 ? C.green : C.ink });
+  const pb = sp(t, 54.8, POP);
   if (pb > 0) {
     if (booked > 0.5) button(ACCEPT.x, ACCEPT.y, ACCEPT.w, ACCEPT.h, 'Angenommen ✓', { size: 36, scale: 0.94 + 0.06 * booked });
     else button(ACCEPT.x, ACCEPT.y + (1 - pb) * 40, ACCEPT.w, ACCEPT.h, 'Annehmen', { size: 36, scale: (0.25 + 0.75 * pb) * (1 - 0.06 * pulse(t, EV.click4)) });
   }
-  const pd = sp(t, 34.86, POP);
+  const pd = sp(t, 54.86, POP);
   if (pd > 0) {
     g.save(); worldT();
     g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(132, 1268, 816 * pd, 2);
     g.restore();
   }
-  uiText(t, 'Hansa Transport KG', 132, 1330, 34.9, 30, C.muted, 500);
-  uiText(t, '€2.280', 948, 1330, 34.9, 34, C.muted, 600, 'right');
-  uiText(t, 'Alpenfracht AG', 132, 1400, 34.95, 30, C.muted, 500);
-  uiText(t, '€2.350', 948, 1400, 34.95, 34, C.muted, 600, 'right');
+  uiText(t, 'Hansa Transport KG', 132, 1330, 54.9, 30, C.muted, 500);
+  uiText(t, '€2.280', 948, 1330, 54.9, 34, C.muted, 600, 'right');
+  uiText(t, 'Alpenfracht AG', 132, 1400, 54.95, 30, C.muted, 500);
+  uiText(t, '€2.350', 948, 1400, 54.95, 34, C.muted, 600, 'right');
   cam = prev;
   g.restore();
   if (booked > 0 && c === 0) energyOutline(R.x + 1, R.y + 1, R.w - 2, R.h - 2, R.r, E.inOutCubic(ramp(t, EV.click4 + 0.05, EV.click4 + 0.75)), C.green, 4);
@@ -1593,6 +1597,261 @@ function brandDot(t, x, y, r) {
 
 const DU_KEYS = [[EV.duIn, [1180, 1700]], [EV.duIn + 0.05, [1180, 1700]], [EV.click5 - 0.6, [600, 1266]], [EV.outro, [1220, 1800]]];
 const DU = { keys: DU_KEYS, clicks: [EV.click5], hover: [[EV.click5 - 0.45, EV.click5 + 0.4]], label: 'Du', color: C.ink };
+
+// ---- 6: weeks ahead (V2.2)
+//
+// The full loop becomes this week in a row of weeks. The forecast runs across
+// them like the card's scan, and each week fills to what it predicts: full,
+// hollow (free capacity) or over the top (more freight than trucks). Free and
+// excess capacity go out to tender: a shipper enters a volume that fills the
+// free weeks, another carrier takes the excess. Then every week is full, and
+// the row folds back into the one big loop the network chapter starts from.
+//
+// The AI forecast and tenders are on the roadmap, not in the backend yet; the
+// founder asked for them in the film. SOON tags the forecast as coming soon.
+const SOON = true;
+const WEEK = { x0: 140, dx: 148, y: 1080, s: 0.44, tube: 14, labelY: 1400, tagY: 742 };
+const WEEKS = [
+  { kw: 'KW 44', f: 1 },
+  { kw: 'KW 45', f: 1 },
+  { kw: 'KW 46', f: 0.32, tag: '12 FREI' },
+  { kw: 'KW 47', f: 1.26, tag: '+8 ZU VIEL' },
+  { kw: 'KW 48', f: 1 },
+  { kw: 'KW 49', f: 0.55, tag: '8 FREI' },
+];
+const weekX = (i) => WEEK.x0 + i * WEEK.dx;
+const weekPose = (i) => ({ x: weekX(i), y: WEEK.y, rot: 0, s: WEEK.s, leg: 48, len: 1 });
+const WEEK_LEG = (ARC_Y - TOP) * WEEK.s;       // a week's leg, world px
+const weekTop = WEEK.y + TOP * WEEK.s;          // its Hamburg terminal
+const weekRight = (i) => weekX(i) + 48 * WEEK.s; // its way back
+// the forecast sweeps the row; each week shows its forecast as the light passes
+const SCAN = { x0: 60, x1: 1000 };
+const scanX = (t) => mix(SCAN.x0, SCAN.x1, E.inOutSine(ramp(t, EV.scanFrom, EV.scanTo)));
+const revealBeat = (i) => {
+  const p = (weekX(i) - SCAN.x0) / (SCAN.x1 - SCAN.x0);
+  return EV.scanFrom + (Math.acos(1 - 2 * p) / Math.PI) * (EV.scanTo - EV.scanFrom);
+};
+// the free weeks fill when the shipper's volume arrives; the excess leaves
+// when the carrier takes it
+const pourAt = (i) => EV.pourFrom + (i === 5 ? 0.15 : 0);
+function weekFill(t, i) {
+  const w = WEEKS[i];
+  if (i === 0) return 1;
+  const rv = revealBeat(i);
+  let f = w.f * E.outCubic(ramp(t, rv, rv + 0.7));
+  if (w.f < 1) f = mix(f, 1, E.inOutCubic(ramp(t, pourAt(i), EV.pourTo)));
+  if (w.f > 1 && t >= B(EV.takeFrom)) f = 1;
+  return f;
+}
+/** 0 until the week is drawn in, 1 once it stands. */
+const weekIn = (t, i) => (i === 0 ? 1 : ramp(t, EV.weeksIn + i * 0.16, EV.weeksIn + i * 0.16 + 0.5));
+/** How far the week has slid into this week's slot at the end (0..1). */
+const weekMerge = (t, i) => clamp(spring(t - B(EV.merge + (5 - i) * 0.05), 150, 24));
+
+// the tender card, below the row; the camera goes down to it and back
+const TCARD = { x: 72, y: 1450, w: 936, h: 436, r: 44 };
+const ROW1 = TCARD.y + 160, ROW2 = TCARD.y + 264;
+const FIELD = { x: 132, y: TCARD.y + 326, w: 500, h: 80 };
+const ENTER = { x: 652, y: TCARD.y + 326, w: 296, h: 80 };
+const TAKE = { x: 648, y: ROW2 - 50, w: 300, h: 70 };
+const TYPED = '20 Ladungen';
+const tcardIn = (t) => spring(t - B(EV.tender), 140, 21);
+const tcardOut = (t) => spring(t - B(EV.cardAway), 150, 24);
+const VERL3 = {
+  keys: [[EV.verlIn3, [1220, 2160]], [EV.verlIn3 + 0.05, [1220, 2160]], [EV.field - 0.12, [FIELD.x + 250, FIELD.y + 44]],
+    [EV.typeTo, [ENTER.x + 150, ENTER.y + 44]], [EV.click6 + 0.8, [1260, 2200]]],
+  clicks: [EV.field, EV.click6], hover: [[EV.click6 - 0.35, EV.click6 + 0.3]], label: 'Verlader', color: C.cyan,
+};
+const SPED3 = {
+  keys: [[EV.spedIn2, [1260, 1560]], [EV.spedIn2 + 0.05, [1260, 1560]], [EV.click7 - 0.5, [TAKE.x + 100, TAKE.y + 42]],
+    [EV.click7 + 0.9, [1280, 1700]]],
+  clicks: [EV.click7], hover: [[EV.click7 - 0.4, EV.click7 + 0.3]], label: 'Hansa Transport', color: C.amber,
+};
+
+/** A light travelling from one world point to another, with a short trail. */
+function flyLight(t, from, to, b0, b1, color, size = 0.6) {
+  const p = ramp(t, b0, b1);
+  if (p <= 0 || p >= 1) return;
+  const e = E.inOutCubic(p), e2 = E.inOutCubic(Math.max(0, p - 0.14));
+  const arc = (q) => [mix(from[0], to[0], q), mix(from[1], to[1], q) - 120 * Math.sin(Math.PI * q)];
+  const [x, y] = arc(e), [x2, y2] = arc(e2);
+  g.save(); worldT();
+  const gr = g.createLinearGradient(x2, y2, x, y);
+  gr.addColorStop(0, hexA(color, 0)); gr.addColorStop(1, hexA(color, 0.8));
+  g.strokeStyle = gr; g.lineWidth = 7; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(x2, y2); g.lineTo(x, y); g.stroke();
+  g.restore();
+  comet(x, y, color, size);
+}
+
+/** A pill that pops in, and at `swap` pops out for a second one. */
+function swapPill(t, cx, y, h, inBeat, swap, a, b, size = 22) {
+  const pa = sp(t, inBeat, POP) * (swap == null ? 1 : 1 - sp(t, swap, SNAP));
+  if (pa > 0.01) pill(cx, y, h, a.text, { size, color: a.color, solid: a.solid, scale: pa, align: 'center' });
+  const pb = swap == null ? 0 : sp(t, swap + 0.06, POP);
+  if (pb > 0.01) pill(cx, y, h, b.text, { size, color: b.color, solid: b.solid, scale: pb, align: 'center' });
+}
+
+function planHeadlines(t) {
+  const L1 = 430, L2 = 590, S1 = 170;
+  rise(t, 'NÄCHSTE', 72, L1, { beat: EV.headWeeks, size: S1, color: C.ink, out: EV.headKI - 0.15 });
+  rise(t, 'WOCHEN?', 72, L2, { beat: EV.headWeeks + 0.25, size: S1, color: C.cyan, out: EV.headKI - 0.1 });
+  rise(t, 'KI RECHNET', 72, L1, { beat: EV.headKI, size: S1, color: C.ink, out: EV.headTender - 0.15 });
+  rise(t, 'VORAUS.', 72, L2, { beat: EV.headKI + 0.25, size: S1, color: C.cyan, out: EV.headTender - 0.1 });
+  const S3 = fitSize('AUSGESCHRIEBEN.', 940 - 72, S1);
+  rise(t, 'AUTOMATISCH', 72, L1, { beat: EV.headTender, size: S3, color: C.ink, out: EV.cardAway });
+  rise(t, 'AUSGESCHRIEBEN.', 72, L2, { beat: EV.headTender + 0.25, size: S3, color: C.cyan, out: EV.cardAway + 0.05 });
+  // the payoff of the chapter: full words slam in
+  for (const [text, y, b, col] of [['ALLES VOLL', L1, EV.allFull, C.ink], ['GEPLANT.', L2, EV.allFull + 0.25, C.green]]) {
+    if (t < B(b) + 0.4) slamWord(t, text, 72, y, b, S1, col);
+    else rise(t, text, 72, y, { beat: b, size: S1, color: col, out: EV.merge - 0.25 + (y === L2 ? 0.05 : 0) });
+  }
+  // the forecast is labelled, and tagged as coming soon
+  const pk = sp(t, EV.headKI + 0.4, POP) * (1 - sp(t, EV.allFull - 0.2, SNAP));
+  if (pk > 0.01) {
+    const w = pill(72, 646, 60, 'KI-PROGNOSE', { size: 27, color: C.cyan, scale: pk });
+    if (SOON) pill(72 + w + 14, 646, 60, 'BALD', { size: 27, color: C.muted, scale: pk });
+  }
+}
+
+function weekRow(t) {
+  const intro = spring(t - B(EV.planFrom), 110, 22);
+  const grow = spring(t - B(EV.merge + 0.5), 100, 20);
+  const allFull = t >= B(EV.allFull);
+  const flowOn = clamp(spring(t - B(EV.allFull), 200, 26));
+  // the scan: the forecast runs across the weeks
+  const sc = ramp(t, EV.scanFrom, EV.scanTo);
+  if (sc > 0 && sc < 1) {
+    const sx = scanX(t);
+    g.save(); worldT();
+    const gr = g.createLinearGradient(sx - 200, 0, sx, 0);
+    gr.addColorStop(0, 'rgba(0,212,255,0)'); gr.addColorStop(1, 'rgba(0,212,255,0.2)');
+    g.fillStyle = gr; g.fillRect(sx - 200, weekTop - 60, 200, WEEK.labelY - weekTop + 90);
+    g.fillStyle = C.cyan; g.fillRect(sx - 1.5, weekTop - 60, 3, WEEK.labelY - weekTop + 90);
+    g.restore();
+    comet(sx, weekTop - 60, C.cyan, 0.5);
+  }
+  // this week: the big loop shrinks into the first slot, and at the end grows
+  // back out of it. The other weeks slide into its pose and disappear in it.
+  let pose0 = poseMix(POSE_OPEN, weekPose(0), intro, intro, intro);
+  if (grow > 0) pose0 = poseMix(pose0, POSE_OPEN, grow, grow, grow);
+  // later weeks first, so this week sits on top when they slide into it
+  for (let i = WEEKS.length - 1; i >= 0; i--) {
+    const m = i === 0 ? 0 : weekMerge(t, i);
+    if (m > 0.995) continue;
+    const pose = i === 0 ? pose0 : poseMix(weekPose(i), pose0, m, m, m);
+    const din = weekIn(t, i);
+    if (din <= 0) continue;
+    const rv = i === 0 ? -1 : revealBeat(i);
+    const seen = i === 0 || t >= B(rv);
+    const f = weekFill(t, i);
+    g.save();
+    g.globalAlpha = seen ? 1 : 0.38;
+    drawLoop(pose, {
+      out: i === 0 ? 1 : E.outCubic(clamp(din * 2)), back: i === 0 ? 1 : E.inOutCubic(clamp(din * 2 - 1)),
+      fill: Math.min(1, f), tube: i === 0 ? mix(mix(20, WEEK.tube, intro), 20, grow) : WEEK.tube,
+      stationM: i === 0 ? 1 : sp(t, EV.weeksIn + i * 0.16 + 0.25, [420, 22]), stationH: i === 0 ? 1 : sp(t, EV.weeksIn + i * 0.16 + 0.45, [420, 22]),
+      flow: i === 0 ? 1 : flowOn, t, glow: Math.max(i === 0 ? 1 - intro : 0, allFull ? 1 - grow : 0),
+      bubbles: (t > B(rv) && t < B(rv + 0.7)) || (WEEKS[i].f < 1 && t > B(pourAt(i)) && t < B(EV.pourTo)) ? t : null,
+    });
+    g.restore();
+    // more freight than trucks: it stands over the top of the terminal
+    if (f > 1 && i !== 0) {
+      const h = (f - 1) * WEEK_LEG, x = weekRight(i);
+      const wob = 4 * Math.sin(t * 9 + i);
+      g.save(); worldT();
+      g.lineCap = 'round'; g.strokeStyle = C.green; g.lineWidth = WEEK.tube / cam.s;
+      g.shadowColor = C.green; g.shadowBlur = 18;
+      g.beginPath(); g.moveTo(x, weekTop - 6); g.lineTo(x, weekTop - h); g.stroke();
+      g.beginPath(); g.arc(x, weekTop - h, (WEEK.tube * 0.9 + wob * 0.3) / cam.s, 0, Math.PI * 2); g.fillStyle = C.green; g.fill();
+      g.restore();
+    }
+    if (seen && i !== 0) flash(weekX(i), weekTop, C.cyan, 0.5 * hit(t, rv, 7), 160);
+    if (allFull && m < 0.01) {
+      flash(weekX(i), weekTop, C.green, 0.7 * hit(t, EV.allFull + i * 0.05, 6), 200);
+      burst(t, weekX(i), weekTop, EV.allFull + i * 0.05, C.green, 14, 90);
+    }
+    // the week's name
+    rise(t, WEEKS[i].kw, weekX(i), WEEK.labelY, { beat: EV.weeksIn + i * 0.16 + 0.1, size: 26, fam: UI, weight: 600, color: i === 0 ? C.ink : C.muted, align: 'center', spacing: 2, out: EV.merge - 0.3 + i * 0.03 });
+  }
+  // the excess leaves: it lifts off the full week and flies to the carrier's row
+  const over = WEEKS.findIndex((w) => w.f > 1);
+  flyLight(t, [weekRight(over), weekTop - (WEEKS[over].f - 1) * WEEK_LEG], [TAKE.x + 40, TAKE.y + 33], EV.takeFrom, EV.takeTo, C.green, 0.8);
+  // forecast tags over the weeks that need something; they turn to VOLL
+  WEEKS.forEach((w, i) => {
+    if (!w.tag) return;
+    const overW = w.f > 1;
+    const y = overW ? weekTop - (w.f - 1) * WEEK_LEG - 92 : WEEK.tagY - 30;
+    const swap = overW ? EV.takeTo : EV.pourTo;
+    const k = WEEKS.slice(0, i).filter((v) => v.tag).length;
+    const outP = sp(t, EV.allFull - 0.1, SNAP);
+    if (outP > 0.99) return;
+    g.save(); g.globalAlpha = 1;
+    swapPill(t, weekX(i) + (overW ? 48 * WEEK.s : 0), y, 56, EV.tags + k * 0.12, swap,
+      { text: w.tag, color: overW ? C.cyan : C.amber, solid: false }, { text: 'VOLL', color: C.green, solid: true }, 26);
+    g.restore();
+  });
+}
+
+function tenderCard(t) {
+  const e = tcardIn(t), ex = tcardOut(t);
+  if (e <= 0.001 || ex > 0.995) return;
+  const y = TCARD.y + 260 * (1 - e) + 900 * ex;
+  const tilt = 0.7 * (1 - spring(t - B(EV.tender), 110, 14)) - 0.6 * ex;
+  const rect = [TCARD.x, y, TCARD.w, TCARD.h];
+  const dy = y - TCARD.y;
+  panel3D(() => {
+    glass(...rect, TCARD.r, { blur: 26, tint: 0.07 });
+    tenderContent(t, dy);
+  }, rect, tilt);
+}
+
+function tenderContent(t, dy) {
+  const at = (yy) => yy + dy;
+  const b0 = EV.tender + 0.35;
+  rise(t, 'AUSSCHREIBUNG', 132, at(TCARD.y + 74), { beat: b0, size: 27, fam: UI, weight: 700, color: C.cyan, spacing: 4 });
+  rise(t, 'München → Hamburg', 948, at(TCARD.y + 74), { beat: b0 + 0.05, size: 30, fam: UI, weight: 500, color: C.muted, align: 'right' });
+  const pd = sp(t, b0 + 0.1, POP);
+  if (pd > 0) { g.save(); worldT(); g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(132, at(TCARD.y + 100), 816 * pd, 2); g.restore(); }
+  // row 1: free capacity, for shippers
+  uiText(t, 'KW 46 + 49', 132, at(ROW1), b0 + 0.15, 42, C.ink, 600);
+  uiText(t, 'Frei: 20 Ladungen', 132, at(ROW1 + 42), b0 + 0.2, 31, C.muted, 400);
+  swapPill(t, 830, at(ROW1 - 48), 60, b0 + 0.3, EV.click6 + 0.05,
+    { text: 'FREI', color: C.amber, solid: false }, { text: 'GEBUCHT ✓', color: C.green, solid: true }, 26);
+  // row 2: excess, for carriers looking for loads
+  uiText(t, 'KW 47', 132, at(ROW2), b0 + 0.25, 42, C.ink, 600);
+  uiText(t, 'Zu vergeben: 8 Ladungen', 132, at(ROW2 + 42), b0 + 0.3, 31, C.muted, 400);
+  const pt = sp(t, b0 + 0.4, POP);
+  const taken = sp(t, EV.click7 + 0.05, SNAP);
+  if (pt > 0) {
+    if (taken > 0.5) button(TAKE.x, at(TAKE.y), TAKE.w, TAKE.h, 'Übernommen ✓', { size: 31, scale: 0.94 + 0.06 * taken });
+    else button(TAKE.x, at(TAKE.y), TAKE.w, TAKE.h, 'Übernehmen', { color: C.cyan, outline: true, size: 31, scale: (0.3 + 0.7 * pt) * (1 - 0.06 * pulse(t, EV.click7)) });
+  }
+  // the volume field and its button
+  const pf = sp(t, b0 + 0.5, POP);
+  if (pf > 0) {
+    const focus = sp(t, EV.field, SNAP) * (1 - sp(t, EV.click6, SNAP));
+    g.save(); worldT();
+    g.globalAlpha = pf;
+    g.beginPath(); g.roundRect(FIELD.x, at(FIELD.y), FIELD.w, FIELD.h, 20);
+    g.fillStyle = 'rgba(255,255,255,0.06)'; g.fill();
+    g.lineWidth = 2.5; g.strokeStyle = focus > 0.01 ? hexA(C.cyan, 0.35 + 0.65 * focus) : 'rgba(255,255,255,0.16)'; g.stroke();
+    g.font = font(33, UI, 500); g.textBaseline = 'middle';
+    const n = Math.floor(ramp(t, EV.typeFrom, EV.typeTo) * TYPED.length + 1e-6);
+    const typed = TYPED.slice(0, n);
+    if (n === 0) { g.fillStyle = C.muted; g.fillText('Deine Menge …', FIELD.x + 28, at(FIELD.y) + FIELD.h / 2 + 1); }
+    else { g.fillStyle = C.ink; g.fillText(typed, FIELD.x + 28, at(FIELD.y) + FIELD.h / 2 + 1); }
+    const caretOn = t >= B(EV.field) && t < B(EV.click6) && ((t / B(0.5)) % 1) < 0.55;
+    if (caretOn) {
+      const cx = FIELD.x + 28 + (n ? g.measureText(typed).width + 4 : 0);
+      g.fillStyle = C.cyan; g.fillRect(cx, at(FIELD.y) + 20, 3, FIELD.h - 40);
+    }
+    g.restore();
+    const sent = sp(t, EV.click6 + 0.05, SNAP);
+    if (sent > 0.5) button(ENTER.x, at(ENTER.y), ENTER.w, ENTER.h, 'Eingetragen ✓', { size: 31, scale: 0.94 + 0.06 * sent });
+    else button(ENTER.x, at(ENTER.y), ENTER.w, ENTER.h, 'Eintragen', { color: C.cyan, size: 33, scale: (0.3 + 0.7 * pf) * (1 - 0.06 * pulse(t, EV.click6)) });
+  }
+}
 
 // ---------------------------------------------------------------- the scenes
 
@@ -1691,6 +1950,31 @@ const SCENES = {
     burst(t, ...MUN, EV.drop, C.green, 30, 200);
   },
 
+  plan(t) {
+    // the words and station names leave as the loop becomes this week
+    if (t < B(EV.planFrom + 1.5)) words(t, { rolled: EV.roll, level: -1e4, out: EV.planFrom });
+    stationLabels(t, POSE_OPEN, 0, { appearH: EV.words2 - 0.2, appearM: EV.words2 - 0.1, out: EV.planFrom + 0.05 });
+    if (t >= B(EV.labelsBack)) stationLabels(t, POSE_OPEN, 0, { appearH: EV.labelsBack, appearM: EV.labelsBack + 0.1 });
+    weekRow(t);
+    planHeadlines(t);
+    tenderCard(t);
+    // the tags are lifted into the tender
+    WEEKS.forEach((w, i) => {
+      if (!w.tag) return;
+      const overW = w.f > 1;
+      const from = [weekX(i) + (overW ? 48 * WEEK.s : 0), overW ? weekTop - (w.f - 1) * WEEK_LEG - 60 : WEEK.tagY];
+      const to = overW ? [TAKE.x + TAKE.w / 2, TAKE.y + 33] : [830, ROW1 - 20];
+      flyLight(t, from, to, EV.tender + 0.3 + i * 0.05, EV.tender + 0.85 + i * 0.05, overW ? C.cyan : C.amber, 0.5);
+    });
+    // the shipper's volume flies up into the free weeks
+    WEEKS.forEach((w, i) => {
+      if (!(w.f < 1)) return;
+      flyLight(t, [830, ROW1 - 20], [weekRight(i), weekTop], pourAt(i) - 0.45, pourAt(i), C.green, 0.7);
+    });
+    cursor(t, VERL3);
+    cursor(t, SPED3);
+  },
+
   network(t) {
     // the full loop rolls itself up into Hamburg, and Hamburg becomes you
     const len = 1 - E.inOutCubic(ramp(t, EV.collapse + 0.15, EV.hub + 0.1));
@@ -1702,7 +1986,6 @@ const SCENES = {
       drawLoop({ ...POSE_OPEN, len: 0.02 }, { stationM: 0, stationH: 1 });
     }
     stationLabels(t, POSE_OPEN, 0, { out: EV.collapse + 0.05 });
-    words(t, { rolled: EV.roll, level: -1e4, out: EV.collapse });
     const cardOn = t > B(EV.offerCard);
     const depth = cardOn ? spring(t - B(EV.offerCard), 160, 22) : 0;
     if (depth > 0.001) {
@@ -1772,6 +2055,9 @@ const SHOCKS = () => [
   { beat: EV.click2, at: [PUBLISH.x + PUBLISH.w / 2, PUBLISH.y + PUBLISH.h / 2], r0: 20, r1: 380, dur: 0.45, width: 40, strength: 0.6 },
   { beat: EV.click3, at: [BOOK(slotY(0)).x + 79, BOOK(slotY(0)).y + 26], r0: 20, r1: 340, dur: 0.45, width: 40, strength: 0.6 },
   { beat: EV.drop, at: [POSE_OPEN.x, 950 + TOP], r0: 40, r1: 1800, dur: 0.85, width: 90, strength: 0.6 },
+  { beat: EV.click6, at: [ENTER.x + ENTER.w / 2, ENTER.y + ENTER.h / 2], r0: 20, r1: 340, dur: 0.45, width: 40, strength: 0.6 },
+  { beat: EV.click7, at: [TAKE.x + TAKE.w / 2, TAKE.y + TAKE.h / 2], r0: 20, r1: 340, dur: 0.45, width: 40, strength: 0.6 },
+  { beat: EV.allFull, at: [weekX(2.5), WEEK.y], r0: 40, r1: 1500, dur: 0.8, width: 90, strength: 0.6 },
   { beat: EV.headMarkt, at: [NET.x, NET.y], r0: 100, r1: 1400, dur: 0.75, width: 90, strength: 0.7 },
   { beat: EV.click4, at: [ACCEPT.x + ACCEPT.w / 2, ACCEPT.y + ACCEPT.h / 2], r0: 20, r1: 380, dur: 0.45, width: 40, strength: 0.6 },
   { beat: EV.wordmark, at: [540, 900], r0: 30, r1: 1300, dur: 0.7, width: 80, strength: 0.6 },
@@ -1790,7 +2076,7 @@ function postFX(t) {
   const a = camAt(t), b = camAt(t - 1 / 240);
   const v = Math.abs(a.cy - b.cy) * a.s * 4;
   const whip = clamp((v - 30) / 12, 0, 9);
-  const hitSplit = 10 * hit(t, EV.drop, 9) + 7 * hit(t, EV.headMarkt, 9) + 6 * hit(t, EV.wordmark, 9) + 5 * hit(t, EV.arriveM, 10);
+  const hitSplit = 10 * hit(t, EV.drop, 9) + 8 * hit(t, EV.allFull, 9) + 7 * hit(t, EV.headMarkt, 9) + 6 * hit(t, EV.wordmark, 9) + 5 * hit(t, EV.arriveM, 10);
   if (whip > hitSplit) rgbSplit(whip, [0, 1]); else rgbSplit(hitSplit, [1, 0]);
 }
 

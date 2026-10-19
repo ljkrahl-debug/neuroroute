@@ -10,7 +10,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync } from 'node:fs';
 import { chromium } from 'playwright';
-import { BPM, EV } from './cues.mjs';
+import { BPM, BEATS, EV } from './cues.mjs';
 
 const skipRender = process.argv.includes('--skip-render');
 const run = (cmd, a) => execFileSync(cmd, a, { stdio: 'inherit' });
@@ -24,9 +24,9 @@ const FILM = 'dist/neuroroute-fuellstand-9x16.mp4';
 run('node', ['v2/mix.mjs', 'out/v2/silent.mp4', FILM]);
 
 // review files
-ff(['-i', FILM, '-vf', 'fps=2,scale=216:-1,tile=8x6:padding=3', '-frames:v', '1', 'dist/fuellstand-contact.png']);
+ff(['-i', FILM, '-vf', `fps=2,scale=216:-1,tile=8x${Math.ceil(BEATS * 60 / BPM * 2 / 8)}:padding=3`, '-frames:v', '1', 'dist/fuellstand-contact.png']);
 ff(['-ss', String(EV.whipUp * 60 / BPM - 0.1), '-i', FILM, '-vf', 'fps=30,scale=216:-1,tile=10x1:padding=3', '-frames:v', '1', 'dist/fuellstand-strip.png']);
-ff(['-i', FILM, '-vf', 'fps=1,scale=360:-1,tile=6x4:padding=4', '-frames:v', '1', 'dist/fuellstand-phone.png']);
+ff(['-i', FILM, '-vf', `fps=1,scale=360:-1,tile=6x${Math.ceil(BEATS * 60 / BPM / 6)}:padding=4`, '-frames:v', '1', 'dist/fuellstand-phone.png']);
 {
   const browser = await chromium.launch({ args: ['--allow-file-access-from-files'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
