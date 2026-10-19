@@ -54,6 +54,16 @@ a reference (frame, video, or image folder), music (file or "synthesize").
   bound f below the stability limit.
 - A mask-rise exit must lift past ascent + descent, or a sliver of the
   letters stays in the slot.
+- "More effects" that stay clean: a shockwave through the finished frame
+  on impacts and clicks, colour split only on the hardest hits and whips,
+  panels swinging in in 3D, full words slamming / empty words tracing as
+  neon. Every effect ramps over 2+ frames, or the pop scan flags it.
+- Recorded effects beat synthesized ones for weight. Align each by its
+  measured peak, cap the swell before it (~0.7 s), and set levels in tiers
+  (payoff > big hits > transitions > UI). Measure momentary loudness every
+  0.5 s: the drop has to be the loudest moment, and its build quieter.
+- If the film loops, mix cyclically (a swell before frame 0 wraps to the
+  end) and check the seam numerically: first vs last frame.
 
 ## Lessons from the first film
 - `fetch()` refuses `file://`; load JSON as modules (`import x from './x.json' with { type: 'json' }`).

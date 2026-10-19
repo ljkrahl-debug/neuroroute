@@ -26,6 +26,27 @@ vorherigen, es gibt keinen einzigen Schnitt und keine Überblendung.
 | 25–36 | 12,5–18 s | Die Schleife rollt sich in Hamburg ein, Hamburg wird zu „DU“: **ERST DEIN NETZWERK.** 24 Stunden nur Partner, dann der Markt; Partner-Angebot wird angenommen | Station → Hub, Hub → Karte |
 | 36–48 | 18–24 s | Alles fließt in den cyanen Punkt, NEUROROUTE wird aus ihm herausgezogen, Claim, „Demo anfragen“; der Punkt fährt heim nach Hamburg | Karte → Punkt → Station |
 
+### V2.1 — Effekte
+
+Nach dem ersten Feedback (Anfang und Payoff zu ruhig, mehr Effekte auf den
+Karten und im Kreis) liegt eine Effekt-Ebene über dem Film:
+
+- **Opening:** die Kamera startet ganz nah an der Hamburg-Station und fährt
+  mit dem leuchtenden Kopf der Linie mit (Funken, Kometenschweif). Volle
+  Wörter schlagen ein (groß, bewegungsunscharf, weißer Lichtblitz), leere
+  Wörter zeichnen sich selbst wie eine flackernde Neonröhre. Am Ende fliegt
+  die Kamera zurück in die Station — der Film loopt weiter nahtlos.
+- **Payoff:** die Flüssigkeit steigt mit Blasen und leuchtender Front, die
+  Oberfläche in den Buchstaben schwappt, oben spritzt sie über.
+- **Treffer:** Schockwellen laufen durch das Bild (Aufprall, jeder Klick,
+  Drop, Markt-Öffnung, Logo), Farbspaltung auf den härtesten Treffern und in
+  den Whips, Speed-Streifen in den Whips.
+- **Karten:** Panels schwenken in 3D ein, der Regler zündet pro Prozent einen
+  Strich, Buchen und Annehmen schicken einen Energie-Impuls um den Rahmen.
+- **Kreis:** das Netzwerk kommt schräg und gedreht herein und schwenkt nach
+  vorn; die 24 h laufen als Radar mit Lichtkeil, Sonar-Pings pro Takt; beim
+  Öffnen läuft die Schockwelle nach außen und jeder Knoten blitzt auf.
+
 Wahr bleiben: Die 24 h Partner-Vorrang gelten im Backend nur für
 Transportanfragen (`backend/src/routes/requests.js`), nicht für
 Marktplatz-Inserate — darum zwei getrennte Kapitel. Preise und Firmennamen
@@ -45,9 +66,17 @@ Bewegungskurven des Bildes:
 - 24 Uhr-Ticks, während der Ring die 24 Stunden abläuft
 - Whips erreichen ihren Höhepunkt, wenn die Kamera am schnellsten ist
 
+Darüber liegt eine Ebene aus **aufgenommenen Effekten** (Mixkit, Sound
+Effects Free License: kommerziell frei, ohne Nennung, aber nicht einzeln
+weitergeben — darum lädt `fetch-sfx.mjs` sie per ID, das Repo enthält nur die
+IDs). Jeder Sound wird mit seinem gemessenen lautesten Moment auf sein
+Ereignis gelegt; Swells vor dem Peak sind gekappt, damit sie nicht über das
+vorherige Ereignis laufen. Lautstärke in drei Stufen: Drop, Markt-Öffnung und
+Logo am lautesten, Whips und Übergänge darunter, Klicks und UI-Sounds leise.
+
 Musik: 120 BPM, a-Moll. Herzschlag-Intro, Groove ab der Karte, Aufbau auf E
 (Dominante) mit Snare-Roll und einer 1/16 Stille, Drop auf a-Moll, Logo auf
-Am(add9). Mix: Musik duckt unter den Effekten (Sidechain), −14 LUFS,
+Am(add9). Ein Braam und ein 808 tragen den Drop. Mix: Musik duckt unter den Effekten (Sidechain), −14 LUFS,
 True Peak unter −1 dB.
 
 ## Bauen
@@ -55,7 +84,8 @@ True Peak unter −1 dB.
 ```bash
 cd video
 npm install
-node v2/deliver.mjs          # Ton, Bild (≈ 13 min), Mux, Review-Bilder, Pop-Scan
+node v2/fetch-sfx.mjs        # aufgenommene Effekte laden (einmalig, nicht im Repo)
+node v2/deliver.mjs          # Ton, Bild (≈ 20 min), Mux, Review-Bilder, Pop-Scan
 node v2/stills.mjs --contact --tag r4          # ein Bild pro Takt
 node v2/stills.mjs --strip 15.6,16.8 --tag r4  # 10 Bilder über einen Übergang
 node v2/render.mjs --bench                     # Kosten pro Frame
@@ -67,7 +97,8 @@ node v2/render.mjs --bench                     # Kosten pro Frame
 |---|---|
 | `index.html` | Der Film. Reine Funktion der Zeit |
 | `cues.mjs` | Zeitleiste für Bild **und** Ton (`EV`, `SHOTS`) |
-| `audio.mjs` | Musik und alle Effekte, synthetisiert |
+| `audio.mjs` | Musik und synthetisierte Effekte, plus die aufgenommenen, nach Peak platziert |
+| `fetch-sfx.mjs` | lädt die aufgenommenen Effekte per ID (Mixkit) |
 | `mix.mjs` | Sidechain-Ducking, zwei Durchgänge Loudnorm, Limiter, Mux |
 | `render.mjs` | Canvas → PNG → ffmpeg, Sub-Frames für Motion Blur, parallele Worker |
 | `stills.mjs` | Keyframes, Kontaktbögen, Übergangs-Strips |
