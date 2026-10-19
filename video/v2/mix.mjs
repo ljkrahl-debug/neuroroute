@@ -10,7 +10,7 @@ import { execFileSync } from 'node:child_process';
 
 const [, , video, output] = process.argv;
 const MIX = '[0:a]volume=0.62[m];[1:a]volume=1.0,asplit=2[k][s];' +
-  '[m][k]sidechaincompress=threshold=0.06:ratio=3.5:attack=6:release=220:makeup=1[md];' +
+  '[m][k]sidechaincompress=threshold=0.1:ratio=2.5:attack=8:release=200:makeup=1[md];' +
   '[md][s]amix=inputs=2:normalize=0[a]';
 const IN = ['-i', 'out/v2/music.wav', '-i', 'out/v2/sfx.wav'];
 const sh = (cmd) => execFileSync('sh', ['-c', cmd], { encoding: 'utf8' });

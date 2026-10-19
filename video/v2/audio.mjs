@@ -8,8 +8,9 @@
 // per percent, the liquid rises in pitch as the leg fills, the whips peak
 // when the camera is fastest. All noise is seeded: the render is identical
 // every time.
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { BPM, BEATS, EV } from './cues.mjs';
+import { SFX_IDS } from './fetch-sfx.mjs';
 
 const SR = 48000;
 const BEAT = 60 / BPM;
@@ -294,7 +295,7 @@ pad(20, 2, CH.Esus, 1); pad(22, 1.75, CH.E, 1.1);
 chord(21.5, 2.25, CH.E, 0.6, { cutoff: 900, attack: 0.8 });
 for (let b = 21.5; b < 23.75; b += 0.5) bassNote(b, 0.4, ROOT.E, 0.7, 0.6);
 // snare roll: eighths, then sixteenths, then thirty-seconds
-for (let b = 22; b < 23.75; b += b < 23 ? 0.25 : 0.125) snare(b, 0.35 + 0.5 * (b - 22) / 1.75);
+for (let b = 22; b < 23.75; b += b < 23 ? 0.25 : 0.125) snare(b, 0.25 + 0.35 * (b - 22) / 1.75);
 crash(24, 0.9, true, 1.6);  // reverse cymbal into the drop
 
 // 6 — drop and network (24–36): everything, with the chords pumping
@@ -312,7 +313,7 @@ chord(28, 4, CH.F, 1, { pump: true, cutoff: 2400 });
 chord(32, 2, CH.C, 1, { pump: true, cutoff: 3000 });
 chord(34, 2, CH.G, 1, { pump: true, cutoff: 3000 });
 crash(24, 1.0);
-crash(EV.headMarkt, 0.7);   // the window opens
+crash(EV.headMarkt, 0.5);   // the window opens
 
 // 7 — the brand (36–48): the groove stops, Am(add9) rings, the dot breathes
 crash(EV.wordmark, 0.8, true, 1.2);
@@ -322,6 +323,63 @@ bassNote(EV.wordmark, 6.5, 33, 0.7, 0.2);
 for (let b = 38; b < 44; b += 0.5) pluck(b, CH.Am9[(b * 2) % 4] + 12, ((b * 2) % 2 ? 0.4 : -0.4), 0.45, 0.2);
 pad(44, 4, CH.Fmaj7, 0.9);
 for (const b of [44, 45, 46]) pluck(b, [69, 72, 76][b - 44], 0, 0.5, 0.3);
+
+// ---- bolder layers: a braam on the big hits, an 808 under the drop, tension
+// in the opening so the first seconds already pull
+
+/** A braam: stacked, detuned low saws whose filter tears open, saturated. */
+function braam(startBeat, lenSec, notes, gain = 1) {
+  const s = at(startBeat), len = Math.round(lenSec * SR);
+  const vs = notes.flatMap((m) => [-0.008, 0, 0.008].map((d) => ({ hz: midi(m) * (1 + d), ph: rnd() })));
+  const fl = svf(), fr = svf();
+  for (let n = 0; n < len; n++) {
+    const t = n / SR;
+    const env = Math.min(1, t / 0.02) * Math.exp(-t / (lenSec * 0.45));
+    let l = 0, r = 0;
+    vs.forEach((v, i) => { v.ph = (v.ph + v.hz / SR) % 1; const x = 2 * v.ph - 1; if (i % 2) l += x; else r += x; });
+    const cut = 180 + 2600 * Math.exp(-t / 0.35) + 300 * Math.exp(-t / 1.2);
+    const vl = Math.tanh(fl(l, cut, 1.2).lp * 0.9), vr = Math.tanh(fr(r, cut, 1.2).lp * 0.9);
+    const i = s + n;
+    if (i >= 0 && i < N) {
+      music.L[i] += vl * env * 0.32 * gain; music.R[i] += vr * env * 0.32 * gain;
+      musicSend.L[i] += vl * env * 0.12 * gain; musicSend.R[i] += vr * env * 0.12 * gain;
+    }
+  }
+}
+
+/** An 808: a sine that drops in pitch onto the note, driven into saturation. */
+function bass808(startBeat, lenBeats, note, gain = 1) {
+  const s = at(startBeat), len = Math.round(sec(lenBeats) * SR);
+  const hz = midi(note);
+  let ph = 0;
+  for (let n = 0; n < len + 2400; n++) {
+    const t = n / SR;
+    ph += TAU * hz * (1 + 0.9 * Math.exp(-t / 0.03)) / SR;
+    const rel = n < len ? 1 : Math.exp(-(n - len) / 900);
+    const env = Math.min(1, t / 0.002) * rel * (0.8 + 0.2 * Math.exp(-t / 0.2));
+    put(music, s + n, Math.tanh(Math.sin(ph) * 2.2) * 0.5 * env * gain);
+  }
+}
+
+// a high, trembling string of tension over the opening, rising a little
+{
+  const s0 = at(0), len = at(7.8);
+  let p1 = 0, p2 = 0;
+  for (let n = 0; n < len; n++) {
+    const t = n / SR, x = n / len;
+    const hz = midi(81) * (1 + 0.06 * x);
+    p1 += TAU * hz / SR; p2 += TAU * hz * 1.5 / SR;
+    const trem = 0.6 + 0.4 * Math.sin(TAU * (6 + 6 * x) * t);
+    const env = Math.min(1, t / 0.6) * (0.5 + 0.5 * x);
+    put(music, s0 + n, (Math.sin(p1) + 0.4 * Math.sin(p2)) * trem * env * 0.035, 0, musicSend, 0.6);
+  }
+}
+// sub pulses under the opening, every eighth, as the line runs
+for (let b = 0.5; b < 7.5; b += 0.5) bass808(b, 0.3, 33, 0.35 + 0.25 * (b / 7.5));
+braam(EV.drop, 2.4, [33, 45, 52], 1.25);
+braam(EV.headMarkt, 1.8, [36, 48, 55], 0.5);
+braam(EV.wordmark, 2.6, [33, 45, 52, 57], 0.6);
+for (let b = 24; b < 36; b += 1) bass808(b, b % 4 === 3 ? 0.9 : 0.45, ROOT[chordAt(b)] - 12, 0.75);
 
 // ================================================================ the effects
 
@@ -617,22 +675,22 @@ S.word(EV.leer, 'hollow', 0.25, 0.7); S.word(EV.zurueck, 'hollow', 0.25, 0.7);
 S.ping(EV.arriveH, 81, 0.7, -0.5, 0.4);
 
 // ---- 2: the card
-S.whoosh(sec(EV.morph) + 0.25, { pre: 0.2, post: 0.5, panFrom: -0.2, panTo: 0.9, gain: 0.8 }); // words pushed off right
-S.swirl(EV.morph, 0.75, 1);
-S.glass(EV.morph + 0.35, 0.9, 0);
+S.whoosh(sec(EV.morph) + 0.25, { pre: 0.2, post: 0.5, panFrom: -0.2, panTo: 0.9, gain: 0.45 }); // words pushed off right
+S.swirl(EV.morph, 0.75, 0.55);
+S.glass(EV.morph + 0.35, 0.55, 0);
 S.blip(EV.cardTitle, 900, 0.7, -0.3); S.blip(EV.cardSub, 1100, 0.5, -0.3); S.blip(EV.cardBtn, 760, 0.8, -0.2, 1.3);
 S.scan(EV.scan, EV.tag, 1);
 S.alert(EV.tag, 0.25);
-S.word(EV.headA, 'solid', -0.3, 0.6); S.word(EV.headB, 'solid', -0.3, 0.6);
+S.word(EV.headA, 'solid', -0.3, 0.32); S.word(EV.headB, 'solid', -0.3, 0.32);
 
 // ---- 3: the offer
 S.swish(EV.spedIn + 0.1, 0.35, 1, 0.8, -0.1);
 S.tick(EV.hover1, 3400, 0.5, -0.2);
 S.click(EV.click1, 1, -0.2);
-S.whoosh(sec(EV.unfold) + 0.12, { pre: 0.12, post: 0.3, lo: 300, hi: 2500, panFrom: -0.2, panTo: 0, gain: 0.8 });
-S.glass(EV.unfold + 0.2, 1, 0, 0.75);
+S.whoosh(sec(EV.unfold) + 0.12, { pre: 0.12, post: 0.3, lo: 300, hi: 2500, panFrom: -0.2, panTo: 0, gain: 0.45 });
+S.glass(EV.unfold + 0.2, 0.55, 0, 0.75);
 S.thunk(EV.unfold + 0.45, 0.6, 0, 80);
-S.word(EV.headPrice, 'solid', -0.3, 0.6);
+S.word(EV.headPrice, 'solid', -0.3, 0.32);
 [13.3, 13.38, 13.45, 13.5, 13.56, 13.6, 13.65].forEach((b, i) => S.blip(b, 700 + i * 120, 0.45, -0.3 + i * 0.1));
 S.click(EV.grab, 0.6, -0.5);
 {
@@ -648,16 +706,16 @@ S.click(EV.grab, 0.6, -0.5);
 }
 S.click(EV.release, 0.5, 0.1);
 S.tick(EV.hover2, 3400, 0.5, 0);
-S.click(EV.click2, 1, 0.1);
-S.word(EV.click2, 'solid', -0.3, 0.7);
+S.click(EV.click2, 0.7, 0.1);
+S.word(EV.click2, 'solid', -0.3, 0.4);
 
 // ---- 4: the marketplace
-S.whoosh(sec(EV.fold) + 0.12, { pre: 0.15, post: 0.15, lo: 2500, hi: 600, gain: 0.6, panFrom: 0, panTo: 0 }); // the panel folds
-S.whoosh(sec(EV.whipUp) + WHIP_PEAK, { pre: 0.28, post: 0.4, lo: 200, hi: 5200, q: 0.9, gain: 1.3, panFrom: 0.3, panTo: -0.3 });
-S.thunk(EV.land, 0.9, 0, 70);
-[0, 0.06, 0.12].forEach((o, i) => S.thunk(EV.land + 0.05 + o, 0.3, 0.2 * i, 120 + 20 * i)); // the others make room
-S.word(EV.headMarket, 'solid', -0.3, 0.6); S.word(EV.headMarket + 0.25, 'solid', -0.3, 0.6);
-[16.3, 16.34, 16.38, 16.42, 16.46].forEach((b, i) => S.blip(b, 1000 + i * 150, 0.4, -0.2 + i * 0.1));
+S.whoosh(sec(EV.fold) + 0.12, { pre: 0.15, post: 0.15, lo: 2500, hi: 600, gain: 0.4, panFrom: 0, panTo: 0 }); // the panel folds
+S.whoosh(sec(EV.whipUp) + WHIP_PEAK, { pre: 0.28, post: 0.4, lo: 200, hi: 5200, q: 0.9, gain: 0.55, panFrom: 0.3, panTo: -0.3 });
+S.thunk(EV.land, 0.5, 0, 70);
+[0, 0.06, 0.12].forEach((o, i) => S.thunk(EV.land + 0.05 + o, 0.18, 0.2 * i, 120 + 20 * i)); // the others make room
+S.word(EV.headMarket, 'solid', -0.3, 0.32); S.word(EV.headMarket + 0.25, 'solid', -0.3, 0.32);
+[16.3, 16.34, 16.38, 16.42, 16.46].forEach((b, i) => S.blip(b, 1000 + i * 150, 0.22, -0.2 + i * 0.1));
 S.swish(EV.verlIn + 0.05, 0.5, 1, -0.9, 0.5);
 S.tick(EV.hover3, 3400, 0.5, 0.6);
 S.click(EV.click3, 1, 0.6);
@@ -666,14 +724,14 @@ S.pour(EV.booked, EV.whipDown, E.outCubic, { from: 0, to: 0.18, gain: 0.6, pan: 
 S.word(EV.headBooked + 0.05, 'solid', -0.3, 0.8);
 
 // ---- 5: back down, the leg fills, the drop
-S.whoosh(sec(EV.whipDown) + WHIP_PEAK, { pre: 0.28, post: 0.45, lo: 5200, hi: 200, q: 0.9, gain: 1.3, panFrom: -0.3, panTo: 0.3 });
+S.whoosh(sec(EV.whipDown) + WHIP_PEAK, { pre: 0.28, post: 0.45, lo: 5200, hi: 200, q: 0.9, gain: 0.75, panFrom: -0.3, panTo: 0.3 });
 S.swirl(EV.whipDown + 0.2, 0.8, 0.8);
 S.travel(EV.outRedraw, EV.outRedraw + 0.6, E.inOutCubic, 'full', -0.55, -0.55, 0.7);
 [0, 0.2, 0.4, 0.6].forEach((o, i) => S.word(EV.words2 + o, i < 2 ? 'solid' : 'hollow', 0.25, 0.55));
-S.pour(EV.fillFrom, EV.drop, E.inOutCubic, { from: 0.18, to: 1, gain: 1.1, pan: -0.45 });
-S.riser(EV.fillFrom, EV.drop - 0.125, 0.9);
+S.pour(EV.fillFrom, EV.drop, E.inOutCubic, { from: 0.18, to: 1, gain: 0.8, pan: -0.45 });
+S.riser(EV.fillFrom, EV.drop - 0.125, 0.55);
 for (let i = 0; i < 4; i++) S.flap(EV.roll + i * 0.25 + 0.03, 1, 0.1 + i * 0.08);
-S.impact(EV.drop, 1.25, 0);
+S.impact(EV.drop, 1.45, 0);
 S.shimmer(EV.drop + 0.1, 0.8);
 
 // ---- 6: the network
@@ -682,7 +740,7 @@ S.whoosh(sec(EV.collapse + 0.15) + 0.3, { pre: 0.3, post: 0.2, lo: 3000, hi: 400
 S.whoosh(sec(EV.hub) + 0.1, { pre: 0.15, post: 0.3, lo: 300, hi: 3000, panFrom: -0.6, panTo: 0, gain: 0.9 });     // flying in
 S.glass(EV.hub + 0.25, 1, 0, 0.9);
 S.thunk(EV.hub + 0.3, 0.7, 0, 60);
-S.word(EV.headNet, 'solid', -0.3, 0.6); S.word(EV.headNet + 0.3, 'solid', -0.3, 0.6);
+S.word(EV.headNet, 'solid', -0.3, 0.32); S.word(EV.headNet + 0.3, 'solid', -0.3, 0.32);
 [[EV.partners[0], 81, -0.5], [EV.partners[1], 84, 0.5], [EV.partners[2], 88, 0]].forEach(([b, m, p]) => S.ping(b, m, 1, p));
 for (let i = 0; i < 20; i++) {
   const a = (i * 18 + 9) * Math.PI / 180;
@@ -694,23 +752,34 @@ for (let i = 0; i < 20; i++) {
   for (let i = 0; i < 24; i++) {
     const tb = EV.sweepFrom + (i / 24) * (EV.sweepTo - EV.sweepFrom);
     const a = -Math.PI / 2 + (i / 24) * TAU;
-    S.tick(tb, i % 6 === 0 ? 1400 : 2200, i % 6 === 0 ? 0.9 : 0.5, Math.cos(a) * 0.6);
+    S.tick(tb, i % 6 === 0 ? 1400 : 2200, i % 6 === 0 ? 1.2 : 0.75, Math.cos(a) * 0.6);
     if (i % 6 === 0) S.thunk(tb, 0.25, Math.cos(a) * 0.4, 160);
   }
 }
-S.whoosh(sec(EV.headMarkt) + 0.05, { pre: 0.5, post: 0.6, lo: 300, hi: 6000, q: 0.7, gain: 1, panFrom: -0.4, panTo: 0.4 });
+for (let b = 29; b <= 32; b++) S.ping(b, 93, 0.55, 0, 1.1);   // sonar: one ping a beat while the window runs
+{
+  // the radar hand: a breathy sweep that circles the stereo field once in 24 h
+  const s0 = at(EV.sweepFrom), len = at(EV.sweepTo) - s0;
+  const f = svf();
+  for (let n = 0; n < len; n++) {
+    const x = n / len, ang = -Math.PI / 2 + x * TAU;
+    const env = Math.min(1, x * 12) * Math.min(1, (1 - x) * 12);
+    put(sfx, s0 + n, f(noise(), 1800 + 900 * Math.sin(ang), 3).bp * env * 0.16, Math.cos(ang) * 0.8, sfxSend, 0.4);
+  }
+}
+S.whoosh(sec(EV.headMarkt) + 0.05, { pre: 0.5, post: 0.6, lo: 300, hi: 6000, q: 0.7, gain: 0.6, panFrom: -0.4, panTo: 0.4 });
 for (let i = 0; i < 20; i++) {
   const a = (i * 18 + 9) * Math.PI / 180;
-  S.ping(EV.headMarkt + i * 0.03, [93, 91, 88, 86, 84][i % 5] - 12 * Math.floor(i / 10), 0.35, Math.cos(a) * 0.8, 0.3);
+  S.ping(EV.headMarkt + i * 0.03, [93, 91, 88, 86, 84][i % 5] - 12 * Math.floor(i / 10), 0.22, Math.cos(a) * 0.8, 0.3);
 }
-S.word(EV.headMarkt, 'solid', -0.3, 0.6); S.word(EV.headMarkt + 0.3, 'solid', -0.3, 0.6);
+S.word(EV.headMarkt, 'solid', -0.3, 0.32); S.word(EV.headMarkt + 0.3, 'solid', -0.3, 0.32);
 [[EV.offersBack, -0.5], [EV.offersBack + 0.2, 0], [EV.offersBack + 0.4, 0.5]].forEach(([b, p], i) => {
   S.whoosh(sec(b) + 0.2, { pre: 0.2, post: 0.08, lo: 800, hi: 3000, panFrom: p, panTo: 0, gain: 0.35 });
   S.blip(b + 0.55, 1400 + i * 200, 0.5, 0);
 });
 S.whoosh(sec(EV.offerCard) + 0.12, { pre: 0.12, post: 0.3, lo: 300, hi: 2600, gain: 0.8, panFrom: 0, panTo: 0 });
 S.glass(EV.offerCard + 0.2, 1, 0, 0.8);
-S.word(EV.headPartner, 'solid', -0.3, 0.6); S.word(EV.headPartner + 0.25, 'solid', -0.3, 0.6);
+S.word(EV.headPartner, 'solid', -0.3, 0.32); S.word(EV.headPartner + 0.25, 'solid', -0.3, 0.32);
 [34.6, 34.66, 34.7, 34.74, 34.8, 34.9].forEach((b, i) => S.blip(b, 900 + i * 110, 0.4, -0.2 + i * 0.08));
 S.swish(EV.verlIn2 + 0.05, 0.4, 1, 0.9, 0.2);
 S.click(EV.click4, 1, 0.2);
@@ -732,6 +801,159 @@ S.whoosh(sec(EV.retract) + 0.15, { pre: 0.25, post: 0.1, lo: 4000, hi: 500, gain
 S.thunk(EV.retract + 0.35, 0.5, 0, 120);
 S.glide(EV.home, EV.home + 1.2, 440, 880, 0.9, 0, -0.6);
 S.blip(EV.home + 1.25, 1760, 0.5, -0.6, 1);
+
+// ============================================================ recorded layer
+
+// Recorded effects (fetch-sfx.mjs), each placed so its loudest moment lands
+// on its event. Loudness is matched first (the loudest 50 ms of every file is
+// brought to the same level), so the gains below are a mix, not a repair.
+const SAMPLES = {};
+function sampleOf(id) {
+  if (SAMPLES[id]) return SAMPLES[id];
+  const path = `out/v2/sfx/${id}.f32`;
+  if (!existsSync(path)) throw new Error(`missing ${path}: run node v2/fetch-sfx.mjs`);
+  const raw = readFileSync(path);
+  const f = new Float32Array(raw.buffer, raw.byteOffset, Math.floor(raw.length / 4));
+  const n = f.length / 2, L = new Float32Array(n), Rr = new Float32Array(n);
+  for (let i = 0; i < n; i++) { L[i] = f[2 * i]; Rr[i] = f[2 * i + 1]; }
+  const win = Math.round(0.05 * SR);
+  let best = 0, peakAt = 0, acc = 0;
+  for (let i = 0; i < n; i++) {
+    acc += L[i] * L[i] + Rr[i] * Rr[i];
+    if (i >= win) acc -= L[i - win] * L[i - win] + Rr[i - win] * Rr[i - win];
+    if (acc > best) { best = acc; peakAt = i - win / 2; }
+  }
+  const norm = 0.25 / Math.sqrt(best / (2 * win) + 1e-12);
+  return (SAMPLES[id] = { L, R: Rr, n, peakAt: Math.max(0, peakAt), norm });
+}
+
+/**
+ * Place a recorded effect. `atSec` is where its peak lands (or its start,
+ * with align 'start'). rate < 1 plays it lower and longer; reverse plays it
+ * backwards (its peak then lands at the end of the swell); len trims it with
+ * a short fade. Samples running past either end wrap round: the film loops.
+ */
+function rec(name, atSec, { gain = 1, pan = 0, rate = 1, reverse = false, align = 'peak', len = null, send = 0.25, wrap = true, pre = 0.7 } = {}) {
+  const smp = sampleOf(SFX_IDS[name]);
+  const total = Math.floor((smp.n - 1) / rate);
+  const peakOut = (reverse ? smp.n - 1 - smp.peakAt : smp.peakAt) / rate;
+  const start = Math.round(atSec * SR - (align === 'peak' ? peakOut : 0));
+  const keep = len == null ? total : Math.min(total, Math.round(len * SR));
+  const fade = Math.round(0.03 * SR);
+  // a long swell before the peak is cut to `pre` seconds and faded in, so a
+  // whoosh cannot spill over the event before it
+  const first = align === 'peak' ? Math.max(0, Math.round(peakOut - pre * SR)) : 0;
+  const fadeIn = Math.round(0.06 * SR);
+  const [pl, pr] = panLR(pan);
+  const g = gain * smp.norm;
+  for (let k = first; k < keep; k++) {
+    let pos = k * rate;
+    if (reverse) pos = smp.n - 1 - pos;
+    const i0 = Math.floor(pos), fr = pos - i0, i1 = Math.min(smp.n - 1, i0 + 1);
+    let l = smp.L[i0] * (1 - fr) + smp.L[i1] * fr, r = smp.R[i0] * (1 - fr) + smp.R[i1] * fr;
+    let env = len != null && k > keep - fade ? (keep - k) / fade : 1;
+    if (first > 0 && k < first + fadeIn) env *= (k - first) / fadeIn;
+    l *= g * env * pl * 1.414; r *= g * env * pr * 1.414;
+    let i = start + k;
+    if (i < 0 || i >= N) { if (!wrap) continue; i = ((i % N) + N) % N; }
+    sfx.L[i] += l; sfx.R[i] += r;
+    sfxSend.L[i] += l * send; sfxSend.R[i] += r * send;
+  }
+}
+const bt = (beat) => sec(beat);
+
+// ---- 1: the loop
+rec('deepWhooshImpact', bt(0.05), { gain: 0.9 });                 // the launch (its swell wraps to the film's end)
+rec('staticPowerUp', bt(0.1), { gain: 0.35, pan: -0.4 });
+rec('flyingSwoosh', bt(0.35), { gain: 0.6, pan: -0.5 });
+for (const b of [EV.voll, EV.hin]) {
+  rec('bassHit', bt(b), { gain: 0.8, align: 'start', pan: 0.2 });
+  rec('zoomImpact', bt(b), { gain: 0.65, pan: 0.3, rate: b === EV.hin ? 0.94 : 1 });
+}
+rec('spaceImpact', bt(EV.arriveM), { gain: 1.0, align: 'start', pan: -0.4 });
+rec('subHit', bt(EV.arriveM), { gain: 0.8, align: 'start' });
+rec('zoomMove', bt(5.1), { gain: 0.45, pan: -0.3, rate: 0.9 });
+for (const b of [EV.leer, EV.zurueck]) rec('buzzGlitch', bt(b) + 0.42, { gain: 0.55, pan: 0.3, rate: b === EV.leer ? 1 : 1.12 });
+rec('wineClink', bt(EV.arriveH), { gain: 0.45, pan: -0.5 });
+
+// ---- 2: the card
+rec('fastWhoosh', bt(EV.morph + 0.3), { gain: 0.5, pan: 0.3 });
+rec('inOutZoom', bt(EV.morph + 0.1), { gain: 0.45 });
+rec('glassHit', bt(EV.morph + 0.35), { gain: 0.4, align: 'start' });
+[[EV.cardTitle, 1], [EV.cardSub, 1.12], [EV.cardBtn, 0.9]].forEach(([b, r]) => rec('techSelect', bt(b), { gain: 0.45, rate: r, align: 'start', pan: -0.2 }));
+rec('gammaWhoosh', bt(EV.scan + 0.3), { gain: 0.5, pan: 0 });
+rec('optionSelect', bt(EV.tag), { gain: 0.5, align: 'start', pan: 0.3 });
+for (const b of [EV.headA, EV.headB]) rec('fastBlow', bt(b), { gain: 0.5, pan: -0.3 });
+
+// ---- 3: the offer
+rec('smallSwoosh', bt(EV.spedIn + 0.15), { gain: 0.4, pan: 0.6 });
+rec('selectClick', bt(EV.click1), { gain: 0.8, align: 'start', pan: -0.2 });
+rec('clickTone', bt(EV.click1), { gain: 0.5, align: 'start', pan: -0.2 });
+rec('metalSweep', bt(EV.unfold + 0.2), { gain: 0.45 });
+rec('interfaceStart', bt(EV.unfold), { gain: 0.45, align: 'start' });
+rec('fastBlow', bt(EV.headPrice), { gain: 0.45, pan: -0.3 });
+rec('boxCheck', bt(EV.grab), { gain: 0.55, align: 'start', pan: -0.5 });
+rec('boxCheck', bt(EV.release), { gain: 0.5, align: 'start', pan: 0.1, rate: 1.2 });
+rec('selectClick', bt(EV.click2), { gain: 0.8, align: 'start', pan: 0.1 });
+rec('openInterface', bt(EV.click2), { gain: 0.55, pan: 0.1 });
+rec('bassHit', bt(EV.click2), { gain: 0.4, align: 'start' });
+
+// ---- 4: the marketplace
+rec('zoomOut', bt(EV.fold), { gain: 0.6, align: 'start' });
+rec('futureSweep', sec(EV.whipUp) + 0.072, { gain: 0.45, pan: 0 });
+rec('longHitSwoosh', sec(EV.whipUp) + 0.072, { gain: 0.4 });
+rec('brightHit', bt(EV.land), { gain: 0.3, align: 'start' });
+rec('bassHit', bt(EV.land), { gain: 0.35, align: 'start' });
+rec('fastBlow', bt(EV.headMarket), { gain: 0.35, pan: -0.3 });
+rec('smallSwoosh', bt(EV.verlIn + 0.15), { gain: 0.4, pan: -0.7 });
+rec('selectClick', bt(EV.click3), { gain: 0.8, align: 'start', pan: 0.6 });
+rec('positiveAlert', bt(EV.booked), { gain: 0.55, pan: 0.4 });
+rec('liquidBubble', bt(EV.booked + 0.1), { gain: 0.45, pan: -0.3 });
+rec('trailerRiser', bt(EV.drop - 0.12), { gain: 0.55, pre: 3 });                  // from the booking click to the drop
+rec('fastBlow', bt(EV.headBooked + 0.05), { gain: 0.5, pan: -0.3 });
+
+// ---- 5: back down, the leg fills, the drop
+rec('laserSwoosh', sec(EV.whipDown) + 0.072, { gain: 0.6 });
+rec('fastAirSweep', sec(EV.whipDown) + 0.1, { gain: 0.55 });
+for (const b of [EV.words2, EV.words2 + 0.2]) { rec('bassHit', bt(b), { gain: 0.55, align: 'start' }); rec('zoomImpact', bt(b), { gain: 0.45 }); }
+for (const b of [EV.words2 + 0.4, EV.words2 + 0.6]) rec('buzzGlitch', bt(b) + 0.42, { gain: 0.45, pan: 0.3 });
+rec('deepBubbles', bt(EV.fillFrom), { gain: 0.5, align: 'start', pan: -0.4, len: bt(EV.drop) - bt(EV.fillFrom) });
+for (let i = 0; i < 4; i++) rec('boxCheck', bt(EV.roll + i * 0.25 + 0.03), { gain: 0.35, align: 'start', pan: 0.1 + i * 0.08, rate: 1 + i * 0.06 });
+rec('trailerImpact', bt(EV.drop), { gain: 1.35, pre: 1.0 });
+rec('spaceImpact', bt(EV.drop), { gain: 0.7, align: 'start' });
+rec('liquidBubble', bt(EV.drop + 0.05), { gain: 0.55, rate: 0.7, pan: -0.4 });
+rec('soapBubble', bt(EV.drop + 0.15), { gain: 0.4, pan: -0.3 });
+rec('sparkleWhoosh', bt(EV.drop + 0.6), { gain: 0.35, pan: 0.3 });
+
+// ---- 6: the network
+rec('windSwoosh', bt(EV.collapse + 0.5), { gain: 0.55, pan: -0.3 });
+rec('zoomMove', bt(EV.hub + 0.15), { gain: 0.45, pan: -0.4 });
+rec('glassHit', bt(EV.hub + 0.25), { gain: 0.35, align: 'start' });
+rec('powerUp', bt(EV.hub + 0.2), { gain: 0.4, align: 'start' });
+rec('passBy', bt(26.7), { gain: 0.5 });                           // the network swinging round
+for (const b of [EV.headNet, EV.headNet + 0.3]) rec('fastBlow', bt(b), { gain: 0.45, pan: -0.3 });
+EV.partners.forEach((b, i) => rec('clickTone', bt(b), { gain: 0.4, align: 'start', rate: [1, 1.12, 1.26][i], pan: [-0.5, 0.5, 0][i] }));
+rec('gammaWhoosh', bt(EV.request + 0.3), { gain: 0.5 });
+rec('epicImpact', bt(EV.headMarkt), { gain: 0.65, pre: 1.0 });
+rec('energyFlow', bt(EV.headMarkt + 0.2), { gain: 0.4 });
+for (const b of [EV.headMarkt, EV.headMarkt + 0.3]) rec('fastBlow', bt(b), { gain: 0.4, pan: -0.3 });
+[0, 0.2, 0.4].forEach((o, i) => rec('smallSwoosh', bt(EV.offersBack + o + 0.3), { gain: 0.35, pan: [-0.5, 0, 0.5][i] }));
+rec('metalSweep', bt(EV.offerCard + 0.15), { gain: 0.6 });
+rec('glassHit', bt(EV.offerCard + 0.2), { gain: 0.3, align: 'start' });
+for (const b of [EV.headPartner, EV.headPartner + 0.25]) rec('fastBlow', bt(b), { gain: 0.45, pan: -0.3 });
+rec('selectClick', bt(EV.click4), { gain: 0.8, align: 'start', pan: 0.2 });
+rec('techAffirm', bt(EV.click4 + 0.05), { gain: 0.5, align: 'start', pan: 0.1 });
+
+// ---- 7: the brand
+rec('spaceImpact', bt(EV.converge + 0.75), { gain: 0.7, reverse: true, pre: 1.6 });   // everything sucked into the dot
+rec('logoImpact', bt(EV.wordmark), { gain: 0.9, pre: 1.3 });
+rec('glitterShot', bt(EV.wordmark + 1.1), { gain: 0.35, pan: 0.2 });
+rec('interfaceStart', bt(EV.cta), { gain: 0.45, align: 'start' });
+rec('smallSwoosh', bt(EV.duIn + 0.15), { gain: 0.35, pan: 0.6 });
+rec('selectClick', bt(EV.click5), { gain: 0.8, align: 'start', pan: 0.1 });
+rec('bleepConfirm', bt(EV.click5 + 0.05), { gain: 0.45, pan: 0.1 });
+rec('zoomInLong', bt(EV.retract + 0.3), { gain: 0.45 });
+rec('fastWhoosh', bt(BEATS), { gain: 0.6, pan: -0.3, pre: 1.1 });           // flying into Hamburg: its peak is frame 0
 
 // =================================================================== mixing
 

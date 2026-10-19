@@ -17,6 +17,7 @@ const run = (cmd, a) => execFileSync(cmd, a, { stdio: 'inherit' });
 const ff = (a) => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...a]);
 mkdirSync('dist', { recursive: true });
 
+run('node', ['v2/fetch-sfx.mjs']);   // recorded effects, fetched by ID (not stored in the repo)
 run('node', ['v2/audio.mjs']);
 if (!skipRender || !existsSync('out/v2/silent.mp4')) run('node', ['v2/render.mjs']);
 const FILM = 'dist/neuroroute-fuellstand-9x16.mp4';

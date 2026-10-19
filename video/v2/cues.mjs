@@ -24,7 +24,7 @@ export const EV = {
   // 5 — back down: the booking fills the empty leg; LEER rolls to VOLL on the drop
   whipDown: 19.65, outRedraw: 20.2, words2: 20.7, fillFrom: 21.5, roll: 23, drop: 24,
   // 6 — your network first: 24 h for partners, then the market
-  collapse: 25.2, hub: 25.85, headNet: 26.1, partners: [27, 27.5, 28], marketDots: 27.6, request: 28.5,
+  collapse: 25.2, hub: 25.85, headNet: 26.1, partners: [26.6, 27.0, 27.4], marketDots: 26.3, request: 28.5,
   sweepFrom: 28.75, sweepTo: 32.5, headMarkt: 32.5, offersBack: 33.4, offerCard: 34.4, headPartner: 34.5,
   verlIn2: 34.7, click4: 35.5,
   // 7 — everything becomes the brand dot; wordmark, claim, CTA; home to Hamburg
