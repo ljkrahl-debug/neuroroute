@@ -347,7 +347,7 @@ chord(48, 4, CH.F, 1, { pump: true, cutoff: 2400 });
 chord(52, 2, CH.C, 1, { pump: true, cutoff: 3000 });
 chord(54, 2, CH.G, 1, { pump: true, cutoff: 3000 });
 crash(EV.allFull, 0.8);
-crash(EV.headMarkt, 0.5);   // the window opens
+crash(EV.headMarkt, 0.35);  // the window opens
 
 // 8 — the brand (56–68): the groove stops, Am(add9) rings, the dot breathes
 crash(EV.wordmark, 0.8, true, 1.2);
@@ -411,7 +411,7 @@ function bass808(startBeat, lenBeats, note, gain = 1) {
 // sub pulses under the opening, every eighth, as the line runs
 for (let b = 0.5; b < 7.5; b += 0.5) bass808(b, 0.3, 33, 0.35 + 0.25 * (b / 7.5));
 braam(EV.drop, 2.4, [33, 45, 52], 1.25);
-braam(EV.headMarkt, 1.8, [36, 48, 55], 0.5);
+braam(EV.headMarkt, 1.8, [36, 48, 55], 0.4);
 braam(EV.wordmark, 2.6, [33, 45, 52, 57], 0.6);
 braam(EV.allFull, 2.0, [33, 45, 52], 0.75);   // "all planned": big, but under the drop
 for (const [b0, b1] of [[24, 28], [40, 56]]) for (let b = b0; b < b1; b++) bass808(b, b % 4 === 3 ? 0.9 : 0.45, ROOT[chordAt(b)] - 12, 0.75);
@@ -1017,8 +1017,8 @@ for (const b of [EV.words2, EV.words2 + 0.2]) { rec('bassHit', bt(b), { gain: 0.
 for (const b of [EV.words2 + 0.4, EV.words2 + 0.6]) rec('buzzGlitch', bt(b) + 0.42, { gain: 0.45, pan: 0.3 });
 rec('deepBubbles', bt(EV.fillFrom), { gain: 0.5, align: 'start', pan: -0.4, len: bt(EV.drop) - bt(EV.fillFrom) });
 for (let i = 0; i < 4; i++) rec('boxCheck', bt(EV.roll + i * 0.25 + 0.03), { gain: 0.35, align: 'start', pan: 0.1 + i * 0.08, rate: 1 + i * 0.06 });
-rec('trailerImpact', bt(EV.drop), { gain: 1.35, pre: 1.0 });
-rec('spaceImpact', bt(EV.drop), { gain: 0.7, align: 'start' });
+rec('trailerImpact', bt(EV.drop), { gain: 1.6, pre: 1.0 });
+rec('spaceImpact', bt(EV.drop), { gain: 0.85, align: 'start' });
 rec('liquidBubble', bt(EV.drop + 0.05), { gain: 0.55, rate: 0.7, pan: -0.4 });
 rec('soapBubble', bt(EV.drop + 0.15), { gain: 0.4, pan: -0.3 });
 rec('sparkleWhoosh', bt(EV.drop + 0.6), { gain: 0.35, pan: 0.3 });
@@ -1060,7 +1060,7 @@ rec('passBy', bt(46.7), { gain: 0.5 });                           // the network
 for (const b of [EV.headNet, EV.headNet + 0.3]) rec('fastBlow', bt(b), { gain: 0.45, pan: -0.3 });
 EV.partners.forEach((b, i) => rec('clickTone', bt(b), { gain: 0.4, align: 'start', rate: [1, 1.12, 1.26][i], pan: [-0.5, 0.5, 0][i] }));
 rec('gammaWhoosh', bt(EV.request + 0.3), { gain: 0.5 });
-rec('epicImpact', bt(EV.headMarkt), { gain: 0.65, pre: 1.0 });
+rec('epicImpact', bt(EV.headMarkt), { gain: 0.45, pre: 1.0 });
 rec('energyFlow', bt(EV.headMarkt + 0.2), { gain: 0.4 });
 for (const b of [EV.headMarkt, EV.headMarkt + 0.3]) rec('fastBlow', bt(b), { gain: 0.4, pan: -0.3 });
 [0, 0.2, 0.4].forEach((o, i) => rec('smallSwoosh', bt(EV.offersBack + o + 0.3), { gain: 0.35, pan: [-0.5, 0, 0.5][i] }));
