@@ -2,6 +2,7 @@
 //
 //   node v2/render.mjs [--fps 60 --sub 4 --workers 3 --out out/v2/silent.mp4]
 //   node v2/render.mjs --bench          time a few of the heaviest frames
+//   node v2/render.mjs --frames 400:460 --out out/v2/patch.mp4   just those frames, to splice in
 //
 // Each output frame is the mean of `sub` sub-frames (ffmpeg tmix), so moving
 // things blur by how far they travel in one frame. Frames are read straight
@@ -75,6 +76,15 @@ async function segment(w, f0, f1) {
   await browser.close();
   if (errors.length) throw new Error(`worker ${w} page errors:\n  ${errors.join('\n  ')}`);
   return out;
+}
+
+if (arg('frames')) {
+  const [f0, f1] = arg('frames').split(':').map(Number);
+  const seg = await segment(0, f0, f1);
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', seg, '-c', 'copy', OUT]);
+  rmSync('out/v2/seg', { recursive: true, force: true });
+  console.log(`wrote ${OUT} (frames ${f0}–${f1 - 1})`);
+  process.exit(0);
 }
 
 const per = Math.ceil(frames / WORKERS);

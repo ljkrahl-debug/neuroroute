@@ -34,7 +34,8 @@ const ff = (a) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...a]);
 if (beats.length) {
   for (const [i, b] of beats.entries()) await shoot(at(b), `${OUT}/${TAG}-${i + 1}-b${b}.png`);
   const inputs = beats.flatMap((b, i) => ['-i', `${OUT}/${TAG}-${i + 1}-b${b}.png`]);
-  ff([...inputs, '-filter_complex', `${beats.map((_, i) => `[${i}]scale=540:-1[s${i}]`).join(';')};${beats.map((_, i) => `[s${i}]`).join('')}hstack=${beats.length}`, `${OUT}/${TAG}-sheet.png`]);
+  if (beats.length === 1) ff([...inputs, '-vf', 'scale=540:-1', `${OUT}/${TAG}-sheet.png`]);
+  else ff([...inputs, '-filter_complex', `${beats.map((_, i) => `[${i}]scale=540:-1[s${i}]`).join(';')};${beats.map((_, i) => `[s${i}]`).join('')}hstack=${beats.length}`, `${OUT}/${TAG}-sheet.png`]);
   console.log(`wrote ${OUT}/${TAG}-sheet.png`);
 }
 if (strip.length) {
