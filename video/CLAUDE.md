@@ -29,6 +29,11 @@ Gilt für alles in `video/`. Die Projektregeln von Neuroroute stehen in `../CLAU
 - Brand: Bebas Neue (display) + Outfit (UI). Background #03050a.
   Accent: cyan #00d4ff. Green #00ff9d only for "empty run turned into revenue",
   amber #ffb340 only for the empty leg itself — they are meaning, not decoration.
-- Real product UI only: crop and animate the screenshots in ./assets
-  (captured by capture.mjs from website/app.html). Never redraw screens.
-- No invented statistics. Every number on screen comes from the product.
+- V1 (`index.html`): real product UI only — crops of the screenshots in
+  ./assets (captured by capture.mjs from website/app.html).
+- V2 (`v2/`): the founder asked for UI drawn in code instead of screenshots,
+  so it can morph and move like the references. It keeps the product's design
+  language, and every feature it shows must work the way the product does
+  (check backend/ before claiming one).
+- No invented statistics. Every number on screen comes from the product or
+  its demo data.

@@ -38,6 +38,23 @@ a reference (frame, video, or image folder), music (file or "synthesize").
 - Never scale a capture above 1.0 — capture at higher density instead.
 - No invented statistics. Every number on screen comes from the product.
 
+## Lessons from "Füllstand" (video/v2)
+- Find one hero object and let every scene be made out of it (a line that
+  lies down into a card, a button that grows into a panel). Pick a rule the
+  viewer learns in two seconds — there: solid = loaded, hollow = empty.
+- Keep one world and one camera; put scenes in different places and whip
+  between them, with a full-frame smear sized by the camera's speed.
+- Show 4 keyframes and one transition strip before building everything.
+- Drive continuous sounds from the picture's own motion curves (speed,
+  fill level, slider value) and place hits from the shared `EV` table.
+- Read frames with `canvas.toBlob`, not page screenshots: with canvas
+  filters a screenshot cost ~1 s per frame, toBlob a quarter of that.
+  Render segments in parallel browsers and join them with `-c copy`.
+- A Chamberlin filter at a high cutoff with a low Q blows up to Infinity;
+  bound f below the stability limit.
+- A mask-rise exit must lift past ascent + descent, or a sliver of the
+  letters stays in the slot.
+
 ## Lessons from the first film
 - `fetch()` refuses `file://`; load JSON as modules (`import x from './x.json' with { type: 'json' }`).
 - Decode captures one at a time into `ImageBitmap`s. Large `<img>`s decoded in

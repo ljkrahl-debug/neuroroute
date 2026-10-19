@@ -17,7 +17,7 @@
 // Neuroroute "Füllstand". A pure function of time: window.seek(t) paints frame t.
 // No timers, no CSS transitions, no state carried between frames, no Math.random.
 import { spring, clamp } from '../lib/motion.js';
-import { BPM, SHOTS } from './cues.mjs';
+import { BPM, BEATS, EV, SHOTS } from './cues.mjs';
 
 // ------------------------------------------------------------------ setup
 
@@ -25,7 +25,7 @@ const W = 1080, H = 1920; // 9:16 master
 const canvas = document.getElementById('c');
 canvas.width = W; canvas.height = H;
 const main = canvas.getContext('2d');
-let g = main; // the context everything draws into; swapped for layers
+let g = main; // the context everything draws into; swapped for depth layers
 
 const offscreen = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
 const scratch = offscreen(), sg = scratch.getContext('2d');
@@ -47,6 +47,7 @@ await Promise.all([
 // ------------------------------------------------------------------ time
 
 const B = (beat) => beat * 60 / BPM;
+const DUR = B(BEATS);
 const ramp = (t, b0, b1) => clamp((t - B(b0)) / (B(b1) - B(b0)));
 const mix = (a, b, p) => a + (b - a) * p;
 const E = {
@@ -57,7 +58,7 @@ const E = {
   inOutSine: (x) => -(Math.cos(Math.PI * x) - 1) / 2,
 };
 // Springs: type has no overshoot, UI a hair, shapes a little more.
-const TYPE = [600, 49], POP = [320, 24], SHAPE = [150, 20], SNAP = [480, 38];
+const TYPE = [600, 49], POP = [320, 24], SNAP = [480, 38];
 const sp = (t, beat, [k, d] = POP) => spring(t - B(beat), k, d);
 // A value with several targets: one spring per change, summed. keys: [[beat, value, k?, d?]]
 function tr(t, keys, k0 = 170, d0 = 26) {
@@ -68,30 +69,34 @@ function tr(t, keys, k0 = 170, d0 = 26) {
   }
   return v;
 }
+const pulse = (t, beat, w = 0.08) => Math.exp(-(((t - B(beat)) / w) ** 2)); // a click's dip
 // Seeded hash, never Math.random.
 const hash = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
 
 // ---------------------------------------------------------------- camera
 
 // One camera for the whole film, so a scene change can never jump. Screen
-// position = (world - centre) * scale + frame centre. No rotation.
+// position = (world - centre) * scale + frame centre. No rotation. The
+// marketplace lives 2200 px above the opening, so getting there is a whip.
+const Y0 = -2200;
 let cam = { cx: 540, cy: 960, s: 1 };
 function camAt(t) {
-  const cx = tr(t, [[0, 540], [8, 540, 120, 22]]);
-  const cy = tr(t, [[0, 950], [8, 960, 120, 22]]);
-  let s = tr(t, [[0, 1], [8, 1, 120, 22]]);
+  const cy = tr(t, [[0, 950], [EV.morph, 960, 120, 22], [EV.whipUp, 960 + Y0, 190, 27], [EV.whipDown, 960, 190, 27], [EV.home, 920.5, 70, 17]]);
+  const a = (b0, b1) => E.inOutSine(ramp(t, b0, b1));
   // a slow push that never stops, so no frame is ever still
-  s *= 1 + 0.05 * E.inOutSine(ramp(t, 0, 8)) - 0.05 * E.inOutSine(ramp(t, 8, 9.5)) + 0.03 * E.inOutSine(ramp(t, 9.5, 16));
-  // the riser before the drop pushes in; the drop itself punches
-  s *= 1 + 0.06 * E.inOutCubic(ramp(t, 21, 24)) - 0.06 * E.outCubic(ramp(t, 24, 26));
-  const dd = t - B(24);
+  let s = 1 + 0.05 * a(0, 8) - 0.05 * a(8, 9.5) + 0.03 * a(9.5, 15.5) - 0.03 * a(15.9, 16.6)
+    + 0.025 * a(16.6, 19.5) - 0.025 * a(19.65, 20.4)
+    + 0.06 * E.inOutCubic(ramp(t, 21, 24)) - 0.06 * E.outCubic(ramp(t, 24, 26))
+    + 0.04 * a(26.5, 34.3) - 0.04 * a(34.3, 35.2) + 0.05 * a(37, 44) - 0.05 * a(44, 46.5);
+  // the drop punches in
+  const dd = t - B(EV.drop);
   if (dd > 0) s *= 1 + 0.05 * (1 - Math.exp(-dd * 70)) * Math.exp(-dd * 5);
   // the line's head pulls the frame along a little, and lets go after beat 8
-  const follow = (loopHeadY(Math.min(t, B(8))) - 950) * 0.05 * (1 - spring(t - B(8), 120, 22));
+  const follow = (loopHeadY(Math.min(t, B(8))) - 950) * 0.05 * (1 - spring(t - B(EV.morph), 120, 22));
   // impact when the truck arrives in München
-  const dt = t - B(3);
+  const dt = t - B(EV.arriveM);
   const shake = dt > 0 ? 9 * Math.exp(-dt * 11) * Math.sin(dt * 55) : 0;
-  return { cx, cy: cy + follow + shake, s };
+  return { cx: 540, cy: cy + follow + shake, s };
 }
 const toScreen = (x, y) => [W / 2 + (x - cam.cx) * cam.s, H / 2 + (y - cam.cy) * cam.s];
 const worldT = () => g.setTransform(cam.s, 0, 0, cam.s, W / 2 - cam.cx * cam.s, H / 2 - cam.cy * cam.s);
@@ -112,15 +117,22 @@ const grain = (() => {
   return main.createPattern(c, 'repeat');
 })();
 
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+}
+
 function background(t) {
   screenT();
   g.fillStyle = C.bg;
   g.fillRect(0, 0, W, H);
-  // light for the glass to bend: two indigo fields and a cyan one, drifting
+  // light for the glass to bend. Every drift is a whole number of cycles over
+  // the film, so the last frame matches the first and the film loops.
+  const w = (2 * Math.PI) / DUR;
   const blobs = [
-    [C.indigo, 0.30, 900, 760 + 110 * Math.sin(t * 0.23), 520 + 90 * Math.cos(t * 0.19)],
-    [C.cyan, 0.13, 720, 250 + 90 * Math.sin(t * 0.17 + 1), 1320 + 110 * Math.cos(t * 0.21)],
-    [C.indigo, 0.13, 640, 640 + 70 * Math.cos(t * 0.13), 1800 + 60 * Math.sin(t * 0.2)],
+    [C.indigo, 0.30, 900, 760 + 110 * Math.sin(w * t), 520 + 90 * Math.cos(w * t)],
+    [C.cyan, 0.13, 720, 250 + 90 * Math.sin(2 * w * t + 1), 1320 + 110 * Math.cos(w * t)],
+    [C.indigo, 0.13, 640, 640 + 70 * Math.cos(w * t), 1800 + 60 * Math.sin(2 * w * t)],
   ];
   for (const [col, a, r, x, y] of blobs) {
     const gr = g.createRadialGradient(x, y, 0, x, y, r);
@@ -130,8 +142,8 @@ function background(t) {
     g.fillRect(0, 0, W, H);
   }
   // the website's grid, in the world at half parallax: it shows the camera move
-  const step = 90 * cam.s * 0.5 + 45;
-  const ox = (-(cam.cx * cam.s) * 0.5) % step, oy = (-(cam.cy * cam.s) * 0.5) % step;
+  const step = 90;
+  const ox = ((-(cam.cx * cam.s) * 0.5) % step + step) % step, oy = ((-(cam.cy * cam.s) * 0.5) % step + step) % step;
   g.strokeStyle = 'rgba(0,212,255,0.035)';
   g.lineWidth = 1.5;
   g.beginPath();
@@ -156,9 +168,29 @@ function finish() {
   g.globalCompositeOperation = 'source-over';
 }
 
-function hexA(hex, a) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+/**
+ * Motion blur that follows the camera: on a whip the finished frame is
+ * averaged along the direction of travel, over the distance a 180° shutter
+ * would see.
+ */
+function cameraSmear(t) {
+  const a = camAt(t), b = camAt(t - 1 / 240);
+  const v = (a.cy - b.cy) * a.s * 4; // px per 1/60 s
+  const len = Math.abs(v) * 0.5;
+  if (len < 4) return;
+  const n = Math.min(28, Math.ceil(len / 4));
+  smg.setTransform(1, 0, 0, 1, 0, 0);
+  smg.clearRect(0, 0, W, H);
+  smg.drawImage(canvas, 0, 0);
+  g.save();
+  screenT();
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, W, H);
+  for (let i = 0; i < n; i++) {
+    g.globalAlpha = 1 / (i + 1); // running mean: every copy weighs the same
+    g.drawImage(smearBuf, 0, (i / (n - 1) - 0.5) * len);
+  }
+  g.restore();
 }
 
 // ----------------------------------------------------------------- glass
@@ -170,8 +202,9 @@ function hexA(hex, a) {
  */
 function glass(x, y, w, h, r, { blur = 28, tint = 0.06, rim = 0.55, magnify = 1.07, fill = null, alpha = 1, shadow = 0.55 } = {}) {
   const [sx, sy] = toScreen(x, y);
-  const sw = w * cam.s, sh = h * cam.s, sr = Math.min(r * cam.s, sw / 2, sh / 2);
+  const sw = w * cam.s, sh = h * cam.s, sr = Math.max(0, Math.min(r * cam.s, sw / 2, sh / 2));
   if (sw < 2 || sh < 2 || alpha <= 0) return;
+  if (sx > W || sy > H || sx + sw < 0 || sy + sh < 0) return;
   screenT();
   if (shadow > 0) {
     // drawn far off-frame with the shadow offset back into place, so only the
@@ -189,6 +222,7 @@ function glass(x, y, w, h, r, { blur = 28, tint = 0.06, rim = 0.55, magnify = 1.
   const bx = Math.max(0, Math.floor(sx - m)), by = Math.max(0, Math.floor(sy - m));
   const bx1 = Math.min(W, Math.ceil(sx + sw + m)), by1 = Math.min(H, Math.ceil(sy + sh + m));
   if (bx1 > bx && by1 > by) {
+    sg.setTransform(1, 0, 0, 1, 0, 0);
     sg.clearRect(bx, by, bx1 - bx, by1 - by);
     sg.drawImage(g.canvas, bx, by, bx1 - bx, by1 - by, bx, by, bx1 - bx, by1 - by);
     g.save();
@@ -216,8 +250,20 @@ function glass(x, y, w, h, r, { blur = 28, tint = 0.06, rim = 0.55, magnify = 1.
   rg.addColorStop(0, `rgba(255,255,255,${rim})`);
   rg.addColorStop(0.45, `rgba(255,255,255,${rim * 0.12})`);
   rg.addColorStop(1, `rgba(255,255,255,${rim * 0.3})`);
-  g.beginPath(); g.roundRect(sx + 1, sy + 1, sw - 2, sh - 2, Math.max(0, sr - 1));
+  g.beginPath(); g.roundRect(sx + 1, sy + 1, Math.max(0, sw - 2), Math.max(0, sh - 2), Math.max(0, sr - 1));
   g.lineWidth = 2; g.strokeStyle = rg; g.stroke();
+  g.restore();
+}
+
+/** A rounded-rect outline that draws itself clockwise from the top-left. */
+function outlineSweep(x, y, w, h, r, p, color, width = 3) {
+  if (p <= 0) return;
+  g.save();
+  worldT();
+  const perim = 2 * (w + h) - (8 - 2 * Math.PI) * r;
+  g.beginPath(); g.roundRect(x, y, w, h, r);
+  g.setLineDash([perim * p, perim]);
+  g.lineWidth = width; g.strokeStyle = color; g.stroke();
   g.restore();
 }
 
@@ -242,9 +288,9 @@ function rise(t, text, x, y, { beat, size, fam = D, weight = '', color = C.ink, 
   const x0 = align === 'left' ? x : align === 'right' ? x - m.width : x - m.width / 2;
   const asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent;
   g.beginPath();
-  g.rect(x0 - size * 0.3 + dx, y - asc - size * 0.06, m.width + size * 0.6 + Math.abs(smear) * 2, asc + desc + size * 0.12);
+  g.rect(x0 - size * 0.3 + dx - Math.abs(smear), y - asc - size * 0.06, m.width + size * 0.6 + Math.abs(smear) * 2, asc + desc + size * 0.12);
   g.clip();
-  const ty = y + (1 - p) * (asc + size * 0.1) - po * (asc + size * 0.12);
+  const ty = y + (1 - p) * (asc + size * 0.1) - po * (asc + desc + size * 0.3);
   paintText(text, x + dx, ty, color, stroke, smear);
   g.restore();
 }
@@ -254,7 +300,7 @@ function paintText(text, x, y, color, stroke = 0, smear = 0) {
   const n = Math.abs(smear) > 2 ? 9 : 1;
   for (let i = 0; i < n; i++) {
     const k = n === 1 ? 0 : i / (n - 1);
-    g.globalAlpha = n === 1 ? 1 : 1.8 / n;
+    g.globalAlpha = n === 1 ? 1 : Math.min(1, 1.8 / n);
     if (stroke) { g.lineWidth = stroke; g.lineJoin = 'round'; g.strokeStyle = color; g.strokeText(text, x - smear * k, y); }
     else { g.fillStyle = color; g.fillText(text, x - smear * k, y); }
   }
@@ -267,26 +313,29 @@ function fitSize(text, width, max, fam = D, weight = '') {
   return w > width ? Math.floor(max * width / w) : max;
 }
 
+const uiText = (t, text, x, y, beat, size, color = C.text, weight = 500, align = 'left', out = null) =>
+  rise(t, text, x, y, { beat, size, fam: UI, weight, color, align, out });
+
 // ---------------------------------------------------------------- the loop
 
 // The film's one line, in local units (1 unit = 1 px in the opening pose):
 // down the left leg from Hamburg, round the turn in München, back up the
-// right leg. Solid = loaded, hollow = empty.
-// The legs' spacing (pose.leg) is part of the pose: the loop spreads its legs
-// as it lies down in the card, or the two bars there would touch.
+// right leg. Solid = loaded, hollow = empty. The legs' spacing and length are
+// part of the pose: the loop spreads its legs as it lies down in the card,
+// and rolls itself up into Hamburg before the network.
 const TOP = -590, ARC_Y = 542;
-const geo = (leg) => {
-  const L1 = ARC_Y - TOP, LA = Math.PI * leg;
-  return { leg, L1, LA, S_M: L1 + LA / 2, LTOT: 2 * L1 + LA };
+const geo = (leg, len = 1) => {
+  const L1 = (ARC_Y - TOP) * len, LA = Math.PI * leg;
+  return { leg, L1, LA, arcY: TOP + L1, S_M: L1 + LA / 2, LTOT: 2 * L1 + LA };
 };
 
 function loopPoint(s, G) {
   if (s <= G.L1) return [-G.leg, TOP + s, 0, 1];
   if (s <= G.L1 + G.LA) {
     const th = Math.PI - (s - G.L1) / G.leg;
-    return [G.leg * Math.cos(th), ARC_Y + G.leg * Math.sin(th), Math.sin(th), -Math.cos(th)];
+    return [G.leg * Math.cos(th), G.arcY + G.leg * Math.sin(th), Math.sin(th), -Math.cos(th)];
   }
-  return [G.leg, ARC_Y - (s - G.L1 - G.LA), 0, -1];
+  return [G.leg, G.arcY - (s - G.L1 - G.LA), 0, -1];
 }
 
 function loopPath(G, s0, s1, offset = 0) {
@@ -300,37 +349,42 @@ function loopPath(G, s0, s1, offset = 0) {
 }
 
 // How far the line has come, as fractions: out to München by beat 3, back by beat 7.
-const loopOut = (t) => E.outQuad(ramp(t, 0, 3));
-const loopBack = (t) => E.inOutCubic(ramp(t, 3.5, 7));
+const loopOut = (t) => E.outQuad(ramp(t, EV.launch, EV.arriveM));
+const loopBack = (t) => E.inOutCubic(ramp(t, EV.turn, EV.arriveH));
 function loopHeadY(t) {
   const G = geo(48);
   const s = loopBack(t) > 0 ? G.S_M + loopBack(t) * (G.LTOT - G.S_M) : loopOut(t) * G.S_M;
   return 950 + loopPoint(s, G)[1];
 }
 
-const POSE_OPEN = { x: 176, y: 950, rot: 0, s: 1, leg: 48 };
-const POSE_CARD = { x: 560, y: 1000, rot: -Math.PI / 2, s: 0.4, leg: 90 };
-const poseMix = (a, b, pp, pr, ps) => ({ x: mix(a.x, b.x, pp), y: mix(a.y, b.y, pp), rot: mix(a.rot, b.rot, pr), s: mix(a.s, b.s, ps), leg: mix(a.leg, b.leg, ps) });
+const POSE_OPEN = { x: 176, y: 950, rot: 0, s: 1, leg: 48, len: 1 };
+const POSE_CARD = { x: 542, y: 1120, rot: -Math.PI / 2, s: 0.38, leg: 92, len: 1 };
+const poseMix = (a, b, pp, pr, ps) => ({
+  x: mix(a.x, b.x, pp), y: mix(a.y, b.y, pp), rot: mix(a.rot, b.rot, pr), s: mix(a.s, b.s, ps),
+  leg: mix(a.leg, b.leg, ps), len: mix(a.len ?? 1, b.len ?? 1, ps),
+});
 const poseApply = (pose, [x, y]) => {
   const c = Math.cos(pose.rot), s = Math.sin(pose.rot);
   return [pose.x + (x * c - y * s) * pose.s, pose.y + (x * s + y * c) * pose.s];
 };
 /** The liquid level (world y) for a fill fraction, in a pose that stands upright. */
-const fillLevel = (pose, f) => { const G = geo(pose.leg); return poseApply(pose, loopPoint(G.S_M + f * (G.LTOT - G.S_M), G))[1]; };
+const fillLevel = (pose, f) => { const G = geo(pose.leg, pose.len); return poseApply(pose, loopPoint(G.S_M + f * (G.LTOT - G.S_M), G))[1]; };
 
 /**
  * Draw the loop. out / back / fill are fractions of each leg. Widths are in
- * screen pixels so the line reads at any pose.
+ * screen pixels so the line reads at any pose. hk: 1 = Hamburg is a terminal
+ * spanning both legs, 0 = just a stop at the end of the way back (in the
+ * marketplace only the way back exists). flow: freight moving, after the drop.
  */
-function drawLoop(pose, { out = 0, back = 0, fill = 0, tube = 20, stationM = 1, stationH = 1 }) {
-  const G = geo(pose.leg);
+function drawLoop(pose, { out = 0, back = 0, fill = 0, tube = 20, stationM = 1, stationH = 1, hk = 1, flow = 0, t = 0 }) {
+  const G = geo(pose.leg, pose.len ?? 1);
   g.save();
   worldT();
   g.translate(pose.x, pose.y); g.rotate(pose.rot); g.scale(pose.s, pose.s);
   const k = 1 / (pose.s * cam.s);
-  const T = tube * k, R = Math.max(2.5, tube * 0.18) * k;
+  const T = tube * k, R = Math.max(2.2, tube * 0.18) * k;
   g.lineCap = 'round'; g.lineJoin = 'round';
-  const backLen = (G.LTOT - G.S_M);
+  const backLen = G.LTOT - G.S_M;
   if (back > 0.0005) {
     // the empty way back: the same tube, hollow
     const s1 = G.S_M + back * backLen;
@@ -348,6 +402,14 @@ function drawLoop(pose, { out = 0, back = 0, fill = 0, tube = 20, stationM = 1, 
     g.strokeStyle = C.cyan; g.lineWidth = T;
     loopPath(G, 0, out * G.S_M); g.stroke();
   }
+  if (flow > 0) {
+    // freight moving round the full loop: bright dashes travelling with it
+    g.setLineDash([34 * k, 190 * k]);
+    g.lineDashOffset = -t * 520;
+    g.strokeStyle = `rgba(255,255,255,${0.45 * flow})`; g.lineWidth = T * 0.36;
+    loopPath(G, 0, G.S_M + fill * backLen); g.stroke();
+    g.setLineDash([]);
+  }
   // stations, metro-map style
   if (stationM > 0) {
     const [mx, my] = loopPoint(G.S_M, G);
@@ -355,31 +417,31 @@ function drawLoop(pose, { out = 0, back = 0, fill = 0, tube = 20, stationM = 1, 
     g.beginPath(); g.arc(mx, my, 9 * k * stationM, 0, Math.PI * 2); g.fillStyle = C.bg; g.fill();
   }
   if (stationH > 0) {
+    const x0 = G.leg - 2 * G.leg * hk;
     g.lineWidth = 48 * k * stationH; g.strokeStyle = C.ink;
-    g.beginPath(); g.moveTo(-G.leg, TOP); g.lineTo(G.leg, TOP); g.stroke();
+    g.beginPath(); g.moveTo(x0, TOP); g.lineTo(G.leg, TOP); g.stroke();
     g.lineWidth = 16 * k * stationH; g.strokeStyle = C.bg;
-    g.beginPath(); g.moveTo(-G.leg, TOP); g.lineTo(G.leg, TOP); g.stroke();
+    g.beginPath(); g.moveTo(x0, TOP); g.lineTo(G.leg, TOP); g.stroke();
   }
   g.restore();
 }
 
 /** Station names. They never rotate; they slide from beside the nodes in the
  * opening (p = 0) to the ends of the route in the card (p = 1). */
-function stationLabels(t, pose, p, { size = 34, appearH = -1, appearM = 3 } = {}) {
+function stationLabels(t, pose, p, { appearH = -1, appearM = EV.arriveM, out = null } = {}) {
   const hamb = poseApply(pose, [0, TOP]);
   const mun = poseApply(pose, [0, ARC_Y + pose.leg]);
-  const sz = mix(size, 26, p);
+  const sz = mix(34, 26, p);
   g.save();
   worldT();
   g.font = font(sz, UI, 600);
   g.letterSpacing = `${mix(6, 3, p)}px`;
-  const wH = g.measureText('HAMBURG').width, wM = g.measureText('MÜNCHEN').width;
+  const wH = g.measureText('HAMBURG').width;
   g.restore();
-  // opening: left-aligned above / below the station. card: either end of the route.
   const hx = mix(hamb[0] - 70, hamb[0] - 48 - wH, p), hy = mix(hamb[1] - 60, hamb[1] + sz * 0.36, p);
   const mx = mix(mun[0] - 72, mun[0] + 48, p), my = mix(mun[1] + 84, mun[1] + sz * 0.36, p);
-  rise(t, 'HAMBURG', hx, hy, { beat: appearH, size: sz, fam: UI, weight: 600, color: C.muted, spacing: mix(6, 3, p) });
-  rise(t, 'MÜNCHEN', mx, my, { beat: appearM, size: sz, fam: UI, weight: 600, color: C.muted, spacing: mix(6, 3, p) });
+  rise(t, 'HAMBURG', hx, hy, { beat: appearH, size: sz, fam: UI, weight: 600, color: C.muted, spacing: mix(6, 3, p), out });
+  rise(t, 'MÜNCHEN', mx, my, { beat: appearM, size: sz, fam: UI, weight: 600, color: C.muted, spacing: mix(6, 3, p), out });
 }
 
 /** An expanding ring where something lands. */
@@ -409,15 +471,10 @@ const WORDS = (() => {
   return { x, size, lh, top, base: (i) => top + (i + 1) * lh - size * 0.08 };
 })();
 
-function words(t, { exit = null, rolled = 0, level = Infinity } = {}) {
-  const lines = [
-    ['VOLL', 0.5, 'solid'],
-    ['HIN.', 1.5, 'solid'],
-    ['LEER', 4.5, 'hollow'],
-    ['ZURÜCK.', 5.5, 'hollow'],
-  ];
-  lines.forEach(([text, beat, kind], i) => {
-    // leaving: pushed off to the right, accelerating, blurred by its own speed
+function words(t, { beats = [EV.voll, EV.hin, EV.leer, EV.zurueck], exit = null, out = null, rolled = null, level = Infinity, shine = null } = {}) {
+  const lines = [['VOLL', 'solid'], ['HIN.', 'solid'], ['LEER', 'hollow'], ['ZURÜCK.', 'hollow']];
+  lines.forEach(([text, kind], i) => {
+    // leaving sideways: pushed off to the right, accelerating, blurred by its own speed
     let dx = 0, smear = 0;
     if (exit != null) {
       const a = ramp(t, exit + i * 0.09, exit + 0.75 + i * 0.09);
@@ -425,15 +482,19 @@ function words(t, { exit = null, rolled = 0, level = Infinity } = {}) {
       smear = 1150 * (E.inCubic(Math.min(1, a + 0.06)) - E.inCubic(a)) * 1.2;
     }
     const y = WORDS.base(i);
+    const o = out == null ? null : out + i * 0.06;
     if (kind === 'solid') {
-      rise(t, text, WORDS.x, y, { beat, size: WORDS.size, color: C.ink, dx, smear });
-    } else if (i === 2 && rolled > 0) {
-      rollWord(t, 'LEER', 'VOLL', WORDS.x + dx, y, WORDS.size, rolled, level);
+      rise(t, text, WORDS.x, y, { beat: beats[i], size: WORDS.size, color: C.ink, dx, smear, out: o });
+    } else if (i === 2 && rolled != null && t >= B(rolled) - 0.001) {
+      rollWord(t, 'LEER', 'VOLL', WORDS.x + dx, y, WORDS.size, rolled, level, o);
     } else {
-      rise(t, text, WORDS.x, y, { beat, size: WORDS.size, color: C.amber, stroke: 4, dx, smear });
-      if (level < y) fillBelow(text, WORDS.x + dx, y, WORDS.size, level, C.green);
+      const full = level < y - WORDS.size * 0.75;
+      rise(t, text, WORDS.x, y, { beat: beats[i], size: WORDS.size, color: full ? C.green : C.amber, stroke: 4, dx, smear, out: o });
+      if (level < y && (o == null || t < B(o))) fillBelow(text, WORDS.x + dx, y, WORDS.size, level, C.green);
+      else if (level < y && o != null) rise(t, text, WORDS.x, y, { beat: beats[i], size: WORDS.size, color: C.green, out: o });
     }
   });
+  if (shine != null) shineSweep(t, shine);
 }
 
 /** The part of a hollow word below a liquid level, filled solid. */
@@ -448,33 +509,50 @@ function fillBelow(text, x, y, size, level, color) {
   g.restore();
 }
 
+/** On the drop, a highlight runs across the full words once: the type is
+ * drawn again with a gradient that is clear except for one bright band. */
+function shineSweep(t, beat) {
+  const p = ramp(t, beat, beat + 1.1);
+  if (p <= 0 || p >= 1) return;
+  g.save();
+  worldT();
+  g.font = font(WORDS.size);
+  const x = mix(WORDS.x - 400, 1300, E.inOutCubic(p));
+  const gr = g.createLinearGradient(x - 160, WORDS.top, x + 40, WORDS.top + WORDS.lh * 4);
+  gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr;
+  ['VOLL', 'HIN.', 'VOLL', 'ZURÜCK.'].forEach((txt, i) => g.fillText(txt, WORDS.x, WORDS.base(i)));
+  g.restore();
+}
+
 /**
  * LEER → VOLL, letter by letter like a split-flap: each old letter rolls up
  * out of its slot as the new one rolls in, and the slots slide to the new
- * word's spacing. `rolled` is the beat the first letter turns on.
+ * word's spacing.
  */
-function rollWord(t, from, to, x, y, size, rolled, level) {
+function rollWord(t, from, to, x, y, size, rolled, level, out = null) {
+  const po = out == null ? 0 : spring(t - B(out), ...SNAP);
+  if (po >= 0.999) return;
   g.save();
   worldT();
   g.font = font(size);
   const adv = (word) => { const xs = []; let acc = 0; for (const ch of word) { xs.push(acc); acc += g.measureText(ch).width; } return xs; };
   const xa = adv(from), xb = adv(to);
   const asc = g.measureText('L').actualBoundingBoxAscent;
+  const lift = po * (asc + size * 0.32);
   for (let i = 0; i < from.length; i++) {
     const p = spring(t - B(rolled + i * 0.25), 380, 30);
     const lx = x + mix(xa[i], xb[i], p);
     g.save();
     g.beginPath(); g.rect(lx - 10, y - asc - size * 0.18, size, asc + size * 0.26); g.clip();
-    // the old letter: hollow, filled below the level, rolling up and away
-    const yo = y - p * (asc + size * 0.2);
+    const yo = y - p * (asc + size * 0.2) - lift;
     g.save();
     g.beginPath(); g.rect(lx - 10, level, size, size * 2); g.clip();
     g.fillStyle = C.green; g.fillText(from[i], lx, yo);
     g.restore();
     g.lineWidth = 4; g.strokeStyle = level < y ? C.green : C.amber; g.strokeText(from[i], lx, yo);
-    // the new letter, solid green, rolling in from below
     g.fillStyle = C.green;
-    g.fillText(to[i], lx, y + (1 - p) * (asc + size * 0.2));
+    g.fillText(to[i], lx, y + (1 - p) * (asc + size * 0.2) - lift);
     g.restore();
   }
   g.restore();
@@ -483,8 +561,8 @@ function rollWord(t, from, to, x, y, size, rolled, level) {
 // ------------------------------------------------------------------ cursor
 
 /**
- * A macOS-style arrow with a name tag, like a multiplayer cursor: two cursors
- * in the film are two different companies. It leans into its own motion,
+ * A macOS-style arrow with a name tag, like a multiplayer cursor: the
+ * cursors in the film are different companies. It leans into its own motion,
  * grows on hover and dips on every click. keys: [[beat, [x, y]], ...]
  */
 function cursorPos(t, keys) {
@@ -495,16 +573,11 @@ function cursor(t, { keys, pos = (tt) => cursorPos(tt, keys), clicks = [], hover
   if (t < B(keys[0][0]) - 0.001) return;
   const [x, y] = pos(t);
   const [x0] = pos(t - 1 / 60);
-  const vx = (x - x0) * 60;
-  const lean = clamp(vx / 2400, -0.35, 0.35);
+  const lean = clamp((x - x0) * 60 / 2400, -0.35, 0.35);
   let scale = 1;
   for (const [b0, b1] of hover) scale += 0.22 * (sp(t, b0, POP) - sp(t, b1, POP));
-  for (const c of clicks) {
-    const dt = t - B(c);
-    if (dt > -0.05 && dt < 0.35) scale *= 1 - 0.16 * Math.exp(-(((dt - 0.04) / 0.07) ** 2));
-  }
+  for (const c of clicks) scale *= 1 - 0.16 * pulse(t, c + 0.02, 0.07);
   for (const [b0, b1] of holds) scale *= 1 - 0.1 * (sp(t, b0, SNAP) - sp(t, b1, SNAP));
-  // a ripple in the cursor's colour at every click
   for (const c of clicks) burst(t, x, y, c, color, 12, 90);
   g.save();
   worldT();
@@ -518,7 +591,6 @@ function cursor(t, { keys, pos = (tt) => cursorPos(tt, keys), clicks = [], hover
   g.fillStyle = '#fff'; g.fill();
   g.shadowColor = 'transparent';
   g.lineWidth = 2.6; g.lineJoin = 'round'; g.strokeStyle = C.bg; g.stroke();
-  // name tag
   g.font = font(15, UI, 700);
   const tw = g.measureText(label).width;
   g.beginPath(); g.roundRect(26, 46, tw + 22, 28, 9);
@@ -530,13 +602,14 @@ function cursor(t, { keys, pos = (tt) => cursorPos(tt, keys), clicks = [], hover
 
 // --------------------------------------------------------------- UI pieces
 
-function pill(x, y, h, text, { size = 26, color = C.amber, solid = false, weight = 700, spacing = 2, icon = null, scale = 1 } = {}) {
+function pill(x, y, h, text, { size = 26, color = C.amber, solid = false, weight = 700, spacing = 2, icon = null, scale = 1, align = 'left' } = {}) {
   g.save();
   worldT();
   g.font = font(size, UI, weight);
   g.letterSpacing = `${spacing}px`;
   const iw = icon ? size * 1.1 : 0;
   const w = g.measureText(text).width + size * 1.4 + iw;
+  if (align === 'center') x -= w / 2;
   if (scale !== 1) { g.translate(x + w / 2, y + h / 2); g.scale(scale, scale); g.translate(-x - w / 2, -y - h / 2); }
   g.beginPath(); g.roundRect(x, y, w, h, h / 2);
   if (solid) { g.fillStyle = color; g.fill(); }
@@ -556,23 +629,19 @@ function pill(x, y, h, text, { size = 26, color = C.amber, solid = false, weight
   return w;
 }
 
-function button(x, y, w, h, text, { color = C.green, size = 34, scale = 1, textColor = C.bg, alpha = 1 } = {}) {
+function button(x, y, w, h, text, { color = C.green, size = 34, scale = 1, textColor = C.bg, outline = false } = {}) {
   g.save();
   worldT();
-  g.globalAlpha = alpha;
   const cx = x + w / 2, cy = y + h / 2;
   g.translate(cx, cy); g.scale(scale, scale); g.translate(-cx, -cy);
   g.beginPath(); g.roundRect(x, y, w, h, Math.min(24, h / 2));
-  g.fillStyle = color; g.fill();
+  if (outline) { g.fillStyle = hexA(color, 0.08); g.fill(); g.lineWidth = 2.5; g.strokeStyle = color; g.stroke(); }
+  else { g.fillStyle = color; g.fill(); }
   g.font = font(size, UI, 700);
-  g.fillStyle = textColor; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = outline ? color : textColor; g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(text, cx, cy + 2);
   g.restore();
 }
-
-/** Text in UI font, rising out of a mask on its beat. */
-const uiText = (t, text, x, y, beat, size, color = C.text, weight = 500, align = 'left', out = null) =>
-  rise(t, text, x, y, { beat, size, fam: UI, weight, color, align, out });
 
 /**
  * Odometer digits: each digit rolls continuously, a higher one only while the
@@ -593,9 +662,8 @@ function odometer(value, x, y, size, color, { prefix = '€', groups = true, uni
   const digits = Math.max(pad, Math.floor(Math.log10(Math.max(1, v))) + 1);
   for (let j = digits - 1; j >= 0; j--) {
     const p10 = 10 ** j;
-    let d = Math.floor(v / p10), frac = 0;
-    if (j === 0) frac = v - Math.floor(v);
-    else frac = clamp((v % p10) - (p10 - 1));
+    const d = Math.floor(v / p10);
+    const frac = j === 0 ? v - Math.floor(v) : clamp((v % p10) - (p10 - 1));
     const a = ((d % 10) + 10) % 10, b = (a + 1) % 10;
     g.save();
     g.beginPath(); g.rect(cx - 4, y - asc - size * 0.08, dw + 8, asc + size * 0.16); g.clip();
@@ -612,11 +680,9 @@ function odometer(value, x, y, size, color, { prefix = '€', groups = true, uni
   return cx;
 }
 
-// ------------------------------------------------------------------ layers
-
 /** Draw fn into an offscreen copy of the frame, then composite it back with
- * blur / dim, clipped to a screen rect. Used for depth of field. */
-function withDepth(fn, { blur = 0, dim = 0, scale = 1, cx = W / 2, cy = H / 2, clipRect = [0, 0, W, H] }) {
+ * blur / dim / scale: depth of field for whatever sits behind a panel. */
+function withDepth(fn, { blur = 0, dim = 0, scale = 1, cx = W / 2, cy = H / 2 }) {
   lg.setTransform(1, 0, 0, 1, 0, 0);
   lg.clearRect(0, 0, W, H);
   lg.drawImage(canvas, 0, 0);
@@ -625,50 +691,46 @@ function withDepth(fn, { blur = 0, dim = 0, scale = 1, cx = W / 2, cy = H / 2, c
   g = prev;
   g.save();
   screenT();
-  g.beginPath(); g.rect(...clipRect); g.clip();
   g.filter = blur > 0.05 ? `blur(${blur}px)` : 'none';
-  g.translate(cx, cy); g.scale(scale, scale); g.translate(-cx, -cy);
+  const [sx, sy] = toScreen(cx, cy);
+  g.translate(sx, sy); g.scale(scale, scale); g.translate(-sx, -sy);
   g.drawImage(layer, 0, 0);
   g.filter = 'none';
   g.restore();
   if (dim > 0) {
     g.save(); screenT();
     g.fillStyle = `rgba(3,5,10,${dim})`;
-    g.fillRect(...clipRect);
+    g.fillRect(0, 0, W, H);
     g.restore();
   }
 }
 
-// ------------------------------------------------------------------ scenes
+// ================================================================== scenes
 
-// ---- card geometry (world)
-const CARD = { x: 72, y: 700, w: 936, h: 560, r: 48 };
-const BTN = { x: 132, y: 1124, w: 448, h: 88 };
-const MODAL = { x: 72, y: 540, w: 936, h: 960, r: 52 };
-const SLIDER = { x: 132, y: 984, w: 816 };
-const PUBLISH = { x: 132, y: 1384, w: 816, h: 92 };
+// ---- 2: the card
+const CARD = { x: 72, y: 820, w: 936, h: 560, r: 48 };
+const BTN = { x: 132, y: 1244, w: 448, h: 88 };
 
 function cardPose(t) {
-  const pp = spring(t - B(8), 120, 23);
-  const pr = spring(t - B(8), 105, 18);
-  const ps = spring(t - B(8.1), 140, 22);
+  const pp = spring(t - B(EV.morph), 120, 23);
+  const pr = spring(t - B(EV.morph), 105, 18);
+  const ps = spring(t - B(EV.morph + 0.1), 140, 22);
   return { pose: poseMix(POSE_OPEN, POSE_CARD, pp, pr, ps), p: Math.min(1, ps) };
 }
 
-/** The transport card: glass, route, title, button, tag. `press` dips the button. */
-function drawCard(t, { press = 1, buttonAlpha = 1 } = {}) {
+/** The transport card: glass, route, title, button, tag. */
+function drawCard(t, { press = 1, showButton = true } = {}) {
   const { pose, p } = cardPose(t);
-  const pw = spring(t - B(8.15), 150, 22), ph = spring(t - B(8.05), 130, 24);
+  const pw = spring(t - B(EV.morph + 0.15), 150, 22), ph = spring(t - B(EV.morph + 0.05), 130, 24);
   const w = mix(0, CARD.w, pw), h = mix(1180, CARD.h, ph);
-  const cx = mix(POSE_OPEN.x, CARD.x + CARD.w / 2, spring(t - B(8), 120, 23));
-  const cy = mix(950, CARD.y + CARD.h / 2, spring(t - B(8), 120, 23));
+  const cpos = spring(t - B(EV.morph), 120, 23);
+  const cx = mix(POSE_OPEN.x, CARD.x + CARD.w / 2, cpos), cy = mix(950, CARD.y + CARD.h / 2, cpos);
   glass(cx - w / 2, cy - h / 2, w, h, CARD.r);
-  // scan: the system checks the route, and the empty leg answers
-  const scan = ramp(t, 9.4, 9.95);
-  const scanning = scan > 0 && scan < 1;
-  drawLoop(pose, { out: 1, back: 1, tube: mix(20, 13, p), stationM: 1, stationH: 1 });
+  drawLoop(pose, { out: 1, back: 1, tube: mix(20, 13, p) });
   stationLabels(t, pose, p);
-  if (scanning) {
+  // scan: the system checks the route, and the empty leg answers
+  const scan = ramp(t, EV.scan, EV.tag);
+  if (scan > 0 && scan < 1) {
     g.save(); worldT();
     const sx = mix(CARD.x + 40, CARD.x + CARD.w - 40, E.inOutSine(scan));
     const gr = g.createLinearGradient(sx - 160, 0, sx, 0);
@@ -677,91 +739,58 @@ function drawCard(t, { press = 1, buttonAlpha = 1 } = {}) {
     g.fillStyle = C.cyan; g.fillRect(sx - 1.5, CARD.y + 24, 3, CARD.h - 48);
     g.restore();
   }
-  uiText(t, 'Hamburg → München', 132, 806, 8.75, 54, C.ink, 600);
-  uiText(t, 'in 12 Tagen · 6 Container · Straße', 132, 862, 8.9, 34, C.muted, 400);
-  // the button pops out of nothing on its beat
-  const pb = sp(t, 9.15, POP);
-  if (pb > 0 && buttonAlpha > 0) button(BTN.x, BTN.y + (1 - pb) * 40, BTN.w, BTN.h, 'Rückfahrt anbieten', { scale: (0.85 + 0.15 * pb) * press, alpha: buttonAlpha });
-  const pt = sp(t, 9.95, [420, 22]);
-  if (pt > 0) pill(612, 1140, 56, 'LEERFAHRT ERKANNT', { size: 22, icon: 'warn', scale: pt });
+  uiText(t, 'Hamburg → München', 132, 926, EV.cardTitle, 54, C.ink, 600);
+  uiText(t, 'in 12 Tagen · 6 Container · Straße', 132, 982, EV.cardSub, 34, C.muted, 400);
+  const pb = sp(t, EV.cardBtn, POP);
+  if (pb > 0 && showButton) button(BTN.x, BTN.y + (1 - pb) * 40, BTN.w, BTN.h, 'Rückfahrt anbieten', { scale: (0.85 + 0.15 * pb) * press });
+  const pt = sp(t, EV.tag, [420, 22]);
+  if (pt > 0) pill(612, 1260, 56, 'LEERFAHRT ERKANNT', { size: 22, icon: 'warn', scale: pt });
 }
+
+// ---- 3: the offer panel
+const MODAL = { x: 72, y: 540, w: 936, h: 960, r: 52 };
+const SLIDER = { x: 132, y: 984, w: 816 };
+const PUBLISH = { x: 132, y: 1384, w: 816, h: 92 };
+const discount = (t) => 30 * E.inOutCubic(ramp(t, EV.dragFrom, EV.dragTo));
+const modalOpen = (t) => [spring(t - B(EV.unfold), 160, 22), spring(t - B(EV.unfold + 0.05), 140, 21)];
 
 // The carrier's cursor: in from the corner, onto the button, then the slider
 // knob (which it drags), then the publish button.
-const SPED_KEYS = [[11.6, [1180, 1760]], [11.7, [1180, 1760]], [12.05, [372, 1186]], [13.25, [SLIDER.x + 4, SLIDER.y + 6]], [14.95, [PUBLISH.x + 520, PUBLISH.y + 52]]];
-const discount = (t) => 30 * E.inOutCubic(ramp(t, 13.8, 14.8));
+const SPED_KEYS = [[EV.spedIn, [1180, 1760]], [EV.spedIn + 0.1, [1180, 1760]], [EV.spedArrive, [372, 1306]],
+  [13.25, [SLIDER.x + 4, SLIDER.y + 6]], [14.95, [PUBLISH.x + 520, PUBLISH.y + 52]]];
 function spedPos(t) {
   const [bx, by] = cursorPos(t, SPED_KEYS);
   // while the knob is held the cursor is glued to it
-  const hold = clamp(sp(t, 13.7, SNAP) - sp(t, 14.9, SNAP));
+  const hold = clamp(sp(t, EV.grab - 0.05, SNAP) - sp(t, EV.release + 0.05, SNAP));
   const kx = SLIDER.x + SLIDER.w * (discount(t) / 50) + 4;
   return [mix(bx, kx, hold), mix(by, SLIDER.y + 6, hold)];
 }
-const SPED = { keys: SPED_KEYS, pos: spedPos, clicks: [13, 15.5], hover: [[12.5, 13.05], [15.25, 15.8]], holds: [[13.75, 14.85]], label: 'Spedition', color: C.amber };
-
-const SCENES = {
-  loop(t) {
-    const out = loopOut(t), back = loopBack(t);
-    drawLoop(POSE_OPEN, { out, back, stationM: sp(t, 3, [520, 20]), stationH: 1 });
-    burst(t, POSE_OPEN.x, 950 + ARC_Y + POSE_OPEN.leg, 3, C.ink, 26, 150);
-    burst(t, POSE_OPEN.x, 950 + TOP, 7, C.amber, 30, 140);
-    stationLabels(t, POSE_OPEN, 0);
-    words(t);
-  },
-
-  card(t) {
-    words(t, { exit: 8 });
-    drawCard(t, { press: 1 - 0.07 * Math.exp(-(((t - B(13)) / 0.08) ** 2)) });
-    // headline above the card
-    rise(t, 'AUTOMATISCH', 72, 470, { beat: 10, size: 150, color: C.ink, out: 12.7 });
-    rise(t, 'ERKANNT.', 72, 610, { beat: 10.3, size: 150, color: C.cyan, out: 12.75 });
-    cursor(t, SPED);
-  },
-
-  offer(t) {
-    const m = spring(t - B(13.05), 160, 22), mh = spring(t - B(13.1), 140, 21);
-    // the card recedes behind the panel: depth, not a fade
-    withDepth(() => drawCard(t, { buttonAlpha: 0 }), {
-      blur: 9 * m, dim: 0.35 * m, scale: 1 - 0.05 * m, cx: 540, cy: 980,
-    });
-    rise(t, 'DEIN PREIS.', 72, 400, { beat: 13.2, size: 190, color: C.ink, out: 15.3 });
-    rise(t, 'EIN KLICK.', 72, 400, { beat: 15.5, size: 190, color: C.ink });
-    // the green button grows into the panel
-    const x = mix(BTN.x, MODAL.x, m), w = mix(BTN.w, MODAL.w, m);
-    const y = mix(BTN.y, MODAL.y, mh), h = mix(BTN.h, MODAL.h, mh);
-    glass(x, y, w, h, mix(24, MODAL.r, m), { fill: hexA(C.green, Math.max(0, 1 - m * 1.6)), tint: 0.07 });
-    offerPanel(t, [x, y, w, h]);
-    cursor(t, SPED);
-  },
-
-  market(t) { void t; },
-  payoff(t) {
-    // (transition from the marketplace comes with the full build)
-    const fill = E.inOutCubic(ramp(t, 22, 24));
-    drawLoop(POSE_OPEN, { out: 1, back: 1, fill, stationM: 1, stationH: 1 });
-    stationLabels(t, POSE_OPEN, 0);
-    words(t, { rolled: 23.0, level: fill > 0.0005 ? fillLevel(POSE_OPEN, fill) : Infinity });
-  },
-
-  network(t) { networkScene(t); },
-  logo(t) { void t; },
+const SPED = {
+  keys: SPED_KEYS, pos: spedPos, clicks: [EV.click1, EV.click2], hover: [[EV.hover1, EV.click1 + 0.05], [EV.hover2, EV.click2 + 0.3]],
+  holds: [[EV.grab, EV.release]], label: 'Spedition', color: C.amber,
 };
 
-/** The offer panel's contents, clipped to the growing panel. */
-function offerPanel(t, rect) {
+function offerBackdrop(t) {
+  const [m] = modalOpen(t);
+  withDepth(() => drawCard(t, { showButton: false }), { blur: 9 * m, dim: 0.35 * m, scale: 1 - 0.05 * m, cx: 540, cy: 1100 });
+}
+
+/** The offer panel's contents. dy moves them with the panel when it flies. */
+function offerContent(t, rect, dy = 0) {
   const [x, y, w, h] = rect;
   g.save();
   screenT();
   const [sx, sy] = toScreen(x, y);
   g.beginPath(); g.roundRect(sx, sy, w * cam.s, h * cam.s, 40); g.clip();
-  const d = discount(t); // %
+  const prev = cam; cam = { ...cam, cy: cam.cy - dy };
+  const d = discount(t);
   const price = 1700 * (1 - d / 100);
   rise(t, 'RÜCKFAHRT ANBIETEN', 132, 654, { beat: 13.3, size: 86, color: C.ink });
   uiText(t, 'München → Hamburg · 6 Container', 132, 712, 13.38, 36, C.muted, 400);
   uiText(t, 'Normalpreis', 132, 820, 13.45, 32, C.muted, 500);
   uiText(t, '€1.700', 948, 822, 13.45, 44, C.text, 600, 'right');
-  // the normal price is struck through as the discount grows
   if (d > 0.01) {
+    // the normal price is struck through as the discount grows
     g.save(); worldT();
     g.font = font(44, UI, 600);
     const pw = g.measureText('€1.700').width;
@@ -784,7 +813,7 @@ function offerPanel(t, rect) {
     const kx = SLIDER.x + SLIDER.w * (d / 50);
     g.beginPath(); g.roundRect(SLIDER.x, SLIDER.y - 7, SLIDER.w * ps, 14, 7); g.fillStyle = 'rgba(255,255,255,0.12)'; g.fill();
     if (d > 0) { g.beginPath(); g.roundRect(SLIDER.x, SLIDER.y - 7, kx - SLIDER.x, 14, 7); g.fillStyle = C.cyan; g.fill(); }
-    const held = sp(t, 13.75, SNAP) - sp(t, 14.85, SNAP);
+    const held = sp(t, EV.grab, SNAP) - sp(t, EV.release, SNAP);
     g.shadowColor = 'rgba(0,0,0,0.5)'; g.shadowBlur = 18; g.shadowOffsetY = 6;
     g.beginPath(); g.arc(kx, SLIDER.y, (30 + 8 * held) * ps, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
     g.restore();
@@ -797,97 +826,196 @@ function offerPanel(t, rect) {
   }
   const pb = sp(t, 13.65, POP);
   if (pb > 0) {
-    const press = 1 - 0.06 * Math.exp(-(((t - B(15.5)) / 0.08) ** 2));
-    button(PUBLISH.x, PUBLISH.y + (1 - pb) * 40, PUBLISH.w, PUBLISH.h, 'Auf Marktplatz veröffentlichen', { scale: (0.9 + 0.1 * pb) * press, size: 36 });
+    button(PUBLISH.x, PUBLISH.y + (1 - pb) * 40, PUBLISH.w, PUBLISH.h, 'Auf Marktplatz veröffentlichen',
+      { scale: (0.9 + 0.1 * pb) * (1 - 0.06 * pulse(t, EV.click2)), size: 36 });
   }
+  cam = prev;
   g.restore();
 }
 
-// ---- network: your partners first, then everyone
-const NET = { x: 520, y: 1150, r1: 270, r2: 420 };
+function offerHeadlines(t) {
+  rise(t, 'DEIN PREIS.', 72, 400, { beat: EV.headPrice, size: 190, color: C.ink, out: 15.3 });
+  rise(t, 'EIN KLICK.', 72, 400, { beat: EV.click2, size: 190, color: C.ink });
+}
+
+// ---- 4: the marketplace (2200 px up)
+const MPANEL = { x: 72, y: Y0 + 660, w: 936, h: 980, r: 48 };
+const slotY = (i) => Y0 + 830 + i * 200;
+const ROW = { x: 100, w: 880, h: 184, r: 30 };
+const LISTINGS = [
+  { route: 'Rotterdam → Duisburg', sub: 'Freie Kapazität · 2 Waggons · Nordic Rail', price: '€880', pct: '−22 %' },
+  { route: 'Wien → München', sub: 'Rückfahrt · 18 t · Alpenfracht AG', price: '€720', pct: '−18 %' },
+  { route: 'Hamburg → Antwerpen', sub: 'Freier Slot · 4 Container · Maritime Express', price: '€2.100', pct: '−25 %' },
+];
+// the listing's route glyph: only the hollow way back, lying down, München on the left
+const glyphPose = (y) => ({ x: ROW.x + 32 + 156, y: y + 140, rot: Math.PI / 2, s: 0.265, leg: 48, len: 1 });
+const BOOK = (y) => ({ x: 790, y: y + 116, w: 158, h: 52 });
+
+function rowContent(t, y, L, { beat = null, booked = 0, fill = 0, bookPress = 1, glyph = true } = {}) {
+  const b = (k) => (beat == null ? -10 : beat + k);
+  rise(t, L.route, ROW.x + 32, y + 58, { beat: b(0), size: 38, fam: UI, weight: 600, color: C.ink });
+  rise(t, L.sub, ROW.x + 32, y + 98, { beat: b(0.08), size: 25, fam: UI, weight: 400, color: C.muted });
+  rise(t, L.price, ROW.x + ROW.w - 32, y + 72, { beat: b(0.04), size: 62, color: booked > 0.5 ? C.green : C.ink, align: 'right' });
+  const pg = beat == null ? 1 : sp(t, b(0.12), POP);
+  if (pg > 0) {
+    if (glyph) drawLoop(glyphPose(y), { back: pg, fill, tube: 10, stationM: 0.45 * pg, stationH: 0.45 * pg, hk: 0 });
+    pill(ROW.x + 380, y + 120, 44, L.pct, { size: 21, color: C.cyan, scale: pg, spacing: 0 });
+  }
+  const pb = beat == null ? 1 : sp(t, b(0.16), POP);
+  if (pb > 0) {
+    const r = BOOK(y);
+    if (booked > 0.5) button(r.x - 10, r.y, r.w + 10, r.h, 'Gebucht ✓', { size: 23, scale: pb * (0.9 + 0.1 * booked) });
+    else button(r.x, r.y, r.w, r.h, 'Buchen', { size: 24, color: C.cyan, outline: true, scale: pb * bookPress });
+  }
+}
+
+function drawRow(t, y, L, opts = {}) {
+  glass(ROW.x, y, ROW.w, ROW.h, ROW.r, { blur: 16, tint: 0.05, shadow: 0.3, rim: 0.4 });
+  // every listing is empty capacity: a hollow amber edge
+  g.save(); worldT();
+  g.beginPath(); g.roundRect(ROW.x + 1, y + 1, ROW.w - 2, ROW.h - 2, ROW.r);
+  g.lineWidth = 2; g.strokeStyle = hexA(C.amber, 0.55); g.stroke();
+  g.restore();
+  rowContent(t, y, L, opts);
+}
+
+const VERL_KEYS = [[EV.verlIn, [-90, Y0 + 1700]], [EV.verlIn + 0.05, [-90, Y0 + 1700]], [18.1, [BOOK(slotY(0)).x + 78, BOOK(slotY(0)).y + 30]], [19.4, [1180, Y0 + 1500]]];
+const VERL = { keys: VERL_KEYS, clicks: [EV.click3], hover: [[EV.hover3, EV.click3 + 0.3]], label: 'Verlader', color: C.cyan };
+
+/** The marketplace world: panel, the other listings, headlines. Ours is drawn by the caller. */
+function marketWorld(t) {
+  glass(MPANEL.x, MPANEL.y, MPANEL.w, MPANEL.h, MPANEL.r);
+  rise(t, 'VERFÜGBARE KAPAZITÄTEN', 132, MPANEL.y + 84, { beat: -10, size: 46, color: C.ink, spacing: 1 });
+  rise(t, 'Rückfahrten und freie Slots, oft günstiger', 132, MPANEL.y + 128, { beat: -10, size: 27, fam: UI, weight: 400, color: C.muted });
+  // the others make room as ours lands on top
+  const push = sp(t, EV.land - 0.05, [260, 24]);
+  LISTINGS.forEach((L, i) => drawRow(t, slotY(i + push), L));
+  const hs = fitSize('MARKTPLATZ.', 868, 190);
+  rise(t, 'AUF DEN', 72, Y0 + 400, { beat: EV.headMarket, size: hs, color: C.ink, out: EV.headBooked - 0.2 });
+  rise(t, 'MARKTPLATZ.', 72, Y0 + 400 + hs * 0.86, { beat: EV.headMarket + 0.25, size: hs, color: C.cyan, out: EV.headBooked - 0.15 });
+  rise(t, 'GEBUCHT.', 72, Y0 + 400 + hs * 0.86, { beat: EV.headBooked + 0.05, size: hs, color: C.green });
+}
+
+/** Our listing: the panel folding into a row and flying up to the top slot. */
+function ourListing(t) {
+  const f = spring(t - B(EV.fold), 170, 22), q = spring(t - B(EV.fold + 0.05), 150, 24);
+  const x = mix(MODAL.x, ROW.x, f), w = mix(MODAL.w, ROW.w, f), h = mix(MODAL.h, ROW.h, f);
+  const y = mix(MODAL.y, slotY(0), q);
+  const booked = sp(t, EV.booked, SNAP);
+  glass(x, y, w, h, mix(MODAL.r, ROW.r, f), { blur: 22, tint: 0.07, shadow: 0.45 });
+  if (t < B(EV.fold + 0.6)) offerContent(t, [x, y, w, h], y - MODAL.y);
+  // the hollow edge appears as it becomes a listing; booking draws it green
+  g.save(); worldT();
+  g.beginPath(); g.roundRect(x + 1, y + 1, w - 2, h - 2, mix(MODAL.r, ROW.r, f));
+  g.lineWidth = 2.5; g.strokeStyle = hexA(C.amber, 0.85 * f); g.stroke();
+  g.restore();
+  if (booked > 0) {
+    // the booking fills the listing from the left, like the leg will fill
+    g.save(); worldT();
+    g.beginPath(); g.roundRect(x, y, w, h, ROW.r); g.clip();
+    g.fillStyle = hexA(C.green, 0.1);
+    g.fillRect(x, y, w * E.inOutCubic(ramp(t, EV.booked, EV.booked + 0.6)), h);
+    g.restore();
+    outlineSweep(x + 1, y + 1, w - 2, h - 2, ROW.r, E.inOutCubic(ramp(t, EV.booked, EV.booked + 0.5)), C.green, 4);
+  }
+  const fill = 0.18 * E.outCubic(ramp(t, EV.booked, EV.whipDown));
+  rowContent(t, y, { route: 'München → Hamburg', sub: 'Rückfahrt · 6 Container · Müller Spedition', price: '€1.190', pct: '−30 %' },
+    { beat: EV.land, booked, fill, bookPress: 1 - 0.07 * pulse(t, EV.click3) });
+}
+
+// ---- 6: the network
+const NET = { x: 520, y: 1100, r1: 270, r2: 420 };
 const PARTNERS = [
   { name: 'Müller Spedition', a: -145 },
   { name: 'Nordic Rail', a: -35 },
   { name: 'Hansa Transport', a: 90 },
 ];
 const MARKET = Array.from({ length: 20 }, (_, i) => ({ a: i * 18 + 9, r: NET.r2 + (hash(i + 3) - 0.5) * 36 }));
-const polar = (a, r) => [NET.x + Math.cos(a * Math.PI / 180) * r, NET.y + Math.sin(a * Math.PI / 180) * r];
+const polar = (a, r, c = NET) => [c.x + Math.cos(a * Math.PI / 180) * r, c.y + Math.sin(a * Math.PI / 180) * r];
+const OFFERS = [
+  { from: () => polar(PARTNERS[0].a, NET.r1), price: '€2.180', beat: EV.offersBack },
+  { from: () => polar(PARTNERS[2].a, NET.r1), price: '€2.280', beat: EV.offersBack + 0.2 },
+  { from: () => polar(MARKET[3].a, MARKET[3].r), price: '€2.350', beat: EV.offersBack + 0.4 },
+];
+const HAMBURG = [POSE_OPEN.x, POSE_OPEN.y + TOP];
 
-function networkScene(t) {
-  rise(t, 'ERST DEIN', 72, 400, { beat: 26.5, size: 190, color: C.ink, out: 32.3 });
-  rise(t, 'NETZWERK.', 72, 560, { beat: 26.8, size: 190, color: C.cyan, out: 32.35 });
-  rise(t, 'DANN DER', 72, 400, { beat: 32.5, size: 190, color: C.ink });
-  rise(t, 'MARKT.', 72, 560, { beat: 32.8, size: 190, color: C.ink });
-
+/** The partner graph. c > 0 pulls everything into the brand dot at the end. */
+function networkGraph(t, c = 0) {
+  const pull = ([x, y]) => [mix(x, 540, c), mix(y, 900, c)];
   const lit = (i) => sp(t, 28.6 + i * 0.12, POP);
-  const open = (i) => sp(t, 32.5 + i * 0.03, POP);
+  const open = (i) => sp(t, EV.headMarkt + i * 0.03, POP);
   g.save(); worldT();
   g.lineCap = 'round';
-  // market: dim until the window closes, then every one of them lights
   MARKET.forEach((n, i) => {
-    const [x, y] = polar(n.a, n.r);
-    const pin = sp(t, 27.6 + i * 0.025, POP);
+    const [x, y] = pull(polar(n.a, n.r));
+    const pin = sp(t, EV.marketDots + i * 0.025, POP);
     if (pin <= 0) return;
     const o = open(i);
     if (o > 0) {
-      const [cx, cy] = polar(n.a, 100);
+      const [cx, cy] = pull(polar(n.a, 100));
       g.strokeStyle = `rgba(238,243,251,${0.22 * o})`; g.lineWidth = 2;
       g.beginPath(); g.moveTo(cx, cy); g.lineTo(mix(cx, x, o), mix(cy, y, o)); g.stroke();
     }
-    g.beginPath(); g.arc(x, y, 10 * pin, 0, Math.PI * 2);
+    g.beginPath(); g.arc(x, y, 10 * pin * (1 - c), 0, Math.PI * 2);
     g.fillStyle = o > 0 ? `rgba(238,243,251,${0.3 + 0.7 * o})` : C.dim; g.fill();
   });
-  // spokes to the partners, drawn by the request
   PARTNERS.forEach((pt, i) => {
-    const [x, y] = polar(pt.a, NET.r1);
-    const s = clamp(spring(t - B(28.5 + i * 0.12), 200, 26));
+    const [x, y] = pull(polar(pt.a, NET.r1));
+    const s = clamp(spring(t - B(EV.request + i * 0.12), 200, 26));
     if (s > 0) {
-      const [cx, cy] = polar(pt.a, 100);
+      const [cx, cy] = pull(polar(pt.a, 100));
       g.strokeStyle = C.cyan; g.lineWidth = 5;
       g.beginPath(); g.moveTo(cx, cy); g.lineTo(mix(cx, x, s), mix(cy, y, s)); g.stroke();
+      // the request itself, a dot running out along the spoke
+      const run = ramp(t, EV.request + i * 0.12, EV.request + 0.5 + i * 0.12);
+      if (run > 0 && run < 1) {
+        g.beginPath(); g.arc(mix(cx, x, E.inOutSine(run)), mix(cy, y, E.inOutSine(run)), 9, 0, Math.PI * 2);
+        g.fillStyle = '#fff'; g.fill();
+      }
     }
   });
-  // the exclusive window: a ring that runs once round, 24 h
-  const sweep = ramp(t, 28.75, 32.5);
+  // the exclusive window: 24 ticks, one per hour, and a ring that runs once round
+  const sweep = ramp(t, EV.sweepFrom, EV.sweepTo);
+  const ctr = pull([NET.x, NET.y]);
+  const R1 = NET.r1 * (1 - c);
   const pr = sp(t, 28.4, POP);
   if (pr > 0) {
     g.strokeStyle = 'rgba(0,212,255,0.16)'; g.lineWidth = 8;
-    g.beginPath(); g.arc(NET.x, NET.y, NET.r1, 0, Math.PI * 2 * pr); g.stroke();
+    g.beginPath(); g.arc(ctr[0], ctr[1], R1, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pr); g.stroke();
   }
-  // 24 ticks, one per hour, each lighting as the window passes it
   for (let i = 0; i < 24; i++) {
     const pi = sp(t, 28.4 + i * 0.012, POP);
     if (pi <= 0) continue;
     const ang = -Math.PI / 2 + (i / 24) * Math.PI * 2;
-    const on = sweep * 24 >= i;
-    const r0 = NET.r1 + 18, r1 = NET.r1 + 18 + (i % 6 === 0 ? 22 : 12) * pi;
+    const on = sweep * 24 >= i && sweep > 0;
+    const r0 = R1 + 18, r1 = R1 + 18 + (i % 6 === 0 ? 22 : 12) * pi * (1 - c);
     g.strokeStyle = on ? C.cyan : 'rgba(0,212,255,0.25)'; g.lineWidth = i % 6 === 0 ? 5 : 3;
-    g.beginPath(); g.moveTo(NET.x + Math.cos(ang) * r0, NET.y + Math.sin(ang) * r0);
-    g.lineTo(NET.x + Math.cos(ang) * r1, NET.y + Math.sin(ang) * r1); g.stroke();
+    g.beginPath(); g.moveTo(ctr[0] + Math.cos(ang) * r0, ctr[1] + Math.sin(ang) * r0);
+    g.lineTo(ctr[0] + Math.cos(ang) * r1, ctr[1] + Math.sin(ang) * r1); g.stroke();
   }
   if (sweep > 0) {
     const a0 = -Math.PI / 2, a1 = a0 + Math.PI * 2 * sweep;
     g.strokeStyle = C.cyan; g.lineWidth = 8;
-    g.beginPath(); g.arc(NET.x, NET.y, NET.r1, a0, a1); g.stroke();
+    g.beginPath(); g.arc(ctr[0], ctr[1], R1, a0, a1); g.stroke();
     if (sweep < 1) {
-      g.beginPath(); g.arc(NET.x + Math.cos(a1) * NET.r1, NET.y + Math.sin(a1) * NET.r1, 13, 0, Math.PI * 2);
+      g.beginPath(); g.arc(ctr[0] + Math.cos(a1) * R1, ctr[1] + Math.sin(a1) * R1, 13, 0, Math.PI * 2);
       g.fillStyle = '#fff'; g.fill();
     }
   }
-  // partner nodes
   PARTNERS.forEach((pt, i) => {
-    const [x, y] = polar(pt.a, NET.r1);
-    const pin = sp(t, 27 + i * 0.5, [420, 22]);
+    const [x, y] = pull(polar(pt.a, NET.r1));
+    const pin = sp(t, EV.partners[i], [420, 22]);
     if (pin <= 0) return;
-    const l = lit(i);
-    const ph = (t / B(1)) % 1, beatPulse = t > B(29) && t < B(32.5) ? Math.exp(-ph * 6) * 0.18 : 0;
-    g.beginPath(); g.arc(x, y, 32 * pin * (1 + beatPulse), 0, Math.PI * 2);
-    g.fillStyle = l > 0.5 ? C.cyan : C.bg; g.fill();
+    const ph = (t / B(1)) % 1;
+    const beatPulse = t > B(29) && t < B(32.5) ? Math.exp(-ph * 6) * 0.18 : 0;
+    g.beginPath(); g.arc(x, y, 32 * pin * (1 + beatPulse) * (1 - c), 0, Math.PI * 2);
+    g.fillStyle = lit(i) > 0.5 ? C.cyan : C.bg; g.fill();
     g.lineWidth = 5; g.strokeStyle = C.cyan; g.stroke();
   });
   g.restore();
+  if (c > 0.02) return;
   PARTNERS.forEach((pt, i) => {
-    const pin = sp(t, 27 + i * 0.5, POP);
+    const pin = sp(t, EV.partners[i], POP);
     if (pin <= 0) return;
     const [x, y] = polar(pt.a, NET.r1);
     g.save(); worldT(); g.font = font(30, UI, 600); const tw = g.measureText(pt.name).width; g.restore();
@@ -895,24 +1023,297 @@ function networkScene(t) {
     const below = pt.a === 90;
     const cx = x - cw / 2, cy = below ? y + 52 : y - 52 - ch;
     glass(cx, cy + (1 - pin) * 24, cw, ch, ch / 2, { blur: 18, tint: 0.08, shadow: 0.4 });
-    rise(t, pt.name, x, cy + ch / 2 + 11, { beat: 27.05 + i * 0.5, size: 30, fam: UI, weight: 600, color: C.ink, align: 'center' });
+    rise(t, pt.name, x, cy + ch / 2 + 11, { beat: EV.partners[i] + 0.05, size: 30, fam: UI, weight: 600, color: C.ink, align: 'center' });
   });
-  // you, in the middle
-  const pc = sp(t, 26.2, [380, 24]);
-  if (pc > 0) {
-    glass(NET.x - 100 * pc, NET.y - 100 * pc, 200 * pc, 200 * pc, 100 * pc, { blur: 22, tint: 0.09 });
-    g.save(); worldT();
-    g.beginPath(); g.arc(NET.x, NET.y, 100 * pc, 0, Math.PI * 2);
-    g.lineWidth = 4; g.strokeStyle = C.cyan; g.stroke();
-    g.restore();
-    rise(t, 'DU', NET.x, NET.y + 30, { beat: 26.3, size: 92, color: C.ink, align: 'center', out: 28.6 });
-    rise(t, '24 H', NET.x, NET.y + 24, { beat: 28.75, size: 96, color: C.ink, align: 'center', out: 32.4 });
-    rise(t, 'EXKLUSIV', NET.x, NET.y + 62, { beat: 28.85, size: 22, fam: UI, weight: 700, color: C.cyan, align: 'center', out: 32.4, spacing: 4 });
-    rise(t, 'ALLE', NET.x, NET.y + 30, { beat: 32.6, size: 92, color: C.ink, align: 'center' });
+  // offers coming back: price tags running in to you
+  for (const o of OFFERS) {
+    const p = ramp(t, o.beat, o.beat + 0.55);
+    if (p <= 0 || p >= 1) continue;
+    const [fx, fy] = o.from();
+    const e = E.inOutCubic(p);
+    const x = mix(fx, NET.x, e), y = mix(fy, NET.y, e);
+    const sc = Math.min(1, p * 6) * (1 - Math.max(0, (p - 0.8) / 0.2));
+    pill(x, y - 24 * sc, 48 * sc, o.price, { size: 24 * sc, color: C.cyan, solid: true, spacing: 0, align: 'center' });
   }
-  uiText(t, 'Deine Partner sehen die Anfrage zuerst.', 540, 1740, 29, 40, C.text, 500, 'center', 32.4);
-  uiText(t, 'Danach jeder Anbieter auf Neuroroute.', 540, 1740, 32.6, 40, C.text, 500, 'center');
 }
+
+/** You, in the middle: the Hamburg terminal flies in and becomes the hub. */
+function hub(t, c = 0) {
+  const hp = spring(t - B(EV.hub), 150, 22), hs = spring(t - B(EV.hub + 0.05), 170, 22);
+  if (hp <= 0 || c > 0.98) return;
+  const cx = mix(mix(HAMBURG[0], NET.x, hp), 540, c), cy = mix(mix(HAMBURG[1], NET.y, hp), 900, c);
+  const w = mix(144, 200, hs) * (1 - c), h = mix(48, 200, hs) * (1 - c);
+  glass(cx - w / 2, cy - h / 2, w, h, h / 2, { blur: 22, tint: 0.09, alpha: Math.min(1, hs * 1.5) });
+  g.save(); worldT();
+  g.beginPath(); g.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2);
+  if (hs < 1) { g.fillStyle = hexA(C.ink, clamp(1 - hs * 1.4)); g.fill(); }
+  g.lineWidth = 4; g.strokeStyle = hexA(C.cyan, clamp(hs * 1.4)); g.stroke();
+  if (hs < 0.7) {
+    // the terminal's dark centre line, shrinking away as it opens up
+    g.lineCap = 'round'; g.lineWidth = 16 * (1 - hs / 0.7); g.strokeStyle = C.bg;
+    g.beginPath(); g.moveTo(cx - 48 * (1 - hs / 0.7), cy); g.lineTo(cx + 48 * (1 - hs / 0.7), cy); g.stroke();
+  }
+  g.restore();
+  if (c > 0) return;
+  rise(t, 'DU', NET.x, NET.y + 30, { beat: 26.25, size: 92, color: C.ink, align: 'center', out: 28.6 });
+  rise(t, '24 H', NET.x, NET.y + 24, { beat: EV.sweepFrom, size: 96, color: C.ink, align: 'center', out: 32.4 });
+  rise(t, 'EXKLUSIV', NET.x, NET.y + 62, { beat: EV.sweepFrom + 0.1, size: 22, fam: UI, weight: 700, color: C.cyan, align: 'center', out: 32.4, spacing: 4 });
+  rise(t, 'ALLE', NET.x, NET.y + 30, { beat: EV.headMarkt + 0.1, size: 92, color: C.ink, align: 'center', out: EV.offerCard - 0.1 });
+}
+
+function networkHeadlines(t) {
+  rise(t, 'ERST DEIN', 72, 400, { beat: EV.headNet, size: 190, color: C.ink, out: 32.3 });
+  rise(t, 'NETZWERK.', 72, 560, { beat: EV.headNet + 0.3, size: 190, color: C.cyan, out: 32.35 });
+  rise(t, 'DANN DER', 72, 400, { beat: EV.headMarkt, size: 190, color: C.ink, out: EV.headPartner - 0.15 });
+  rise(t, 'MARKT.', 72, 560, { beat: EV.headMarkt + 0.3, size: 190, color: C.ink, out: EV.headPartner - 0.1 });
+  rise(t, 'PARTNER', 72, 400, { beat: EV.headPartner, size: 190, color: C.ink, out: EV.converge });
+  rise(t, 'ZUERST.', 72, 560, { beat: EV.headPartner + 0.25, size: 190, color: C.cyan, out: EV.converge + 0.05 });
+  uiText(t, 'Deine Partner sehen die Anfrage zuerst.', 540, 1640, 29, 40, C.text, 500, 'center', 32.4);
+  uiText(t, 'Danach jeder Anbieter auf Neuroroute.', 540, 1640, 32.6, 40, C.text, 500, 'center', EV.offerCard);
+}
+
+// ---- 6b: the partner's offer
+const OCARD = { x: 72, y: 720, w: 936, h: 780, r: 50 };
+const ACCEPT = { x: 132, y: 1130, w: 816, h: 92 };
+const VERL2_KEYS = [[EV.verlIn2, [1180, 1720]], [EV.verlIn2 + 0.05, [1180, 1720]], [35.1, [ACCEPT.x + 520, ACCEPT.y + 52]], [36.1, [1240, 1900]]];
+const VERL2 = { keys: VERL2_KEYS, clicks: [EV.click4], hover: [[35.15, EV.click4 + 0.3]], label: 'Verlader', color: C.cyan };
+
+function offerCardRect(t, c = 0) {
+  const e = spring(t - B(EV.offerCard), 160, 22), eh = spring(t - B(EV.offerCard + 0.05), 140, 21);
+  let x = mix(NET.x - 100, OCARD.x, e), w = mix(200, OCARD.w, e);
+  let y = mix(NET.y - 100, OCARD.y, eh), h = mix(200, OCARD.h, eh);
+  let r = mix(100, OCARD.r, e);
+  if (c > 0) {
+    // into the brand dot
+    x = mix(x, 540 - 26, c); y = mix(y, 900 - 26, c); w = mix(w, 52, c); h = mix(h, 52, c); r = mix(r, 26, c);
+  }
+  return { x, y, w, h, r, e };
+}
+
+function offerCard(t, c = 0) {
+  const R = offerCardRect(t, c);
+  if (R.e <= 0) return;
+  glass(R.x, R.y, R.w, R.h, R.r, { blur: 26, tint: 0.07, fill: c > 0 ? hexA(C.cyan, clamp(c * 1.3)) : null });
+  if (c > 0.97) return;
+  // contents scale with the card as it collapses into the dot
+  const k = R.w / OCARD.w;
+  g.save();
+  screenT();
+  const [sx, sy] = toScreen(R.x, R.y);
+  g.beginPath(); g.roundRect(sx, sy, R.w * cam.s, R.h * cam.s, R.r * cam.s); g.clip();
+  const prev = cam;
+  if (c > 0) {
+    // draw the card's contents through a camera that maps OCARD's corner onto
+    // the shrinking rect's corner, scaled with it
+    const [tx, ty] = toScreen(R.x, R.y);
+    cam = { s: prev.s * k, cx: OCARD.x - (tx - W / 2) / (prev.s * k), cy: OCARD.y - (ty - H / 2) / (prev.s * k) };
+  }
+  const booked = sp(t, EV.click4 + 0.05, SNAP);
+  rise(t, '★ BESTES ANGEBOT · INTERNER PARTNER', 132, 806, { beat: 34.6, size: 24, fam: UI, weight: 700, color: C.cyan, spacing: 3 });
+  rise(t, 'Rotterdam → Wien', 948, 1060, { beat: 34.78, size: 32, fam: UI, weight: 500, color: C.muted, align: 'right' });
+  uiText(t, 'Müller Spedition GmbH', 132, 878, 34.66, 50, C.ink, 600);
+  uiText(t, '4.9 ★ · 1240 Aufträge · ETA 118 h', 132, 928, 34.7, 30, C.muted, 400);
+  rise(t, '€2.180', 132, 1090, { beat: 34.74, size: 150, color: booked > 0.5 ? C.green : C.ink });
+  const pb = sp(t, 34.8, POP);
+  if (pb > 0) {
+    if (booked > 0.5) button(ACCEPT.x, ACCEPT.y, ACCEPT.w, ACCEPT.h, 'Angenommen ✓', { size: 36, scale: 0.94 + 0.06 * booked });
+    else button(ACCEPT.x, ACCEPT.y + (1 - pb) * 40, ACCEPT.w, ACCEPT.h, 'Annehmen', { size: 36, scale: (0.9 + 0.1 * pb) * (1 - 0.06 * pulse(t, EV.click4)) });
+  }
+  const pd = sp(t, 34.86, POP);
+  if (pd > 0) {
+    g.save(); worldT();
+    g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(132, 1268, 816 * pd, 2);
+    g.restore();
+  }
+  uiText(t, 'Hansa Transport KG', 132, 1330, 34.9, 30, C.muted, 500);
+  uiText(t, '€2.280', 948, 1330, 34.9, 34, C.muted, 600, 'right');
+  uiText(t, 'Alpenfracht AG', 132, 1400, 34.95, 30, C.muted, 500);
+  uiText(t, '€2.350', 948, 1400, 34.95, 34, C.muted, 600, 'right');
+  cam = prev;
+  g.restore();
+  if (booked > 0 && c === 0) outlineSweep(R.x + 1, R.y + 1, R.w - 2, R.h - 2, R.r, E.inOutCubic(ramp(t, EV.click4 + 0.05, EV.click4 + 0.55)), C.green, 4);
+}
+
+// ---- 7: the brand
+const LOCK = (() => {
+  g.font = font(196);
+  const tw = g.measureText('NEUROROUTE').width;
+  const total = 52 + 34 + tw;
+  const x0 = 540 - total / 2;
+  const adv = []; let acc = 0;
+  for (const ch of 'NEUROROUTE') { adv.push(acc); acc += g.measureText(ch).width; }
+  return { dotX: x0 + 26, textX: x0 + 52 + 34, adv, base: 900 + 196 * 0.35, size: 196 };
+})();
+
+function wordmark(t) {
+  const out = spring(t - B(EV.retract), 260, 28);
+  const p = spring(t - B(EV.wordmark), 200, 26) * (1 - out);
+  const dotX = mix(540, LOCK.dotX, p);
+  // the word is pulled out of the dot in one piece: it is clipped at the
+  // dot's right edge and slides out from behind it, blurred by its own speed
+  const textW = LOCK.adv[9] + 120;
+  const x = mix(dotX + 34 - textW, LOCK.textX, p);
+  const v = (spring(t - B(EV.wordmark) + 1 / 60, 200, 26) - spring(t - B(EV.wordmark), 200, 26)) * (LOCK.textX - (540 + 34 - textW)) * (1 - out);
+  if (p > 0.002) {
+    g.save(); worldT();
+    g.beginPath(); g.rect(dotX + 22, 600, 1200, 600); g.clip();
+    g.font = font(LOCK.size); g.textBaseline = 'alphabetic';
+    paintText('NEUROROUTE', x, LOCK.base, C.ink, 0, Math.abs(v) > 3 ? v * 1.5 : 0);
+    g.restore();
+  }
+  return dotX;
+}
+
+function brandDot(t, x, y, r) {
+  // the website logo breathes; so does this one, on the beat
+  const ph = (t / B(1)) % 1;
+  const breathe = t > B(EV.wordmark) && t < B(EV.retract) ? 1 + 0.08 * Math.exp(-ph * 5) : 1;
+  g.save(); worldT();
+  g.beginPath(); g.arc(x, y, r * breathe, 0, Math.PI * 2);
+  g.fillStyle = C.cyan; g.fill();
+  g.restore();
+}
+
+const DU_KEYS = [[EV.duIn, [1180, 1700]], [EV.duIn + 0.05, [1180, 1700]], [EV.click5 - 0.6, [600, 1266]], [EV.outro, [1220, 1800]]];
+const DU = { keys: DU_KEYS, clicks: [EV.click5], hover: [[EV.click5 - 0.45, EV.click5 + 0.4]], label: 'Du', color: C.ink };
+
+// ---------------------------------------------------------------- the scenes
+
+const SCENES = {
+  loop(t) {
+    drawLoop(POSE_OPEN, { out: loopOut(t), back: loopBack(t), stationM: sp(t, EV.arriveM, [520, 20]) });
+    burst(t, POSE_OPEN.x, 950 + ARC_Y + POSE_OPEN.leg, EV.arriveM, C.ink, 26, 150);
+    burst(t, POSE_OPEN.x, 950 + TOP, EV.arriveH, C.amber, 30, 140);
+    stationLabels(t, POSE_OPEN, 0);
+    words(t);
+  },
+
+  card(t) {
+    words(t, { exit: EV.morph });
+    drawCard(t, { press: 1 - 0.07 * pulse(t, EV.click1) });
+    rise(t, 'AUTOMATISCH', 72, 600, { beat: EV.headA, size: 150, color: C.ink, out: 12.7 });
+    rise(t, 'ERKANNT.', 72, 740, { beat: EV.headB, size: 150, color: C.cyan, out: 12.75 });
+    cursor(t, SPED);
+  },
+
+  offer(t) {
+    offerBackdrop(t);
+    offerHeadlines(t);
+    const [m, mh] = modalOpen(t);
+    // the green button grows into the panel
+    const x = mix(BTN.x, MODAL.x, m), w = mix(BTN.w, MODAL.w, m);
+    const y = mix(BTN.y, MODAL.y, mh), h = mix(BTN.h, MODAL.h, mh);
+    glass(x, y, w, h, mix(24, MODAL.r, m), { fill: hexA(C.green, Math.max(0, 1 - m * 1.6)), tint: 0.07 });
+    offerContent(t, [x, y, w, h]);
+    cursor(t, SPED);
+  },
+
+  market(t) {
+    // the offer world is still in frame until the whip carries it away
+    if (t < B(EV.whipUp + 0.6)) { offerBackdrop(t); offerHeadlines(t); }
+    if (t > B(EV.whipUp - 0.2)) marketWorld(t);
+    ourListing(t);
+    if (t < B(EV.whipUp + 0.6)) cursor(t, SPED);
+    cursor(t, VERL);
+  },
+
+  payoff(t) {
+    // the marketplace is still in frame until the whip carries it away
+    if (t < B(EV.whipDown + 0.6)) {
+      marketWorld(t);
+      const y = slotY(0);
+      glass(ROW.x, y, ROW.w, ROW.h, ROW.r, { blur: 22, tint: 0.07, shadow: 0.45, fill: hexA(C.green, 0.1) });
+      outlineSweep(ROW.x + 1, y + 1, ROW.w - 2, ROW.h - 2, ROW.r, 1, C.green, 4);
+      rowContent(t, y, { route: 'München → Hamburg', sub: 'Rückfahrt · 6 Container · Müller Spedition', price: '€1.190', pct: '−30 %' }, { beat: -10, booked: 1, glyph: false });
+      cursor(t, VERL);
+    }
+    // the way back leaves the listing and grows into the big loop again
+    const pp = spring(t - B(EV.whipDown + 0.05), 120, 22), pr = spring(t - B(EV.whipDown + 0.1), 100, 18), ps = spring(t - B(EV.whipDown + 0.15), 120, 22);
+    const pose = poseMix(glyphPose(slotY(0)), POSE_OPEN, pp, pr, ps);
+    const out = E.inOutCubic(ramp(t, EV.outRedraw, EV.outRedraw + 0.6));
+    const fill = 0.18 + 0.82 * E.inOutCubic(ramp(t, EV.fillFrom, EV.drop));
+    const flow = clamp(spring(t - B(EV.drop), 200, 26));
+    const grow = clamp(ps);
+    drawLoop(pose, {
+      out, back: 1, fill, tube: mix(10, 20, grow), stationM: mix(0.45, 1, grow), stationH: mix(0.45, 1, grow),
+      hk: E.inOutCubic(ramp(t, EV.outRedraw, EV.outRedraw + 0.5)), flow, t,
+    });
+    stationLabels(t, POSE_OPEN, 0, { appearH: EV.words2 - 0.2, appearM: EV.words2 - 0.1 });
+    words(t, {
+      beats: [EV.words2, EV.words2 + 0.2, EV.words2 + 0.4, EV.words2 + 0.6], rolled: EV.roll,
+      level: grow > 0.99 ? fillLevel(POSE_OPEN, fill) : Infinity, shine: EV.drop,
+    });
+    burst(t, POSE_OPEN.x, 950 + TOP, EV.drop, C.green, 30, 200);
+    burst(t, POSE_OPEN.x, 950 + ARC_Y + POSE_OPEN.leg, EV.drop, C.green, 30, 200);
+  },
+
+  network(t) {
+    // the full loop rolls itself up into Hamburg, and Hamburg becomes you
+    const len = 1 - E.inOutCubic(ramp(t, EV.collapse + 0.15, EV.hub + 0.1));
+    if (len > 0.01) {
+      drawLoop({ ...POSE_OPEN, len: Math.max(0.02, len) }, {
+        out: 1, back: 1, fill: 1, flow: 1, t, stationM: clamp(len * 3), stationH: t < B(EV.hub) ? 1 : 0,
+      });
+    } else if (t < B(EV.hub)) {
+      drawLoop({ ...POSE_OPEN, len: 0.02 }, { stationM: 0, stationH: 1 });
+    }
+    stationLabels(t, POSE_OPEN, 0, { out: EV.collapse + 0.05 });
+    words(t, { rolled: EV.roll, level: -1e4, out: EV.collapse });
+    const cardOn = t > B(EV.offerCard);
+    const depth = cardOn ? spring(t - B(EV.offerCard), 160, 22) : 0;
+    if (depth > 0.001) {
+      withDepth(() => { networkGraph(t); hub(t); }, { blur: 10 * depth, dim: 0.45 * depth, scale: 1 - 0.06 * depth, cx: NET.x, cy: NET.y });
+    } else {
+      networkGraph(t);
+      hub(t);
+    }
+    networkHeadlines(t);
+    offerCard(t);
+    cursor(t, VERL2);
+  },
+
+  logo(t) {
+    const c = spring(t - B(EV.converge), 190, 26);
+    // the network and the accepted offer pour into one cyan dot
+    if (c < 0.995) {
+      const depth = 1 - c;
+      withDepth(() => { networkGraph(t, c); hub(t, c); }, { blur: 10 * depth, dim: 0.45 * depth, scale: 1 - 0.06 * depth, cx: NET.x, cy: NET.y });
+    }
+    if (c < 0.96) offerCard(t, c);
+    networkHeadlines(t);
+    cursor(t, VERL2);
+    const home = spring(t - B(EV.home), 120, 22);
+    const dotX = wordmark(t);
+    if (c >= 0.96 && home < 0.001) brandDot(t, dotX, 900, 26);
+    // claim and call to action
+    rise(t, 'Erst dein Netzwerk.', 540 - 8, 1110, { beat: EV.tagline, size: 46, fam: UI, weight: 600, color: C.ink, align: 'right', out: EV.outro });
+    rise(t, 'Dann der Markt.', 540 + 8, 1110, { beat: EV.tagline + 0.15, size: 46, fam: UI, weight: 400, color: C.muted, align: 'left', out: EV.outro + 0.05 });
+    const pc = sp(t, EV.cta, POP) * (1 - spring(t - B(EV.outro), 300, 30));
+    if (pc > 0.001) {
+      const bw = 470, bh = 108, bx = 540 - bw / 2, by = 1210;
+      button(bx, by + (1 - pc) * 50, bw, bh, 'Demo anfragen  →', { color: C.cyan, size: 40, scale: (0.9 + 0.1 * pc) * (1 - 0.06 * pulse(t, EV.click5)) });
+    }
+    rise(t, 'neuroroute.com', 540, 1420, { beat: EV.cta + 0.2, size: 36, fam: UI, weight: 600, color: C.muted, align: 'center', out: EV.outro + 0.1, spacing: 2 });
+    cursor(t, DU);
+    // home: the dot travels back to Hamburg and becomes the terminal of frame 0
+    if (home > 0.001) {
+      const hs = spring(t - B(EV.home + 0.25), 150, 22);
+      const x = mix(540, HAMBURG[0], home), y = mix(900, HAMBURG[1], home);
+      const w = mix(52, 144, hs), h = mix(52, 48, hs);
+      g.save(); worldT();
+      g.lineCap = 'round';
+      g.lineWidth = h;
+      g.strokeStyle = `rgb(${mix(0, 238, hs)},${mix(212, 243, hs)},${mix(255, 251, hs)})`;
+      g.beginPath(); g.moveTo(x - (w - h) / 2, y); g.lineTo(x + (w - h) / 2, y); g.stroke();
+      if (hs > 0.001) {
+        g.lineWidth = 16 * hs; g.strokeStyle = C.bg;
+        g.beginPath(); g.moveTo(x - (w - h) / 2, y); g.lineTo(x + (w - h) / 2, y); g.stroke();
+      }
+      g.restore();
+      rise(t, 'HAMBURG', HAMBURG[0] - 70, HAMBURG[1] - 60, { beat: EV.homeLabel, size: 34, fam: UI, weight: 600, color: C.muted, spacing: 6 });
+    }
+  },
+};
 
 // -------------------------------------------------------------------- seek
 
@@ -927,9 +1328,10 @@ window.seek = (t) => {
   const shot = SHOTS.find((s) => beat >= s.from && beat < s.to) ?? SHOTS[SHOTS.length - 1];
   SCENES[shot.id](t);
   finish();
+  cameraSmear(t);
 };
 
-window.B = B;
+window.DUR = DUR;
 window.seek(0);
 window.__resolveReady();
 </script>

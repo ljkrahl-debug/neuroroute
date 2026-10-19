@@ -1,5 +1,10 @@
 # Neuroroute Launch-Film
 
+> **Neu: V2 „Füllstand“** — eine durchgehende Einstellung ohne Schnitt, eigene
+> animierte Oberfläche statt Screenshots, aufwendiges Sounddesign. Siehe
+> [`v2/README.md`](v2/README.md), Film: `dist/neuroroute-fuellstand-9x16.mp4`.
+> Dieses Dokument beschreibt V1.
+
 20 Sekunden, komplett im Code gebaut — nach der Anleitung „How to Build a Motion
 Design Studio". Kein After Effects: `index.html` zeichnet jeden Frame über
 `window.seek(t)`, ein Headless-Browser macht Screenshots, ffmpeg setzt sie zu
