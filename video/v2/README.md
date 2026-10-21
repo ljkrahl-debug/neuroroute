@@ -71,6 +71,31 @@ Transportanfragen (`backend/src/routes/requests.js`), nicht für
 Marktplatz-Inserate — darum zwei getrennte Kapitel. Preise und Firmennamen
 sind die Beispieldaten aus dem Prototyp `website/app.html`.
 
+### Version mit TikTok-Sound (uzan.x)
+
+Auf Wunsch des Gründers gibt es eine zweite Fassung auf dem TikTok-Sound
+„original sound“ von **uzan.x** (Musik-ID 7689903372249402134, 26 s). Weil
+der ganze Film in Takten geschrieben ist, läuft er dafür einfach im Tempo des
+Sounds (108 BPM, 37,8 s); `track.mjs` legt den Sound taktgenau darunter:
+
+- Der Sound beginnt mitten im Takt und hat vor seinem Drop nur 15 Takte,
+  unser Film 24. Davor laufen deshalb zwei Takte seines eigenen Bass-Intros.
+- Sein Break (ein Takt ohne Bass) fällt genau auf die Phase, in der die
+  Rückfahrt vollläuft, sein Drop auf unseren Drop (Takt 24), ein neuer
+  8-Takt-Abschnitt auf „ALLES VOLL GEPLANT“.
+- Unter dem Logo läuft noch einmal sein Intro mit Break — der Film loopt.
+- Unsere Effekte bleiben, der Song liegt vorn (Mix-Werte in `cues.mjs`).
+
+```bash
+TRACK=uzan node v2/deliver.mjs --music <sound.mp3>   # → dist/neuroroute-fuellstand-uzan-9x16.mp4
+```
+
+**Rechte:** Der Sound gehört uzan.x. TikTok führt ihn als kommerziell
+nutzbar (`is_commerce_music`) — das gilt nur innerhalb von TikTok. Darum
+liegt er nicht im Repository, und die fertige Fassung auch nicht
+(`.gitignore`). Außerhalb von TikTok (Website, LinkedIn, Instagram) die
+Fassung mit unserem eigenen Score verwenden.
+
 ## Ton
 
 Alles synthetisiert in `audio.mjs`, platziert aus derselben Tabelle `EV` in
@@ -122,3 +147,4 @@ node v2/render.mjs --bench                     # Kosten pro Frame
 | `render.mjs` | Canvas → PNG → ffmpeg, Sub-Frames für Motion Blur, parallele Worker |
 | `stills.mjs` | Keyframes, Kontaktbögen, Übergangs-Strips |
 | `deliver.mjs` | alles zusammen, plus Pop-Scan |
+| `track.mjs` | legt einen gelieferten Sound taktgenau als Musik unter den Film (`TRACK=…`) |

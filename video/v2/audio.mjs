@@ -9,7 +9,7 @@
 // when the camera is fastest. All noise is seeded: the render is identical
 // every time.
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
-import { BPM, BEATS, EV } from './cues.mjs';
+import { BPM, BEATS, EV, OUTDIR, TRACK } from './cues.mjs';
 import { SFX_IDS } from './fetch-sfx.mjs';
 
 const SR = 48000;
@@ -1147,6 +1147,6 @@ function writeWav(path, t) {
   console.log(`wrote ${path} (${DUR}s, peak before saturation ${peak.toFixed(2)})`);
 }
 
-mkdirSync('out/v2', { recursive: true });
-writeWav('out/v2/music.wav', music);
-writeWav('out/v2/sfx.wav', sfx);
+mkdirSync(OUTDIR, { recursive: true });
+if (!TRACK) writeWav(`${OUTDIR}/music.wav`, music);   // with a track, v2/track.mjs writes the music
+writeWav(`${OUTDIR}/sfx.wav`, sfx);

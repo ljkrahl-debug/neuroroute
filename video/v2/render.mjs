@@ -12,20 +12,21 @@
 import { chromium } from 'playwright';
 import { spawn, execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { BEATS, BPM } from './cues.mjs';
+import { BEATS, BPM, OUTDIR, QUERY } from './cues.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const FPS = Number(arg('fps', 60)), SUB = Number(arg('sub', 4)), WORKERS = Number(arg('workers', 3));
 const DUR = Number(arg('dur', BEATS * 60 / BPM));
-const OUT = arg('out', 'out/v2/silent.mp4');
-mkdirSync('out/v2/seg', { recursive: true });
+const OUT = arg('out', `${OUTDIR}/silent.mp4`);
+const SEG = `${OUTDIR}/seg`;
+mkdirSync(SEG, { recursive: true });
 
 async function openPage() {
   const browser = await chromium.launch({ args: ['--allow-file-access-from-files'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(`file://${process.cwd()}/v2/index.html`);
+  await page.goto(`file://${process.cwd()}/v2/index.html${QUERY}`);
   await page.evaluate(() => window.ready);
   const frame = async (t) => Buffer.from(await page.evaluate(async (x) => {
     window.seek(x);
@@ -55,7 +56,7 @@ const subTime = (f, k) => (f - (SUB - 1 - k) / SUB) / FPS;
 
 async function segment(w, f0, f1) {
   const { browser, frame, errors } = await openPage();
-  const out = `out/v2/seg/seg${w}.mp4`;
+  const out = `${SEG}/seg${w}.mp4`;
   const vf = `tmix=frames=${SUB},select='eq(mod(n\\,${SUB})\\,${SUB - 1})',setpts=N/${FPS}/TB`;
   const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS * SUB), '-i', '-',
     '-vf', vf, '-r', String(FPS), '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', out],
@@ -82,14 +83,14 @@ if (arg('frames')) {
   const [f0, f1] = arg('frames').split(':').map(Number);
   const seg = await segment(0, f0, f1);
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', seg, '-c', 'copy', OUT]);
-  rmSync('out/v2/seg', { recursive: true, force: true });
+  rmSync(SEG, { recursive: true, force: true });
   console.log(`wrote ${OUT} (frames ${f0}–${f1 - 1})`);
   process.exit(0);
 }
 
 const per = Math.ceil(frames / WORKERS);
 const segs = await Promise.all(Array.from({ length: WORKERS }, (_, w) => segment(w, w * per, Math.min(frames, (w + 1) * per))));
-writeFileSync('out/v2/seg/list.txt', segs.map((s) => `file '${s.replace('out/v2/seg/', '')}'`).join('\n'));
-execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', 'out/v2/seg/list.txt', '-c', 'copy', OUT]);
-rmSync('out/v2/seg', { recursive: true, force: true });
+writeFileSync(`${SEG}/list.txt`, segs.map((s) => `file '${s.replace(`${SEG}/`, '')}'`).join('\n'));
+execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', `${SEG}/list.txt`, '-c', 'copy', OUT]);
+rmSync(SEG, { recursive: true, force: true });
 console.log(`wrote ${OUT} (${frames} frames at ${FPS} fps, ${SUB} sub-frames each)`);

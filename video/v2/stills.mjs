@@ -8,7 +8,7 @@
 import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
-import { BEATS, BPM } from './cues.mjs';
+import { BEATS, BPM, QUERY } from './cues.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const TAG = arg('tag', 'k');
@@ -25,7 +25,7 @@ const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-await page.goto(`file://${process.cwd()}/v2/index.html`);
+await page.goto(`file://${process.cwd()}/v2/index.html${QUERY}`);
 await page.evaluate(() => window.ready);
 const at = (b) => b * 60 / BPM;
 const shoot = async (t, path) => { await page.evaluate((x) => window.seek(x), t); await page.locator('#c').screenshot({ path }); };

@@ -195,13 +195,41 @@ roll, riser, recorded swells) rather than pushing the drop into the limiter.
 
 ## 8. A supplied track
 
-If the user gives a song: decode it to 48 kHz stereo float, put it in the
-`music` track instead of the arrangement, measure its beat grid (librosa beat
-tracking, then a least-squares fit for BPM and offset) and set `BPM` and an
-offset in `cues.mjs` so `EV` beats land on the music. Cut the length to whole
-bars; find the drop in the song and put the payoff there. Keep the effects
-layer — it is what makes the picture feel physical. The user must own or have
-licensed the song.
+Worked once for Füllstand on a TikTok sound (video/v2/track.mjs in the
+Neuroroute repo); the recipe:
+
+1. **Get it.** A TikTok music page (`tiktok.com/music/...`) renders its data
+   client-side and yt-dlp's sound extractor is broken: open the page in
+   Playwright's Chromium (through the session proxy) and save the response of
+   `api/music/detail` — it holds `playUrl` (a signed mp3, fetch it at once),
+   the duration and `is_commerce_music`. Keep it in its own folder, out of git.
+2. **Measure it.** librosa beat tracking, then a least-squares fit for BPM and
+   the first beat (residuals should stay under ~20 ms). Then energy per beat,
+   split into low (< 150 Hz) and high bands: a break is where the low band
+   drops to zero, the drop where it comes back. Find the bar phase from them
+   (TikTok cuts often start mid-bar).
+3. **Re-time the film, not the track.** The film is in beats: set `BPM` to the
+   track's tempo and everything follows (a slower track makes the film longer).
+   Don't time-stretch the track.
+4. **Lay it out in whole beats.** A plan of `[filmFrom, filmTo, trackFrom]`
+   copies the track's beats onto the film's, with the track's drop on the
+   film's drop. Extend a short intro with the track's own bars (keep the bar
+   phase: `film − track` constant mod 4), loop a homogeneous section to cover
+   the rest, and end on something that leads back into frame 0. Cut ~12 ms
+   before the beat so no kick is cut, with 6 ms crossfades; wrap cuts before
+   frame 0 to the end.
+5. **Mix it as the lead.** A mastered track is already loud and dense: give it
+   more level than the score (≈ 0.95 vs 0.62), less ducking (ratio ≈ 1.6), and
+   the effects a little less (≈ 0.9). The track's own dynamics now shape the
+   film — the drop is felt through the break before it; check that the drop
+   is still the loudest moment and nudge the effect hits there if not.
+6. **Rights.** The user must own or have licensed the song. A TikTok sound is
+   cleared, at best, inside TikTok (commercial sounds for business accounts);
+   outside TikTok it isn't — keep the self-scored version for the website,
+   LinkedIn, Instagram, and never commit the track or the film made with it.
+   Adding the sound in the TikTok app plays it linearly from its start, so a
+   re-arranged layout only stays in sync when the audio is baked into the
+   upload — say so.
 
 ## 9. Licences
 

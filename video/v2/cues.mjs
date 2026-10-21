@@ -6,7 +6,25 @@
 // carry freight; hollow ones run empty. One line carries the whole film, and
 // every scene is made out of the previous one — no fades, no cuts.
 
-export const BPM = 120;
+// A supplied track can replace the synthesized score: index.html?track=<id>
+// in the browser, TRACK=<id> for the scripts. The film is written in beats,
+// so it follows the track's tempo; v2/track.mjs lays the track out on the
+// film's beats (plan: [filmFrom, filmTo, trackFrom] in beats), lining its
+// drop up with ours.
+export const TRACKS = {
+  // TikTok "original sound" by uzan.x (music id 7689903372249402134), 26.15 s:
+  // starts mid-bar, two bars of bass, a bar of break (no bass), the drop on
+  // its beat 15. Our intro is longer, so its bass bars play first.
+  // A mastered track is the lead: louder than our score, ducked more gently.
+  uzan: { bpm: 108.022, t0: 0.027, plan: [[0, 8, 3], [8, 9, 3], [9, 56, 0], [56, 68, 3]], mix: { music: 0.95, sfx: 0.9, ratio: 1.6 } },
+};
+const pick = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('track')
+  : typeof process !== 'undefined' ? process.env.TRACK : null;
+export const TRACK = pick && TRACKS[pick] ? pick : null;
+export const OUTDIR = TRACK ? `out/v2/${TRACK}` : 'out/v2';
+export const QUERY = TRACK ? `?track=${TRACK}` : '';
+
+export const BPM = TRACK ? TRACKS[TRACK].bpm : 120;
 export const BEATS = 68; // 34 s, and the last frame is the first: it loops
 
 // V2.2 put the capacity-planning chapter (6) in after the payoff; the network

@@ -6,3 +6,6 @@ node_modules/
 dist/loop_check.mp4
 # the finished films are deliverables: keep them, unlike the root dist/ rule
 !dist/
+
+# versions on a supplied track contain someone else's audio: delivered, never committed
+dist/*uzan*
