@@ -778,8 +778,10 @@ function slamWord(t, text, x, y, beat, size, color) {
   const p = spring(dt, 420, 26);
   const sc = mix(1.45, 1, p);
   const blur = 18 * Math.max(0, 1 - dt / 0.1);
+  const inA = clamp(dt / 0.035); // fast, but never a one-frame pop
   g.save();
   worldT();
+  g.globalAlpha = inA;
   g.font = font(size);
   const w = g.measureText(text).width;
   const cx = x + w * 0.35, cy = y - size * 0.35;
@@ -788,7 +790,7 @@ function slamWord(t, text, x, y, beat, size, color) {
   g.fillStyle = color; g.fillText(text, x, y);
   g.filter = 'none';
   const fl = Math.exp(-dt * 14);
-  if (fl > 0.02) { g.globalAlpha = 0.85 * fl; g.fillStyle = '#fff'; g.fillText(text, x, y); }
+  if (fl > 0.02) { g.globalAlpha = 0.85 * fl * inA; g.fillStyle = '#fff'; g.fillText(text, x, y); }
   g.restore();
 }
 
@@ -824,6 +826,7 @@ function shineSweep(t, beat) {
   const gr = g.createLinearGradient(x - 160, WORDS.top, x + 40, WORDS.top + WORDS.lh * 4);
   gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = gr;
+  g.globalAlpha = clamp((1 - p) / 0.3); // the light dies away, never off in one frame
   ['VOLL', 'HIN.', 'VOLL', 'ZURÜCK.'].forEach((txt, i) => g.fillText(txt, WORDS.x, WORDS.base(i)));
   g.restore();
 }
@@ -1797,7 +1800,8 @@ function tenderCard(t) {
   const e = tcardIn(t), ex = tcardOut(t);
   if (e <= 0.001 || ex > 0.995) return;
   const y = TCARD.y + 260 * (1 - e) + 900 * ex;
-  const tilt = 0.7 * (1 - spring(t - B(EV.tender), 110, 14)) - 0.6 * ex;
+  // never quite flat: the flat path would frost its own shadow and darken in one frame
+  const tilt = Math.max(0.006, 0.7 * (1 - spring(t - B(EV.tender), 110, 14))) - 0.6 * ex;
   const rect = [TCARD.x, y, TCARD.w, TCARD.h];
   const dy = y - TCARD.y;
   panel3D(() => {
