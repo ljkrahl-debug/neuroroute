@@ -1,0 +1,1100 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Motion film</title>
+<style>
+  html, body { margin: 0; background: #03050a; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  window.ready = new Promise((resolve) => { window.__resolveReady = resolve; });
+</script>
+<script type="module">
+// A motion film as a pure function of time: window.seek(t) paints frame t.
+// No timers, no CSS transitions, no state carried between frames, no
+// Math.random. Started from the motion-reel template: the toolkit below is
+// tested — keep it; replace BRAND, the layout and SCENES with the film's own.
+import { spring, clamp } from './lib/motion.js';
+import { BPM, BEATS, EV, SHOTS, CAMERA, SHAKES } from './cues.mjs';
+
+// ------------------------------------------------------------------ brand
+
+// Change the values, keep the roles: the toolkit draws with these names.
+//   accent  — the brand colour: active things, the hero line, CTAs
+//   good    — success / the payoff (booked, accepted, full)
+//   warn    — the problem state (empty, missing, at risk)
+//   ambient — the light behind the glass
+const BRAND = {
+  name: 'NEUROROUTE',
+  claim: 'Logistik, neu verbunden.',
+  url: 'neuroroute.com',
+  colors: {
+    bg: '#03050a', ink: '#eef3fb', text: '#dde6f5', muted: '#8a9dbf', dim: '#3a4862',
+    accent: '#00d4ff', good: '#00ff9d', warn: '#ffb340', ambient: '#4f7cff',
+  },
+  // fonts/Display.woff2 (headlines) and fonts/UI.woff2 (interface text)
+  fonts: { display: 'Bebas Neue', ui: 'Outfit' },
+};
+const C = BRAND.colors;
+const ACCENT_RGB = (() => { const n = parseInt(C.accent.slice(1), 16); return `${n >> 16},${(n >> 8) & 255},${n & 255}`; })();
+
+// ------------------------------------------------------------------ setup
+
+const params = new URLSearchParams(location.search);
+const W = Number(params.get('w') || 1080), H = Number(params.get('h') || 1920); // 9:16 master
+const canvas = document.getElementById('c');
+canvas.width = W; canvas.height = H;
+const main = canvas.getContext('2d');
+let g = main; // the context everything draws into; swapped for depth / 3D layers
+
+const offscreen = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+const scratch = offscreen(), sg = scratch.getContext('2d');
+const layer = offscreen(), lg = layer.getContext('2d');
+const smearBuf = offscreen(), smg = smearBuf.getContext('2d');
+const tmpBuf = offscreen(), tg = tmpBuf.getContext('2d');
+// a panel drawn into a layer for its 3D swing still frosts the real frame
+let glassSrc = null;
+
+const D = `"${BRAND.fonts.display}"`, UI = BRAND.fonts.ui;
+const font = (px, fam = D, weight = '') => `${weight} ${px}px ${fam}`.trim();
+await Promise.all([
+  new FontFace(BRAND.fonts.display, 'url(fonts/Display.woff2)').load(),
+  new FontFace(BRAND.fonts.ui, 'url(fonts/UI.woff2)', { weight: '100 900' }).load(),
+].map(async (p) => document.fonts.add(await p)));
+
+// ------------------------------------------------------------------ time
+
+const B = (beat) => beat * 60 / BPM;
+const DUR = B(BEATS);
+const ramp = (t, b0, b1) => clamp((t - B(b0)) / (B(b1) - B(b0)));
+const mix = (a, b, p) => a + (b - a) * p;
+const E = {
+  outQuad: (x) => 1 - (1 - x) * (1 - x),
+  outCubic: (x) => 1 - (1 - x) ** 3,
+  inCubic: (x) => x * x * x,
+  inOutCubic: (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2),
+  inOutSine: (x) => -(Math.cos(Math.PI * x) - 1) / 2,
+};
+// Springs: type has no overshoot, UI a hair, shapes a little more.
+const TYPE = [600, 49], POP = [320, 24], SNAP = [480, 38];
+const sp = (t, beat, [k, d] = POP) => spring(t - B(beat), k, d);
+// A value with several targets: one spring per change, summed. keys: [[beat, value, k?, d?]]
+function tr(t, keys, k0 = 170, d0 = 26) {
+  let v = keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    const [b, val, k = k0, d = d0] = keys[i];
+    v += (val - keys[i - 1][1]) * spring(t - B(b), k, d);
+  }
+  return v;
+}
+const pulse = (t, beat, w = 0.08) => Math.exp(-(((t - B(beat)) / w) ** 2)); // a click's dip
+// Seeded hash, never Math.random.
+const hash = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ---------------------------------------------------------------- camera
+
+// One camera for the whole film, so a scene change can never jump. Screen
+// position = (world - centre) * scale + frame centre. Put scenes in
+// different places in the world and move the camera between them; a fast
+// spring between two places is a whip (cameraSmear and speedLines see it).
+let cam = { cx: W / 2, cy: H / 2, s: 1 };
+function camAt(t) {
+  let cy = tr(t, CAMERA.cy), cx = tr(t, CAMERA.cx), s = tr(t, CAMERA.s);
+  for (const [b, amp] of SHAKES) {
+    const dt = t - B(b);
+    if (dt > 0) cy += amp * Math.exp(-dt * 11) * Math.sin(dt * 55);
+  }
+  return { cx, cy, s };
+}
+const toScreen = (x, y) => [W / 2 + (x - cam.cx) * cam.s, H / 2 + (y - cam.cy) * cam.s];
+const worldT = () => g.setTransform(cam.s, 0, 0, cam.s, W / 2 - cam.cx * cam.s, H / 2 - cam.cy * cam.s);
+const screenT = () => g.setTransform(1, 0, 0, 1, 0, 0);
+
+// ------------------------------------------------------------ background
+
+// Static film grain from a seeded hash: it also dithers the dark gradients,
+// which band badly in H.264 otherwise.
+const grain = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d'), img = x.createImageData(256, 256);
+  for (let i = 0; i < 256 * 256; i++) {
+    const v = Math.floor(hash(i) * 255);
+    img.data.set([v, v, v, 255], i * 4);
+  }
+  x.putImageData(img, 0, 0);
+  return main.createPattern(c, 'repeat');
+})();
+
+function hexA(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+}
+function background(t) {
+  screenT();
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, W, H);
+  // light for the glass to bend. Every drift is a whole number of cycles over
+  // the film, so the last frame matches the first and the film loops.
+  const w = (2 * Math.PI) / DUR;
+  const blobs = [
+    [C.ambient, 0.30, 900, 760 + 110 * Math.sin(w * t), 520 + 90 * Math.cos(w * t)],
+    [C.accent, 0.13, 720, 250 + 90 * Math.sin(2 * w * t + 1), 1320 + 110 * Math.cos(w * t)],
+    [C.ambient, 0.13, 640, 640 + 70 * Math.cos(w * t), 1800 + 60 * Math.sin(2 * w * t)],
+  ];
+  for (const [col, a, r, x, y] of blobs) {
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, hexA(col, a));
+    gr.addColorStop(1, hexA(col, 0));
+    g.fillStyle = gr;
+    g.fillRect(0, 0, W, H);
+  }
+  // the website's grid, in the world at half parallax: it shows the camera move
+  const step = 90;
+  const ox = ((-(cam.cx * cam.s) * 0.5) % step + step) % step, oy = ((-(cam.cy * cam.s) * 0.5) % step + step) % step;
+  g.strokeStyle = hexA(C.accent, 0.035);
+  g.lineWidth = 1.5;
+  g.beginPath();
+  for (let x = ox - step; x < W + step; x += step) { g.moveTo(x, 0); g.lineTo(x, H); }
+  for (let y = oy - step; y < H + step; y += step) { g.moveTo(0, y); g.lineTo(W, y); }
+  g.stroke();
+}
+function finish() {
+  screenT();
+  // vignette keeps the eye in the middle third
+  const v = g.createRadialGradient(W / 2, H * 0.48, H * 0.25, W / 2, H * 0.48, H * 0.75);
+  v.addColorStop(0, 'rgba(3,5,10,0)');
+  v.addColorStop(1, 'rgba(3,5,10,0.55)');
+  g.fillStyle = v;
+  g.fillRect(0, 0, W, H);
+  g.globalAlpha = 0.045;
+  g.globalCompositeOperation = 'overlay';
+  g.fillStyle = grain;
+  g.fillRect(0, 0, W, H);
+  g.globalAlpha = 1;
+  g.globalCompositeOperation = 'source-over';
+}
+/**
+ * Motion blur that follows the camera: on a whip the finished frame is
+ * averaged along the direction of travel, over the distance a 180° shutter
+ * would see.
+ */
+function cameraSmear(t) {
+  const a = camAt(t), b = camAt(t - 1 / 240);
+  const v = (a.cy - b.cy) * a.s * 4; // px per 1/60 s
+  const len = Math.abs(v) * 0.5;
+  if (len < 4) return;
+  const n = Math.min(28, Math.ceil(len / 4));
+  smg.setTransform(1, 0, 0, 1, 0, 0);
+  smg.clearRect(0, 0, W, H);
+  smg.drawImage(canvas, 0, 0);
+  g.save();
+  screenT();
+  g.fillStyle = C.bg;
+  g.fillRect(0, 0, W, H);
+  for (let i = 0; i < n; i++) {
+    g.globalAlpha = 1 / (i + 1); // running mean: every copy weighs the same
+    g.drawImage(smearBuf, 0, (i / (n - 1) - 0.5) * len);
+  }
+  g.restore();
+}
+
+// ----------------------------------------------------------------- glass
+
+/**
+ * Frosted glass over whatever is already drawn: a blurred, brightened and
+ * slightly magnified copy of the pixels behind, clipped to the shape, with a
+ * sheen and a rim light. Rect in world units.
+ */
+function glass(x, y, w, h, r, { blur = 28, tint = 0.06, rim = 0.55, magnify = 1.07, fill = null, alpha = 1, shadow = 0.55 } = {}) {
+  const [sx, sy] = toScreen(x, y);
+  const sw = w * cam.s, sh = h * cam.s, sr = Math.max(0, Math.min(r * cam.s, sw / 2, sh / 2));
+  if (sw < 2 || sh < 2 || alpha <= 0) return;
+  if (sx > W || sy > H || sx + sw < 0 || sy + sh < 0) return;
+  screenT();
+  // sample what is behind before the shadow lands, so the glass looks the
+  // same flat and inside panel3D (whose layer never holds the shadow)
+  const m = blur * 2 + 24;
+  const bx = Math.max(0, Math.floor(sx - m)), by = Math.max(0, Math.floor(sy - m));
+  const bx1 = Math.min(W, Math.ceil(sx + sw + m)), by1 = Math.min(H, Math.ceil(sy + sh + m));
+  if (bx1 > bx && by1 > by) {
+    sg.setTransform(1, 0, 0, 1, 0, 0);
+    sg.clearRect(bx, by, bx1 - bx, by1 - by);
+    sg.drawImage(glassSrc ?? g.canvas, bx, by, bx1 - bx, by1 - by, bx, by, bx1 - bx, by1 - by);
+  }
+  if (shadow > 0) {
+    // drawn far off-frame with the shadow offset back into place, so only the
+    // shadow lands — the shape itself would hide what the glass should show
+    g.save();
+    g.shadowColor = `rgba(0,0,0,${shadow * alpha})`;
+    g.shadowBlur = 70;
+    g.shadowOffsetX = 10000;
+    g.shadowOffsetY = 34;
+    g.beginPath(); g.roundRect(sx - 10000, sy, sw, sh, sr);
+    g.fillStyle = '#000'; g.fill();
+    g.restore();
+  }
+  if (bx1 > bx && by1 > by) {
+    g.save();
+    g.globalAlpha = alpha;
+    g.beginPath(); g.roundRect(sx, sy, sw, sh, sr); g.clip();
+    g.filter = `blur(${blur}px) saturate(1.7) brightness(1.4)`;
+    const cx = sx + sw / 2, cy = sy + sh / 2;
+    g.translate(cx, cy); g.scale(magnify, magnify); g.translate(-cx, -cy);
+    g.drawImage(scratch, bx, by, bx1 - bx, by1 - by, bx, by, bx1 - bx, by1 - by);
+    g.filter = 'none';
+    screenT();
+    const sheen = g.createLinearGradient(0, sy, 0, sy + sh);
+    sheen.addColorStop(0, `rgba(255,255,255,${tint + 0.05})`);
+    sheen.addColorStop(0.35, `rgba(255,255,255,${tint})`);
+    sheen.addColorStop(1, `rgba(255,255,255,${tint * 0.5})`);
+    g.fillStyle = sheen;
+    g.fillRect(sx, sy, sw, sh);
+    if (fill) { g.fillStyle = fill; g.fillRect(sx, sy, sw, sh); }
+    g.restore();
+  }
+  // rim light: bright on the top-left edge, almost gone bottom-right
+  g.save();
+  g.globalAlpha = alpha;
+  const rg = g.createLinearGradient(sx, sy, sx + sw * 0.5, sy + sh);
+  rg.addColorStop(0, `rgba(255,255,255,${rim})`);
+  rg.addColorStop(0.45, `rgba(255,255,255,${rim * 0.12})`);
+  rg.addColorStop(1, `rgba(255,255,255,${rim * 0.3})`);
+  g.beginPath(); g.roundRect(sx + 1, sy + 1, Math.max(0, sw - 2), Math.max(0, sh - 2), Math.max(0, sr - 1));
+  g.lineWidth = 2; g.strokeStyle = rg; g.stroke();
+  g.restore();
+}
+
+// ---------------------------------------------------------------- effects
+
+/**
+ * A shockwave through the finished frame: an expanding ring that pushes the
+ * pixels under it outwards like a lens, with a faint rim of light. Screen px.
+ */
+function shockwave(sx, sy, r, width, strength) {
+  if (strength < 0.01 || r <= 0) return;
+  smg.setTransform(1, 0, 0, 1, 0, 0);
+  smg.clearRect(0, 0, W, H);
+  smg.drawImage(canvas, 0, 0);
+  const bands = 7;
+  g.save();
+  screenT();
+  for (let i = 0; i < bands; i++) {
+    const r0 = Math.max(0, r - width + (2 * width) * (i / bands)), r1 = r - width + (2 * width) * ((i + 1) / bands);
+    if (r1 <= 0) continue;
+    const prof = Math.sin(Math.PI * (i + 0.5) / bands);
+    const k = 1 + (strength * width * prof) / Math.max(40, (r0 + r1) / 2);
+    g.save();
+    g.beginPath(); g.arc(sx, sy, r1, 0, Math.PI * 2); g.arc(sx, sy, r0, 0, Math.PI * 2, true); g.clip();
+    g.translate(sx, sy); g.scale(k, k); g.translate(-sx, -sy);
+    g.drawImage(smearBuf, 0, 0);
+    g.restore();
+  }
+  g.beginPath(); g.arc(sx, sy, r, 0, Math.PI * 2);
+  g.strokeStyle = `rgba(255,255,255,${0.22 * Math.min(1, strength)})`; g.lineWidth = 2; g.stroke();
+  g.restore();
+}
+/** Chromatic split: red left, blue right, by `amount` screen px. */
+function rgbSplit(amount, dir = [1, 0]) {
+  if (amount < 0.4) return;
+  smg.setTransform(1, 0, 0, 1, 0, 0);
+  smg.clearRect(0, 0, W, H);
+  smg.drawImage(canvas, 0, 0);
+  g.save();
+  screenT();
+  g.globalCompositeOperation = 'source-over';
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+  for (const [col, k] of [['#ff0000', -1], ['#00ff00', 0], ['#0000ff', 1]]) {
+    tg.setTransform(1, 0, 0, 1, 0, 0);
+    tg.globalCompositeOperation = 'source-over';
+    tg.clearRect(0, 0, W, H);
+    tg.drawImage(smearBuf, 0, 0);
+    tg.globalCompositeOperation = 'multiply';
+    tg.fillStyle = col; tg.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'lighter';
+    g.drawImage(tmpBuf, dir[0] * k * amount, dir[1] * k * amount);
+  }
+  g.restore();
+}
+/** A burst of light at a world point, added on top. */
+function flash(x, y, color, alpha, radius) {
+  if (alpha < 0.01) return;
+  g.save();
+  worldT();
+  g.globalCompositeOperation = 'lighter';
+  const gr = g.createRadialGradient(x, y, 0, x, y, radius);
+  gr.addColorStop(0, hexA(color, alpha));
+  gr.addColorStop(0.35, hexA(color, alpha * 0.35));
+  gr.addColorStop(1, hexA(color, 0));
+  g.fillStyle = gr;
+  g.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  g.restore();
+}
+/** A one-shot envelope: up in `attack` s (never in one frame), then decaying. */
+const hit = (t, beat, decay = 8, attack = 0.035) => {
+  const dt = t - B(beat);
+  return dt <= 0 ? 0 : Math.min(1, dt / attack) * Math.exp(-dt * decay);
+};
+
+/** Speed streaks on a whip, scrolling with the camera. */
+function speedLines(t) {
+  const a = camAt(t), b = camAt(t - 1 / 240);
+  const v = (a.cy - b.cy) * a.s * 4; // px per frame
+  const k = clamp((Math.abs(v) - 20) / 90);
+  if (k <= 0) return;
+  g.save();
+  screenT();
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 46; i++) {
+    const x = hash(i * 3.1) * W;
+    const len = Math.abs(v) * (2 + 3 * hash(i * 7.7));
+    const y = ((hash(i * 5.3) * (H + 800) - a.cy * a.s * (1.2 + hash(i) * 0.8)) % (H + 800) + (H + 800)) % (H + 800) - 400;
+    const gr = g.createLinearGradient(0, y, 0, y + len * Math.sign(v || 1));
+    const col = i % 5 === 0 ? ACCENT_RGB : '220,235,255';
+    gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(0.5, `rgba(${col},${0.35 * k})`); gr.addColorStop(1, `rgba(${col},0)`);
+    g.strokeStyle = gr; g.lineWidth = 1 + 2 * hash(i * 1.9);
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + len * Math.sign(v || 1)); g.stroke();
+  }
+  g.restore();
+}
+/** The glowing head of a moving line: white core, coloured bloom. World coords. */
+function comet(x, y, color, size = 1) {
+  g.save();
+  worldT();
+  g.globalCompositeOperation = 'lighter';
+  const gr = g.createRadialGradient(x, y, 0, x, y, 90 * size);
+  gr.addColorStop(0, hexA(color, 0.75)); gr.addColorStop(0.25, hexA(color, 0.25)); gr.addColorStop(1, hexA(color, 0));
+  g.fillStyle = gr; g.fillRect(x - 90 * size, y - 90 * size, 180 * size, 180 * size);
+  g.globalCompositeOperation = 'source-over';
+  g.beginPath(); g.arc(x, y, 9 * size, 0, Math.PI * 2); g.fillStyle = '#fff'; g.fill();
+  g.restore();
+}
+/**
+ * Sparks thrown off a moving point: two are born every frame from where the
+ * point was, fly out on a seeded velocity and burn out. `pos(t)` gives the
+ * point; sparks are only born between `from` and `to` (seconds).
+ */
+function sparks(t, pos, from, to, color, { life = 0.42, speed = 1, count = 2 } = {}) {
+  const now = Math.floor(t * 60);
+  g.save();
+  worldT();
+  g.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < Math.ceil(life * 60); k++) {
+    for (let j = 0; j < count; j++) {
+      const id = (now - k) * count + j;
+      const tb = (now - k) / 60;
+      if (tb < from || tb > to) continue;
+      const age = t - tb;
+      if (age < 0 || age > life) continue;
+      const [bx, by] = pos(tb);
+      const ang = hash(id * 1.37) * Math.PI * 2, sp0 = (60 + 220 * hash(id * 2.71)) * speed;
+      const drag = age * (1 - age / (life * 2));
+      const x = bx + Math.cos(ang) * sp0 * drag, y = by + Math.sin(ang) * sp0 * drag + 90 * age * age;
+      const f = 1 - age / life;
+      g.beginPath(); g.arc(x, y, (1.2 + 2.4 * hash(id * 3.3)) * f / cam.s * 1.4, 0, Math.PI * 2);
+      g.fillStyle = hexA(j % 3 === 0 ? '#ffffff' : color, 0.9 * f);
+      g.fill();
+    }
+  }
+  g.restore();
+}
+/**
+ * A panel swinging in in 3D: drawn flat into a layer (its glass still frosts
+ * the real frame), then laid back into the frame strip by strip with
+ * perspective, tilted `tilt` radians about its horizontal axis.
+ */
+function panel3D(drawFn, rect, tilt) {
+  if (Math.abs(tilt) < 0.004) { drawFn(); return; }
+  lg.setTransform(1, 0, 0, 1, 0, 0);
+  lg.clearRect(0, 0, W, H);
+  const prev = g; g = lg; glassSrc = canvas;
+  drawFn();
+  g = prev; glassSrc = null;
+  const [x0, y0] = toScreen(rect[0], rect[1]);
+  const w = rect[2] * cam.s, h = rect[3] * cam.s;
+  const cx = x0 + w / 2, cy = y0 + h / 2;
+  const F = 1500, step = 3;
+  const pad = 70; // shadow and rim reach a little outside the rect
+  g.save();
+  screenT();
+  for (let y = y0 - pad; y < y0 + h + pad; y += step) {
+    const dy = y - cy;
+    const z = dy * Math.sin(tilt);
+    const k = F / (F + z);
+    const yy = cy + dy * Math.cos(tilt) * k;
+    const ww = (w + 2 * pad) * k;
+    g.drawImage(layer, x0 - pad, y, w + 2 * pad, step, cx - ww / 2, yy, ww, step * Math.cos(tilt) * k + 1);
+  }
+  g.restore();
+}
+/** Where a point is along a rounded rect's outline, clockwise from the top-left, p in 0..1. */
+function rrectPoint(x, y, w, h, r, p) {
+  const sides = [w - 2 * r, h - 2 * r, w - 2 * r, h - 2 * r], arc = Math.PI * r / 2;
+  const perim = sides.reduce((a, b) => a + b, 0) + 4 * arc;
+  let d = ((p % 1) + 1) % 1 * perim;
+  const corners = [[x + w - r, y + r, -Math.PI / 2], [x + w - r, y + h - r, 0], [x + r, y + h - r, Math.PI / 2], [x + r, y + r, Math.PI]];
+  const starts = [[x + r, y, 1, 0], [x + w, y + r, 0, 1], [x + w - r, y + h, -1, 0], [x, y + h - r, 0, -1]];
+  for (let i = 0; i < 4; i++) {
+    if (d <= sides[i]) return [starts[i][0] + starts[i][2] * d, starts[i][1] + starts[i][3] * d];
+    d -= sides[i];
+    if (d <= arc) { const [cx, cy, a0] = corners[i]; const a = a0 + d / r; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; }
+    d -= arc;
+  }
+  return [x + r, y];
+}
+/** An outline that draws itself with a bright, glowing head running ahead of it. */
+function energyOutline(x, y, w, h, r, p, color, width = 4) {
+  if (p <= 0) return;
+  outlineSweep(x, y, w, h, r, Math.min(1, p), color, width);
+  if (p >= 1) return;
+  const [hx, hy] = rrectPoint(x, y, w, h, r, p);
+  comet(hx, hy, color, 0.7);
+}
+/** A rounded-rect outline that draws itself clockwise from the top-left. */
+function outlineSweep(x, y, w, h, r, p, color, width = 3) {
+  if (p <= 0) return;
+  g.save();
+  worldT();
+  const perim = 2 * (w + h) - (8 - 2 * Math.PI) * r;
+  g.beginPath(); g.roundRect(x, y, w, h, r);
+  g.setLineDash([perim * p, perim]);
+  g.lineWidth = width; g.strokeStyle = color; g.stroke();
+  g.restore();
+}
+
+// ------------------------------------------------------------ typography
+
+/**
+ * One line of type rising out of its own slot (a mask, never a fade), and
+ * optionally leaving upwards. `stroke` > 0 draws it hollow: empty type.
+ */
+function rise(t, text, x, y, { beat, size, fam = D, weight = '', color = C.ink, align = 'left', stroke = 0, out = null, dx = 0, smear = 0, spacing = 0, glow = null }) {
+  const p = spring(t - B(beat), ...TYPE);
+  if (p <= 0) return;
+  const po = out == null ? 0 : spring(t - B(out), ...SNAP);
+  if (po >= 0.999) return;
+  g.save();
+  worldT();
+  g.font = font(size, fam, weight);
+  g.letterSpacing = `${spacing}px`;
+  g.textAlign = align;
+  g.textBaseline = 'alphabetic';
+  const m = g.measureText(text);
+  const x0 = align === 'left' ? x : align === 'right' ? x - m.width : x - m.width / 2;
+  const asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent;
+  g.beginPath();
+  g.rect(x0 - size * 0.3 + dx - Math.abs(smear), y - asc - size * 0.06, m.width + size * 0.6 + Math.abs(smear) * 2, asc + desc + size * 0.12);
+  g.clip();
+  const ty = y + (1 - p) * (asc + size * 0.1) - po * (asc + desc + size * 0.3);
+  if (glow) { g.shadowColor = glow; g.shadowBlur = 22; }
+  paintText(text, x + dx, ty, color, stroke, smear);
+  g.restore();
+}
+/** Text with an optional horizontal smear (motion blur that follows speed). */
+function paintText(text, x, y, color, stroke = 0, smear = 0) {
+  const n = Math.abs(smear) > 2 ? 9 : 1;
+  for (let i = 0; i < n; i++) {
+    const k = n === 1 ? 0 : i / (n - 1);
+    g.globalAlpha = n === 1 ? 1 : Math.min(1, 1.8 / n);
+    if (stroke) { g.lineWidth = stroke; g.lineJoin = 'round'; g.strokeStyle = color; g.strokeText(text, x - smear * k, y); }
+    else { g.fillStyle = color; g.fillText(text, x - smear * k, y); }
+  }
+  g.globalAlpha = 1;
+}
+function fitSize(text, width, max, fam = D, weight = '') {
+  g.font = font(max, fam, weight);
+  const w = g.measureText(text).width;
+  return w > width ? Math.floor(max * width / w) : max;
+}
+const uiText = (t, text, x, y, beat, size, color = C.text, weight = 500, align = 'left', out = null) =>
+  rise(t, text, x, y, { beat, size, fam: UI, weight, color, align, out });
+
+/** A full word slamming in: from big and blurred by its speed to its place,
+ * landing with a white flash on the letters. */
+function slamWord(t, text, x, y, beat, size, color) {
+  const dt = t - B(beat);
+  if (dt < 0) return;
+  const p = spring(dt, 420, 26);
+  const sc = mix(1.45, 1, p);
+  const blur = 18 * Math.max(0, 1 - dt / 0.1);
+  const inA = clamp(dt / 0.035); // fast, but never a one-frame pop
+  g.save();
+  worldT();
+  g.globalAlpha = inA;
+  g.font = font(size);
+  const w = g.measureText(text).width;
+  const cx = x + w * 0.35, cy = y - size * 0.35;
+  g.translate(cx, cy); g.scale(sc, sc); g.translate(-cx, -cy);
+  if (blur > 0.3) g.filter = `blur(${blur}px)`;
+  g.fillStyle = color; g.fillText(text, x, y);
+  g.filter = 'none';
+  const fl = Math.exp(-dt * 14);
+  if (fl > 0.02) { g.globalAlpha = 0.85 * fl * inA; g.fillStyle = '#fff'; g.fillText(text, x, y); }
+  g.restore();
+}
+/** An empty word tracing its own outline like a neon tube, then flickering
+ * before it holds — empty, but lit. */
+function neonWord(t, text, x, y, beat, size, color) {
+  const dt = t - B(beat);
+  if (dt < 0) return;
+  const p = E.outCubic(clamp(dt / 0.42));
+  const ft = dt - 0.42;
+  const on = ft > 0 && ft < 0.3 ? (hash(Math.floor(t * 60) * 7.13 + beat) > 0.4 ? 1 : 0.4) : 1;
+  g.save();
+  worldT();
+  g.font = font(size);
+  g.lineJoin = 'round';
+  g.setLineDash([2600 * p, 2600]);
+  g.shadowColor = color; g.shadowBlur = 22 * on;
+  g.globalAlpha = on;
+  g.lineWidth = 4; g.strokeStyle = color;
+  g.strokeText(text, x, y);
+  g.restore();
+}
+/** The part of a hollow word below a liquid level, filled solid. While it
+ * fills, the surface sloshes. */
+function fillBelow(text, x, y, size, level, color, t = 0, wave = 0) {
+  g.save();
+  worldT();
+  g.font = font(size);
+  g.beginPath();
+  const x0 = x - 50, x1 = x + size * 6;
+  g.moveTo(x0, y + size);
+  for (let xx = x0; xx <= x1; xx += 10) g.lineTo(xx, level + wave * (Math.sin(xx * 0.018 + t * 9) + 0.5 * Math.sin(xx * 0.043 - t * 6)));
+  g.lineTo(x1, y + size); g.closePath(); g.clip();
+  g.fillStyle = color;
+  g.fillText(text, x, y);
+  g.lineWidth = 4; g.strokeStyle = color; g.strokeText(text, x, y);
+  g.restore();
+}
+
+/**
+ * One word turning into another letter by letter, like a split-flap: each
+ * old letter rolls up out of its slot as the new one rolls in. `beat` is
+ * when the first letter turns; the rest follow every quarter beat.
+ */
+function rollText(t, from, to, x, y, size, beat, { color = C.ink, oldColor = C.muted } = {}) {
+  g.save();
+  worldT();
+  g.font = font(size);
+  const adv = (word) => { const xs = []; let acc = 0; for (const ch of word) { xs.push(acc); acc += g.measureText(ch).width; } return xs; };
+  const xa = adv(from), xb = adv(to);
+  const asc = g.measureText('M').actualBoundingBoxAscent;
+  const travel = asc + size * 0.45;
+  for (let i = 0; i < Math.max(from.length, to.length); i++) {
+    const p = spring(t - B(beat + i * 0.25), 380, 30);
+    const lx = x + mix(xa[i] ?? xa[xa.length - 1], xb[i] ?? xb[xb.length - 1], p);
+    g.save();
+    g.beginPath(); g.rect(lx - 10, y - asc - size * 0.18, size, asc + size * 0.26); g.clip();
+    if (p < 0.97 && from[i]) { g.fillStyle = oldColor; g.fillText(from[i], lx, y - p * travel); }
+    if (to[i]) { g.fillStyle = color; g.fillText(to[i], lx, y + Math.max(0, 1 - p) * travel); }
+    g.restore();
+  }
+  g.restore();
+}
+
+// --------------------------------------------------------------- pieces
+
+/** An expanding ring where something lands. */
+function burst(t, x, y, beat, color = C.ink, r0 = 26, r1 = 120) {
+  const dt = t - B(beat);
+  if (dt < 0 || dt > 0.4) return;
+  const p = 1 - Math.exp(-dt * 9);
+  g.save();
+  worldT();
+  g.beginPath(); g.arc(x, y, mix(r0, r1, p), 0, Math.PI * 2);
+  g.strokeStyle = hexA(color, 0.9 * (1 - dt / 0.4));
+  g.lineWidth = mix(14, 2, p) * Math.min(1, dt * 30);
+  g.stroke();
+  g.restore();
+}
+/** Droplets thrown up out of a point, falling back under gravity. */
+function splash(t, x, y, beat, color) {
+  const dt = t - B(beat);
+  if (dt < 0 || dt > 0.9) return;
+  g.save();
+  worldT();
+  for (let i = 0; i < 30; i++) {
+    const ang = -Math.PI / 2 + (hash(i * 3.7) - 0.5) * 2.3;
+    const v = 420 + 720 * hash(i * 1.9);
+    const px = x + Math.cos(ang) * v * dt, py = y + Math.sin(ang) * v * dt + 1500 * dt * dt;
+    const f = 1 - dt / 0.9;
+    g.beginPath(); g.arc(px, py, (3 + 6 * hash(i * 5.1)) * f, 0, Math.PI * 2);
+    g.fillStyle = hexA(i % 4 === 0 ? '#eafff5' : color, f);
+    g.fill();
+  }
+  g.restore();
+}
+/**
+ * A macOS-style arrow with a name tag, like a multiplayer cursor: the
+ * cursors in the film are different companies. It leans into its own motion,
+ * grows on hover and dips on every click. keys: [[beat, [x, y]], ...]
+ */
+function cursorPos(t, keys) {
+  const kx = keys.map(([b, p]) => [b, p[0], 110, 21]), ky = keys.map(([b, p]) => [b, p[1], 110, 21]);
+  return [tr(t, kx), tr(t, ky)];
+}
+function cursor(t, { keys, pos = (tt) => cursorPos(tt, keys), clicks = [], hover = [], label, color, holds = [] }) {
+  if (t < B(keys[0][0]) - 0.001) return;
+  const [x, y] = pos(t);
+  const [x0] = pos(t - 1 / 60);
+  const lean = clamp((x - x0) * 60 / 2400, -0.35, 0.35);
+  let scale = 1;
+  for (const [b0, b1] of hover) scale += 0.22 * (sp(t, b0, POP) - sp(t, b1, POP));
+  for (const c of clicks) scale *= 1 - 0.16 * pulse(t, c + 0.02, 0.07);
+  for (const [b0, b1] of holds) scale *= 1 - 0.1 * (sp(t, b0, SNAP) - sp(t, b1, SNAP));
+  for (const c of clicks) burst(t, x, y, c, color, 12, 90);
+  g.save();
+  worldT();
+  g.translate(x, y);
+  g.rotate(lean);
+  g.scale(scale * 1.55, scale * 1.55);
+  g.shadowColor = 'rgba(0,0,0,0.45)'; g.shadowBlur = 14; g.shadowOffsetY = 4;
+  g.beginPath();
+  g.moveTo(0, 0); g.lineTo(0, 46); g.lineTo(12, 35); g.lineTo(21, 54);
+  g.lineTo(29, 50); g.lineTo(20, 32); g.lineTo(36, 32); g.closePath();
+  g.fillStyle = '#fff'; g.fill();
+  g.shadowColor = 'transparent';
+  g.lineWidth = 2.6; g.lineJoin = 'round'; g.strokeStyle = C.bg; g.stroke();
+  g.font = font(15, UI, 700);
+  const tw = g.measureText(label).width;
+  g.beginPath(); g.roundRect(26, 46, tw + 22, 28, 9);
+  g.fillStyle = color; g.fill();
+  g.fillStyle = C.bg; g.textBaseline = 'middle';
+  g.fillText(label, 37, 61);
+  g.restore();
+}
+function pill(x, y, h, text, { size = 26, color = C.warn, solid = false, weight = 700, spacing = 2, icon = null, scale = 1, align = 'left' } = {}) {
+  g.save();
+  worldT();
+  g.font = font(size, UI, weight);
+  g.letterSpacing = `${spacing}px`;
+  const iw = icon ? size * 1.1 : 0;
+  const w = g.measureText(text).width + size * 1.4 + iw;
+  if (align === 'center') x -= w / 2;
+  if (scale !== 1) { g.translate(x + w / 2, y + h / 2); g.scale(scale, scale); g.translate(-x - w / 2, -y - h / 2); }
+  g.beginPath(); g.roundRect(x, y, w, h, h / 2);
+  if (solid) { g.fillStyle = color; g.fill(); }
+  else { g.fillStyle = hexA(color, 0.1); g.fill(); g.lineWidth = 2.5; g.strokeStyle = color; g.stroke(); }
+  if (icon === 'warn') {
+    const ix = x + size * 0.75, iy = y + h / 2;
+    g.beginPath(); g.moveTo(ix, iy - size * 0.42); g.lineTo(ix + size * 0.46, iy + size * 0.36); g.lineTo(ix - size * 0.46, iy + size * 0.36); g.closePath();
+    g.lineWidth = 2.5; g.lineJoin = 'round'; g.strokeStyle = solid ? C.bg : color; g.stroke();
+    g.fillStyle = solid ? C.bg : color;
+    g.fillRect(ix - 1.25, iy - size * 0.14, 2.5, size * 0.26);
+    g.fillRect(ix - 1.25, iy + size * 0.17, 2.5, 2.5);
+  }
+  g.fillStyle = solid ? C.bg : color;
+  g.textBaseline = 'middle';
+  g.fillText(text, x + size * 0.7 + iw, y + h / 2 + 1);
+  g.restore();
+  return w;
+}
+function button(x, y, w, h, text, { color = C.good, size = 34, scale = 1, textColor = C.bg, outline = false } = {}) {
+  g.save();
+  worldT();
+  const cx = x + w / 2, cy = y + h / 2;
+  g.translate(cx, cy); g.scale(scale, scale); g.translate(-cx, -cy);
+  g.beginPath(); g.roundRect(x, y, w, h, Math.min(24, h / 2));
+  if (outline) { g.fillStyle = hexA(color, 0.08); g.fill(); g.lineWidth = 2.5; g.strokeStyle = color; g.stroke(); }
+  else { g.fillStyle = color; g.fill(); }
+  g.font = font(size, UI, 700);
+  g.fillStyle = outline ? color : textColor; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(text, cx, cy + 2);
+  g.restore();
+}
+/**
+ * Odometer digits: each digit rolls continuously, a higher one only while the
+ * lower one passes 9 → 0, so the price is a pure function of the value.
+ */
+function odometer(value, x, y, size, color, { prefix = '€', groups = true, unitZero = true, pad = 1 } = {}) {
+  g.save();
+  worldT();
+  g.font = font(size);
+  g.fillStyle = color;
+  g.textBaseline = 'alphabetic';
+  const dw = g.measureText('0').width;
+  const asc = g.measureText('0').actualBoundingBoxAscent;
+  let cx = x;
+  g.fillText(prefix, cx, y); cx += g.measureText(prefix).width + size * 0.02;
+  // value in tens (prices step by 10 here); the last digit is a fixed 0
+  const v = unitZero ? value / 10 : value;
+  const digits = Math.max(pad, Math.floor(Math.log10(Math.max(1, v))) + 1);
+  for (let j = digits - 1; j >= 0; j--) {
+    const p10 = 10 ** j;
+    const d = Math.floor(v / p10);
+    const frac = j === 0 ? v - Math.floor(v) : clamp((v % p10) - (p10 - 1));
+    const a = ((d % 10) + 10) % 10, b = (a + 1) % 10;
+    g.save();
+    g.beginPath(); g.rect(cx - 4, y - asc - size * 0.08, dw + 8, asc + size * 0.16); g.clip();
+    g.fillText(String(a), cx, y - frac * (asc + size * 0.12));
+    if (frac > 0) g.fillText(String(b), cx, y + (1 - frac) * (asc + size * 0.12));
+    g.restore();
+    cx += dw;
+    const totalDigits = digits + (unitZero ? 1 : 0);
+    const posFromRight = j + (unitZero ? 1 : 0);
+    if (groups && posFromRight === 3 && totalDigits > 3) { g.fillText('.', cx, y); cx += g.measureText('.').width; }
+  }
+  if (unitZero) { g.fillText('0', cx, y); cx += dw; }
+  g.restore();
+  return cx;
+}
+/** Draw fn into an offscreen copy of the frame, then composite it back with
+ * blur / dim / scale: depth of field for whatever sits behind a panel. */
+function withDepth(fn, { blur = 0, dim = 0, scale = 1, cx = W / 2, cy = H / 2 }) {
+  lg.setTransform(1, 0, 0, 1, 0, 0);
+  lg.clearRect(0, 0, W, H);
+  lg.drawImage(canvas, 0, 0);
+  const prev = g; g = lg;
+  fn();
+  g = prev;
+  g.save();
+  screenT();
+  g.filter = blur > 0.05 ? `blur(${blur}px)` : 'none';
+  const [sx, sy] = toScreen(cx, cy);
+  g.translate(sx, sy); g.scale(scale, scale); g.translate(-sx, -sy);
+  g.drawImage(layer, 0, 0);
+  g.filter = 'none';
+  g.restore();
+  if (dim > 0) {
+    g.save(); screenT();
+    g.fillStyle = `rgba(3,5,10,${dim})`;
+    g.fillRect(0, 0, W, H);
+    g.restore();
+  }
+}
+
+// ================================================================== the film
+//
+// "Ein Punkt." Alone it is a dot, connected it is a network.
+
+const DUR_ = B(BEATS);
+const HUB = [540, 1150];
+// the dots: a jittered 8 × 8 grid under the headline area
+const NODES = (() => {
+  const out = [];
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const i = r * 8 + c;
+    out.push([90 + (c + 0.5) * 112.5 + (hash(i * 3.1) - 0.5) * 70, 640 + (r + 0.5) * 130 + (hash(i * 7.7) - 0.5) * 80]);
+  }
+  return out;
+})();
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+const HUB_I = NODES.reduce((bi, p, i) => (dist(p, HUB) < dist(NODES[bi], HUB) ? i : bi), 0);
+NODES[HUB_I] = [...HUB];
+// each node to its two nearest
+const EDGES = (() => {
+  const set = new Set(), out = [];
+  NODES.forEach((p, i) => {
+    NODES.map((q, j) => [dist(p, q), j]).filter(([, j]) => j !== i).sort((a, b) => a[0] - b[0]).slice(0, 2).forEach(([, j]) => {
+      const k = i < j ? `${i}-${j}` : `${j}-${i}`;
+      if (!set.has(k)) { set.add(k); out.push([Math.min(i, j), Math.max(i, j)]); }
+    });
+  });
+  return out;
+})();
+// hops from the hub, for fills that spread outwards
+const HOPS = (() => {
+  const h = NODES.map(() => Infinity); h[HUB_I] = 0;
+  const q = [HUB_I];
+  while (q.length) { const i = q.shift(); for (const [a, b] of EDGES) { const j = a === i ? b : b === i ? a : -1; if (j >= 0 && h[j] === Infinity) { h[j] = h[i] + 1; q.push(j); } } }
+  return h.map((v) => (v === Infinity ? 9 : v));
+})();
+const MAXHOP = Math.max(...HOPS);
+const PARTNERS = NODES.map((p, i) => [dist(p, HUB), i]).filter(([, i]) => i !== HUB_I).sort((a, b) => a[0] - b[0]).slice(0, 5).map(([, i]) => i);
+
+// the old way twitches; the twitch is periodic over the film, so it loops
+const jitAmp = (t) => (t < B(EV.freeze) ? 1 : E.inOutCubic(ramp(t, EV.shatter + 0.3, BEATS)));
+function jitter(i, t) {
+  const tt = t < B(EV.freeze) ? t : t > B(EV.shatter) ? t : B(EV.freeze);
+  const w = (2 * Math.PI) / DUR_;
+  return [11 * Math.sin(w * (60 + (i % 7)) * tt + i * 7.1), 11 * Math.cos(w * (53 + (i % 5)) * tt + i * 3.3)];
+}
+
+/** Where node i is at time t, and how cyan (0 grey .. 1 brand). */
+function nodeAt(i, t) {
+  const p = NODES[i], a = jitAmp(t), [jx, jy] = jitter(i, t);
+  const base = [p[0] + jx * a, p[1] + jy * a];
+  // in the break: into the dot, nearer ones first
+  const d = dist(p, HUB) / 900;
+  const inP = clamp(spring(t - B(EV.collapse + d * 0.5), 140, 20));
+  // on the drop: out again, onto the grid, nearer ones first
+  const outP = clamp(spring(t - B(EV.drop + d * 0.6), 120, 18));
+  // the brand: into the dot again, and at the very end out to the old places
+  const cP = clamp(spring(t - B(EV.converge + d * 0.3), 150, 21));
+  const sP = clamp(spring(t - B(EV.shatter + d * 0.25), 110, 19));
+  let x = mix(mix(base[0], HUB[0], inP), p[0], outP), y = mix(mix(base[1], HUB[1], inP), p[1], outP);
+  x = mix(mix(x, LOGO.dotX, cP), base[0], sP); y = mix(mix(y, LOGO.y, cP), base[1], sP);
+  const cyan = clamp(inP - sP);
+  return { x, y, cyan, gone: (inP > 0.985 && outP < 0.015) || (cP > 0.985 && sP < 0.015) };
+}
+
+const LOGO = (() => {
+  g.font = font(196);
+  const tw = g.measureText(BRAND.name).width;
+  const x0 = W / 2 - (52 + 34 + tw) / 2;
+  return { dotX: x0 + 26, textX: x0 + 52 + 34, tw, y: 1000, base: 1000 + 196 * 0.35, size: 196 };
+})();
+
+// ---- the words
+const WSIZE = fitSize('TELEFON.', 940 - 72, 300);
+const OLD = [['TELEFON.', EV.w1, C.ink], ['EXCEL.', EV.w2, C.ink], ['FAX.', EV.w3, C.ink], ['MAILS.', EV.w4, C.ink], ['WARTEN.', EV.w5, C.warn]];
+function oldWords(t) {
+  OLD.forEach(([text, b, col], i) => {
+    const next = i < OLD.length - 1 ? OLD[i + 1][1] : EV.collapse;
+    if (t < B(b) || t > B(next) + 0.6) return;
+    if (t < B(b) + 0.4) slamWord(t, text, 72, 1060, b, WSIZE, col);
+    else rise(t, text, 72, 1060, { beat: b, size: WSIZE, color: col, out: next - 0.04 });
+  });
+}
+function heads(t) {
+  const L1 = 400, L2 = 560, S = 180;
+  const pair = (a, b, beat, out, ca = C.ink, cb = C.accent, slam = true) => {
+    for (const [text, y, bb, col] of [[a, L1, beat, ca], [b, L2, beat + 0.25, cb]]) {
+      if (slam && t < B(bb) + 0.4) slamWord(t, text, 72, y, bb, S, col);
+      else rise(t, text, 72, y, { beat: bb, size: S, color: col, out: out + (y === L2 ? 0.05 : 0) });
+    }
+  };
+  // the break: empty, but lit
+  if (t >= B(EV.neon) && t < B(EV.drop)) { neonWord(t, 'DAS GEHT', 72, L1, EV.neon, S, C.accent); neonWord(t, 'BESSER.', 72, L2, EV.neon + 0.35, S, C.accent); }
+  if (t >= B(EV.drop)) {
+    rise(t, 'DAS GEHT', 72, L1, { beat: EV.neon, size: S, color: C.accent, stroke: 4, out: EV.drop - 0.02 });
+    rise(t, 'BESSER.', 72, L2, { beat: EV.neon, size: S, color: C.accent, stroke: 4, out: EV.drop });
+  }
+  pair('WIR BAUEN', 'DAS NETZ.', EV.headNet, EV.partners - 0.25);
+  pair('ERST DEIN', 'NETZWERK.', EV.partners, EV.empty - 0.25);
+  pair('LEER', 'WIRD VOLL.', EV.empty, EV.modes - 0.25, C.warn, C.good);
+  pair('VIER WEGE.', 'EIN ORT.', EV.modes, EV.converge);
+}
+
+// ---- the network
+function network(t) {
+  if (t < B(EV.freeze) || t > B(EV.shatter)) return chaos(t);
+  const P = NODES.map((_, i) => nodeAt(i, t));
+  const netOn = t > B(EV.drop);
+  const partnerP = clamp(sp(t, EV.partners, POP) - sp(t, EV.empty - 0.2, SNAP));
+  const emptyP = clamp(sp(t, EV.empty, SNAP) - sp(t, EV.modes - 0.1, SNAP));
+  const front = E.inOutCubic(ramp(t, EV.fill, EV.fill + 3)) * (MAXHOP + 1);
+  const modesP = clamp(sp(t, EV.modes, SNAP) - sp(t, EV.converge, SNAP));
+  g.save(); worldT(); g.lineCap = 'round';
+  if (netOn) {
+    for (const [a, b] of EDGES) {
+      const pa = P[a], pb = P[b];
+      if (pa.gone && pb.gone) continue;
+      const isP = PARTNERS.includes(a) && b === HUB_I || PARTNERS.includes(b) && a === HUB_I;
+      const base = 0.35 * (1 - 0.6 * partnerP * (isP ? 0 : 1)) * (1 - 0.65 * modesP);
+      if (emptyP > 0.01) {
+        // hollow: two thin amber walls; filled green from the hub outwards
+        const f = clamp(front - Math.min(HOPS[a], HOPS[b]));
+        const nx = -(pb.y - pa.y), ny = pb.x - pa.x, nl = Math.hypot(nx, ny) || 1;
+        g.globalAlpha = emptyP;
+        g.strokeStyle = C.warn; g.lineWidth = 2;
+        for (const o of [-5, 5]) { g.beginPath(); g.moveTo(pa.x + nx / nl * o, pa.y + ny / nl * o); g.lineTo(pb.x + nx / nl * o, pb.y + ny / nl * o); g.stroke(); }
+        if (f > 0) {
+          const [s, e] = HOPS[a] <= HOPS[b] ? [pa, pb] : [pb, pa];
+          g.strokeStyle = C.good; g.lineWidth = 12;
+          g.beginPath(); g.moveTo(s.x, s.y); g.lineTo(mix(s.x, e.x, f), mix(s.y, e.y, f)); g.stroke();
+        }
+        g.globalAlpha = 1;
+      }
+      if (emptyP < 0.99) {
+        g.globalAlpha = 1 - emptyP;
+        g.strokeStyle = isP && partnerP > 0 ? hexA(C.accent, mix(base, 1, partnerP)) : hexA(C.accent, base);
+        g.lineWidth = isP ? mix(3, 9, partnerP) : 3;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke();
+        // freight moving along it
+        g.setLineDash([10, 70]); g.lineDashOffset = -t * 160 - a * 13;
+        g.strokeStyle = hexA(C.ink, 0.5 * base); g.lineWidth = 3;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke(); g.setLineDash([]);
+        g.globalAlpha = 1;
+      }
+    }
+  }
+  // the nodes
+  P.forEach((p, i) => {
+    if (p.gone) return;
+    const isP = PARTNERS.includes(i);
+    let r = mix(7, 10, p.cyan), col = p.cyan > 0.5 ? C.accent : C.dim;
+    if (netOn) { r = 9; col = C.ink; }
+    if (isP && partnerP > 0) { r = mix(9, 20, partnerP); col = C.accent; }
+    const dimmed = netOn ? 1 - 0.55 * partnerP * (isP || i === HUB_I ? 0 : 1) - 0.6 * modesP * (i === HUB_I ? 0 : 1) : 1;
+    g.globalAlpha = dimmed;
+    if (isP && partnerP > 0.3) { g.shadowColor = C.accent; g.shadowBlur = 20 * partnerP; }
+    g.beginPath(); g.arc(p.x, p.y, r, 0, Math.PI * 2); g.fillStyle = col; g.fill();
+    g.shadowBlur = 0; g.globalAlpha = 1;
+  });
+  g.restore();
+  modes(t, modesP);
+  theDot(t);
+}
+
+// the old way: grey dots that twitch, wires that flicker, calls that ring
+function chaos(t) {
+  const P = NODES.map((_, i) => nodeAt(i, t));
+  const k = Math.floor(t / B(0.5));
+  g.save(); worldT(); g.lineCap = 'round';
+  EDGES.forEach(([a, b], e) => {
+    if (hash(e * 1.7 + k * 9.3) > 0.35) return;
+    g.strokeStyle = hexA(C.muted, 0.4); g.lineWidth = 2.5;
+    g.beginPath(); g.moveTo(P[a].x, P[a].y); g.lineTo(P[b].x, P[b].y); g.stroke();
+  });
+  P.forEach((p, i) => { g.beginPath(); g.arc(p.x, p.y, mix(9, 10, p.cyan), 0, Math.PI * 2); g.fillStyle = p.cyan > 0.5 ? C.accent : C.muted; g.fill(); });
+  g.restore();
+  // a call rings somewhere on every beat
+  for (let b = 0; b < EV.freeze; b++) { const i = Math.floor(hash(b * 5.3) * 64); burst(t, NODES[i][0], NODES[i][1], b, C.muted, 10, 70); }
+}
+
+// the one dot: in the break, and as the brand
+function theDot(t) {
+  const born = sp(t, EV.dot, [420, 20]) * (1 - sp(t, EV.drop, SNAP));
+  if (born > 0.01) {
+    const ph = ((t - B(EV.dot)) / B(1)) % 1;
+    const breathe = 1 + 0.12 * Math.exp(-ph * 4);
+    // charging: a ring closes in on it before the drop
+    const ch = ramp(t, EV.drop - 1.5, EV.drop);
+    g.save(); worldT();
+    if (ch > 0 && ch < 1) { g.strokeStyle = hexA(C.accent, 0.6 * ch); g.lineWidth = 3; g.beginPath(); g.arc(HUB[0], HUB[1], mix(420, 30, E.inCubic(ch)), 0, Math.PI * 2); g.stroke(); }
+    g.shadowColor = C.accent; g.shadowBlur = 40;
+    g.beginPath(); g.arc(HUB[0], HUB[1], 26 * born * breathe, 0, Math.PI * 2); g.fillStyle = C.accent; g.fill();
+    g.restore();
+  }
+  // the hub: "DU" in the middle of your network
+  const hubP = clamp(sp(t, EV.partners, POP) - sp(t, EV.empty - 0.2, SNAP));
+  if (hubP > 0.01) {
+    glass(HUB[0] - 70 * hubP, HUB[1] - 70 * hubP, 140 * hubP, 140 * hubP, 70 * hubP, { blur: 20, tint: 0.09 });
+    g.save(); worldT(); g.strokeStyle = C.accent; g.lineWidth = 4; g.beginPath(); g.arc(HUB[0], HUB[1], 70 * hubP, 0, Math.PI * 2); g.stroke(); g.restore();
+    rise(t, 'DU', HUB[0], HUB[1] + 30, { beat: EV.partners + 0.1, size: 84, color: C.ink, align: 'center', out: EV.empty - 0.25 });
+  }
+}
+
+// four ways out of one place
+const MODES = [
+  { name: 'STRASSE', to: [150, 760], kind: 'road' },
+  { name: 'SCHIENE', to: [930, 760], kind: 'rail' },
+  { name: 'SEE', to: [150, 1620], kind: 'sea' },
+  { name: 'LUFT', to: [930, 1620], kind: 'air' },
+];
+function modes(t, mp) {
+  if (mp <= 0.01) return;
+  MODES.forEach((m, i) => {
+    const grow = E.outCubic(ramp(t, EV.modes + i * 0.2, EV.modes + i * 0.2 + 0.8)) * mp;
+    if (grow <= 0) return;
+    const [x0, y0] = HUB, [x1, y1] = m.to;
+    const pt = (u) => {
+      let x = mix(x0, x1, u), y = mix(y0, y1, u);
+      const nx = -(y1 - y0), ny = x1 - x0, nl = Math.hypot(nx, ny);
+      if (m.kind === 'sea') { const o = 18 * Math.sin(u * Math.PI * 6); x += nx / nl * o; y += ny / nl * o; }
+      if (m.kind === 'air') { const o = -160 * Math.sin(u * Math.PI); x += nx / nl * o; y += ny / nl * o; }
+      return [x, y];
+    };
+    g.save(); worldT(); g.lineCap = 'round';
+    g.strokeStyle = C.accent; g.lineWidth = m.kind === 'road' ? 10 : 5;
+    if (m.kind === 'air') g.setLineDash([2, 18]);
+    g.beginPath();
+    for (let s = 0; s <= 60; s++) { const [x, y] = pt((s / 60) * grow); if (s) g.lineTo(x, y); else g.moveTo(x, y); }
+    g.stroke(); g.setLineDash([]);
+    if (m.kind === 'rail') {
+      // sleepers
+      for (let s = 1; s < 14; s++) {
+        const u = s / 14; if (u > grow) break;
+        const [x, y] = pt(u), nx = -(y1 - y0), ny = x1 - x0, nl = Math.hypot(nx, ny);
+        g.lineWidth = 4; g.beginPath(); g.moveTo(x - nx / nl * 14, y - ny / nl * 14); g.lineTo(x + nx / nl * 14, y + ny / nl * 14); g.stroke();
+      }
+    }
+    g.restore();
+    // freight runs out along it
+    const run = ((t - B(EV.modes + 0.8 + i * 0.2)) / B(2)) % 1;
+    if (t > B(EV.modes + 0.8 + i * 0.2) && grow > 0.99) { const [cx, cy] = pt(E.inOutSine(run)); comet(cx, cy, C.accent, 0.6); }
+    if (grow > 0.7) pill(x1, y1 + (y1 < 1000 ? -80 : 30), 54, m.name, { size: 24, color: C.accent, align: 'center', scale: sp(t, EV.modes + i * 0.2 + 0.6, POP) * mp });
+  });
+}
+
+// ---- the brand
+function brand(t) {
+  const p = spring(t - B(EV.wordmark), 200, 26) * (1 - E.inCubic(ramp(t, EV.retract, EV.retract + 0.7)));
+  const dotX = mix(W / 2, LOGO.dotX, p);
+  const dotOn = sp(t, EV.converge + 0.6, [420, 22]) * (1 - sp(t, EV.shatter, SNAP));
+  if (p > 0.002) {
+    g.save(); worldT();
+    g.beginPath(); g.rect(dotX + 22, LOGO.y - 300, 1200, 600); g.clip();
+    g.font = font(LOGO.size); g.textBaseline = 'alphabetic';
+    paintText(BRAND.name, mix(dotX + 34 - LOGO.tw - 120, LOGO.textX, p), LOGO.base, C.ink);
+    g.restore();
+  }
+  if (dotOn > 0.01) {
+    const x = mix(LOGO.dotX, dotX, clamp(sp(t, EV.wordmark - 0.1, SNAP)));
+    g.save(); worldT(); g.shadowColor = C.accent; g.shadowBlur = 30;
+    g.beginPath(); g.arc(t < B(EV.wordmark) ? LOGO.dotX : dotX, LOGO.y, 26 * dotOn, 0, Math.PI * 2); g.fillStyle = C.accent; g.fill();
+    g.restore();
+  }
+  rise(t, BRAND.claim, W / 2, LOGO.y + 210, { beat: EV.claim, size: 50, fam: UI, weight: 600, color: C.ink, align: 'center', out: EV.retract });
+  rise(t, BRAND.url, W / 2, LOGO.y + 300, { beat: EV.url, size: 38, fam: UI, weight: 600, color: C.muted, align: 'center', out: EV.retract + 0.05, spacing: 2 });
+}
+
+const SCENES = {
+  all(t) {
+    network(t);
+    oldWords(t);
+    heads(t);
+    brand(t);
+    flash(HUB[0], HUB[1], C.accent, 0.9 * hit(t, EV.dot, 6), 380);
+    flash(HUB[0], HUB[1], C.accent, 1.0 * hit(t, EV.drop, 5), 900);
+    flash(W / 2, LOGO.y, C.accent, 0.7 * hit(t, EV.wordmark, 6), 500);
+    burst(t, HUB[0], HUB[1], EV.drop, C.ink, 30, 260);
+  },
+};
+
+// ---- post effects on the finished frame: shockwaves at world points, colour split
+const SHOCKS = () => [
+  { beat: EV.dot, at: HUB, r0: 20, r1: 500, dur: 0.5, width: 50, strength: 0.5 },
+  { beat: EV.drop, at: HUB, r0: 30, r1: 1700, dur: 0.85, width: 90, strength: 0.7 },
+  { beat: EV.partners, at: HUB, r0: 40, r1: 900, dur: 0.6, width: 60, strength: 0.5 },
+  { beat: EV.fill, at: HUB, r0: 40, r1: 1100, dur: 0.7, width: 70, strength: 0.5 },
+  { beat: EV.modes, at: HUB, r0: 40, r1: 1100, dur: 0.7, width: 70, strength: 0.5 },
+  { beat: EV.wordmark, at: [W / 2, LOGO.y], r0: 30, r1: 1300, dur: 0.7, width: 80, strength: 0.6 },
+];
+const SPLITS = [[EV.drop, 10], [EV.w5, 4], [EV.wordmark, 6]]; // [beat, px] colour split on the hardest hits
+
+function postFX(t) {
+  for (const w of SHOCKS()) {
+    const dt = t - B(w.beat);
+    if (dt <= 0 || dt > w.dur) continue;
+    const p = dt / w.dur;
+    const [sx, sy] = toScreen(...w.at);
+    shockwave(sx, sy, mix(w.r0, w.r1, E.outCubic(p)) * cam.s, w.width * cam.s, w.strength * (1 - p) * Math.min(1, dt / 0.03));
+  }
+  const a = camAt(t), b = camAt(t - 1 / 240);
+  const v = Math.abs(a.cy - b.cy) * a.s * 4;
+  const whip = clamp((v - 30) / 12, 0, 9);
+  const hits = SPLITS.reduce((acc, [beat, px]) => acc + px * hit(t, beat, 9), 0);
+  if (whip > hits) rgbSplit(whip, [0, 1]); else rgbSplit(hits, [1, 0]);
+}
+
+// -------------------------------------------------------------------- seek
+
+window.seek = (t) => {
+  g = main;
+  main.setTransform(1, 0, 0, 1, 0, 0);
+  main.globalAlpha = 1;
+  main.filter = 'none';
+  cam = camAt(t);
+  background(t);
+  const beat = t / B(1);
+  const shot = SHOTS.find((s) => beat >= s.from && beat < s.to) ?? SHOTS[SHOTS.length - 1];
+  SCENES[shot.id](t);
+  finish();
+  postFX(t);
+  speedLines(t);
+  cameraSmear(t);
+};
+
+window.DUR = DUR;
+window.BPM = BPM;
+window.seek(0);
+window.__resolveReady();
+</script>
+</body>
+</html>

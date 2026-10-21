@@ -1,0 +1,6 @@
+# renders, stems, review frames and the downloaded sound effects — all regenerable
+out/
+node_modules/
+
+# the film carries the TikTok sound by uzan.x: delivered, never committed
+dist/*uzan*
