@@ -558,7 +558,7 @@ S.whoosh(sec(EV.collapse) + 0.5, { pre: 0.5, post: 0.1, lo: 4000, hi: 300, gain:
 S.implode(EV.dot, 0.6, 0.9);
 S.word(EV.neon, 'hollow', 0, 0.5); S.word(EV.neon + 0.35, 'hollow', 0, 0.5);
 S.riser(EV.drop - 1.5, EV.drop - 0.05, 0.5);
-S.impact(EV.drop, 1.3, 0);
+S.impact(EV.drop, 1.6, 0);
 S.shimmer(EV.drop + 0.1, 0.7);
 S.word(EV.headNet, 'solid', -0.3, 0.4); S.word(EV.headNet + 0.25, 'solid', -0.3, 0.4);
 S.word(EV.partners, 'solid', -0.3, 0.4); S.word(EV.partners + 0.25, 'solid', -0.3, 0.4);
@@ -640,7 +640,7 @@ for (const b of [EV.w1, EV.w2, EV.w3, EV.w4]) rec('fastBlow', bt(b), { gain: 0.4
 rec('buzzGlitch', bt(EV.w5) + 0.42, { gain: 0.5, pan: 0.3 });
 rec('spaceImpact', bt(EV.dot), { gain: 0.6, reverse: true, pre: 1.2 });
 rec('buzzGlitch', bt(EV.neon) + 0.42, { gain: 0.4 });
-rec('trailerImpact', bt(EV.drop), { gain: 1.3, pre: 1.0 });
+rec('trailerImpact', bt(EV.drop), { gain: 1.75, pre: 1.0 });
 rec('subHit', bt(EV.drop), { gain: 0.6, align: 'start' });
 rec('optionSelect', bt(EV.partners + 0.3), { gain: 0.4, align: 'start' });
 rec('deepBubbles', bt(EV.fill), { gain: 0.35, align: 'start', len: bt(EV.fill + 3) - bt(EV.fill) });

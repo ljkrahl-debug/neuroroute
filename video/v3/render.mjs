@@ -12,7 +12,7 @@
 // the segments are joined without re-encoding.
 import { chromium } from 'playwright';
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, renameSync } from 'node:fs';
 import { BEATS, BPM } from './cues.mjs';
 
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
@@ -65,7 +65,10 @@ async function segment(w, f0, f1) {
     '-vf', vf, '-r', String(FPS), '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', out],
     { stdio: ['pipe', 'inherit', 'inherit'] });
   const t0 = performance.now();
-  for (let f = f0; f < f1; f++) {
+  // one frame more than the segment keeps: the last frame of an encode comes
+  // out wrong (a single-frame jump at every segment join), so it is rendered
+  // and cut off below
+  for (let f = f0; f <= f1; f++) {
     for (let k = 0; k < SUB; k++) {
       const png = await frame(Math.max(0, subTime(f, k)));
       if (!ff.stdin.write(png)) await new Promise((r) => ff.stdin.once('drain', r));
@@ -77,6 +80,8 @@ async function segment(w, f0, f1) {
   }
   ff.stdin.end();
   await new Promise((r) => ff.on('close', r));
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', out, '-c', 'copy', '-frames:v', String(f1 - f0), out.replace('.mp4', '-cut.mp4')]);
+  renameSync(out.replace('.mp4', '-cut.mp4'), out);
   await browser.close();
   if (errors.length) throw new Error(`worker ${w} page errors:\n  ${errors.join('\n  ')}`);
   return out;
