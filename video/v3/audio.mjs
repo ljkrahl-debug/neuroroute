@@ -565,8 +565,8 @@ S.word(EV.partners, 'solid', -0.3, 0.4); S.word(EV.partners + 0.25, 'solid', -0.
 [0, 1, 2, 3, 4].forEach((k) => S.ping(EV.partners + 0.3 + k * 0.08, [81, 84, 88, 91, 93][k], 0.5, -0.5 + k * 0.25));
 S.word(EV.empty, 'hollow', -0.3, 0.5); S.word(EV.empty + 0.25, 'solid', -0.3, 0.4);
 S.pour(EV.fill, EV.fill + 3, E.inOutCubic, { from: 0, to: 1, gain: 0.6, pan: 0 });
-S.word(EV.modes, 'solid', -0.3, 0.4); S.word(EV.modes + 0.25, 'solid', -0.3, 0.4);
-[0, 1, 2, 3].forEach((k) => S.whoosh(sec(EV.modes + k * 0.2) + 0.3, { pre: 0.25, post: 0.2, lo: 500, hi: 3500, gain: 0.35, panFrom: 0, panTo: k % 2 ? 0.7 : -0.7 }));
+S.word(EV.modes, 'solid', -0.3, 0.25); S.word(EV.modes + 0.25, 'solid', -0.3, 0.25);
+[0, 1, 2, 3].forEach((k) => S.whoosh(sec(EV.modes + k * 0.2) + 0.3, { pre: 0.25, post: 0.2, lo: 500, hi: 3500, gain: 0.18, panFrom: 0, panTo: k % 2 ? 0.7 : -0.7 }));
 S.implode(EV.converge + 0.6, 0.5, 0.8);
 S.impact(EV.wordmark, 0.8, 0); S.shimmer(EV.wordmark, 1.0);
 S.word(EV.claim, 'solid', 0, 0.3);
@@ -644,7 +644,7 @@ rec('trailerImpact', bt(EV.drop), { gain: 1.75, pre: 1.0 });
 rec('subHit', bt(EV.drop), { gain: 0.6, align: 'start' });
 rec('optionSelect', bt(EV.partners + 0.3), { gain: 0.4, align: 'start' });
 rec('deepBubbles', bt(EV.fill), { gain: 0.35, align: 'start', len: bt(EV.fill + 3) - bt(EV.fill) });
-rec('energyFlow', bt(EV.modes + 0.5), { gain: 0.3 });
+rec('energyFlow', bt(EV.modes + 0.5), { gain: 0.12 });
 rec('logoImpact', bt(EV.wordmark), { gain: 0.8, pre: 1.0 });
 rec('glitterShot', bt(EV.wordmark + 1.0), { gain: 0.3 });
 
